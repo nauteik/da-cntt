@@ -1,0 +1,84 @@
+package com.example.backend.model.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Address entity for storing standardized addresses
+ */
+@Entity
+@Table(name = "address")
+@Data
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
+@NoArgsConstructor
+@ToString(exclude = {"organization"})
+public class Address extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    @JsonIgnore
+    private Organization organization;
+
+    @Column(name = "line1", nullable = false)
+    private String line1;
+
+    @Column(name = "line2")
+    private String line2;
+
+    @Column(name = "city", nullable = false)
+    private String city;
+
+    @Column(name = "state", nullable = false)
+    private String state;
+
+    @Column(name = "postal_code", nullable = false)
+    private String postalCode;
+
+    @Column(name = "country", nullable = false)
+    private String country = "USA";
+
+    @Column(name = "latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "meta", columnDefinition = "jsonb")
+    private Map<String, Object> meta = new HashMap<>();
+
+    public Address(Organization organization, String line1, String city, String state, String postalCode) {
+        this.organization = organization;
+        this.line1 = line1;
+        this.city = city;
+        this.state = state;
+        this.postalCode = postalCode;
+    }
+
+    public String getFullAddress() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(line1);
+        if (line2 != null && !line2.trim().isEmpty()) {
+            sb.append(", ").append(line2);
+        }
+        sb.append(", ").append(city)
+          .append(", ").append(state)
+          .append(" ").append(postalCode);
+        return sb.toString();
+    }
+
+    public boolean hasCoordinates() {
+        return latitude != null && longitude != null;
+    }
+}
+

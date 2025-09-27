@@ -1,0 +1,133 @@
+/* Utility Classes Module */
+
+/* Enhanced Input Styles */
+.inputEnhanced {
+  border-radius: 0.75rem;
+  border: 2px solid var(--border-color);
+  transition: all 0.2s ease;
+  background: var(--bg-surface);
+}
+
+.inputEnhanced:hover {
+  border-color: var(--accent);
+}
+
+.inputEnhanced:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 179, 204, 0.1);
+}
+
+/* Glassmorphism Effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+:global(.dark) .glass {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Text Utilities */
+.textPrimary {
+  color: var(--text-primary);
+}
+
+.textSecondary {
+  color: var(--text-secondary);
+}
+
+.textAccent {
+  color: var(--accent);
+}
+
+/* Background Utilities */
+.bgPrimary {
+  background-color: var(--bg-primary);
+}
+
+.bgSurface {
+  background-color: var(--bg-surface);
+}
+
+/* Border Utilities */
+.borderTheme {
+  border-color: var(--border-color);
+}
+
+/* Link Styles */
+.link {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* Alert/Notification Styles */
+.alert {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--bg-surface);
+  border-left: 4px solid var(--accent);
+}
+
+.alertInfo {
+  border-left-color: var(--primary);
+}
+
+/* Navigation Styles */
+.navItem {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.navItem:hover,
+.navItemActive {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Heading Styles */
+.headingPrimary {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.headingSecondary {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Spacing utilities */
+.spaceY1 > * + * {
+  margin-top: 0.25rem;
+}
+
+.spaceY2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.spaceY4 > * + * {
+  margin-top: 1rem;
+}
+
+.spaceY6 > * + * {
+  margin-top: 1.5rem;
+}

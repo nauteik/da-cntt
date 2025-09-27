@@ -1,0 +1,87 @@
+/* Button Components Module */
+
+.btnPrimary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btnPrimary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btnPrimary:focus {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.btnSecondary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  background-color: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btnSecondary:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btnAccent {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btnAccent:hover {
+  filter: brightness(1.1);
+}
+
+.btnGradient {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border: none;
+  color: white;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 119, 204, 0.3);
+  cursor: pointer;
+}
+
+.btnGradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 119, 204, 0.4);
+  filter: brightness(1.1);
+}
+
+.btnGradient:active {
+  transform: translateY(0);
+}
+
+/* Button sizes */
+.btnSmall {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.btnLarge {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.125rem;
+}

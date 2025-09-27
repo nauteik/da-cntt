@@ -1,0 +1,133 @@
+package com.example.backend.model.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Patient entity for patient records
+ */
+@Entity
+@Table(name = "patient", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"organization_id", "mrn"})
+})
+@Data
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
+@NoArgsConstructor
+@ToString(exclude = {"organization", "office", "address", "contacts", "providers", "residenceStays", "isps"})
+public class Patient extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    @JsonIgnore
+    private Organization organization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "office_id", nullable = false)
+    @JsonIgnore
+    private Office office;
+
+    @Column(name = "mrn")
+    private String mrn; // Medical Record Number
+
+    @Column(name = "first_name", nullable = false)
+    private String firstName;
+
+    @Column(name = "last_name", nullable = false)
+    private String lastName;
+
+    @Column(name = "dob")
+    private LocalDate dob;
+
+    @Column(name = "gender")
+    private String gender;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "address_id")
+    private Address address;
+
+    @Column(name = "primary_language")
+    private String primaryLanguage;
+
+    @Column(name = "guardian_name")
+    private String guardianName;
+
+    @Column(name = "guardian_phone")
+    private String guardianPhone;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "medical_profile", columnDefinition = "jsonb")
+    private Map<String, Object> medicalProfile = new HashMap<>();
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    // Relationships
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PatientContact> contacts = new HashSet<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PatientProvider> providers = new HashSet<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ResidenceStay> residenceStays = new HashSet<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ISP> isps = new HashSet<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<MedicationOrder> medicationOrders = new HashSet<>();
+
+    public Patient(Organization organization, Office office, String firstName, String lastName) {
+        this.organization = organization;
+        this.office = office;
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+
+    // Helper methods
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public void markAsDeleted() {
+        this.deletedAt = LocalDateTime.now();
+        this.isActive = false;
+    }
+
+    public boolean isActivePatient() {
+        return Boolean.TRUE.equals(isActive) && !isDeleted();
+    }
+
+    public int getAge() {
+        if (dob == null) return 0;
+        return LocalDate.now().getYear() - dob.getYear();
+    }
+
+    public PatientContact getPrimaryContact() {
+        return contacts.stream()
+                .filter(contact -> Boolean.TRUE.equals(contact.getIsPrimary()))
+                .findFirst()
+                .orElse(null);
+    }
+}
+

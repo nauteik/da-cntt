@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: backend
+
+  # Database Configuration - only these use environment variables
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    
+    # Connection Pool - fixed values
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA/Hibernate - fixed configuration
+  jpa:
+    database-platform: org.hibernate.spatial.dialect.postgis.PostgisPG95Dialect
+    hibernate:
+      ddl-auto: validate # validate thay vì update giữ data consistency cho production.
+    show-sql: false
+    properties:
+      hibernate:
+        '[format_sql]': false
+        jdbc:
+          lob:
+            '[non_contextual_creation]': true
+        spatial:
+          '[connection_finder]': org.hibernate.spatial.dialect.postgis.PostgisConnectionFinder
+
+  # Jackson Configuration - fixed
+  jackson:
+    default-property-inclusion: NON_NULL
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
+  # Web Configuration - fixed
+  web:
+    resources:
+      add-mappings: false
+
+# Server Configuration - use environment variable
+server:
+  port: ${SERVER_PORT}
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+
+# Logging Configuration - fixed values
+logging:
+  level:
+    '[com.example.backend]': INFO
+    '[org.springframework.web]': DEBUG
+    '[org.springframework.security]': DEBUG
+    '[org.hibernate.SQL]': DEBUG
+    '[org.hibernate.type.descriptor.sql.BasicBinder]': TRACE
+
+# Management endpoints - fixed configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Application Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySecretKeyThatIsAtLeast32CharactersLong123456}
+    expiration: ${JWT_EXPIRATION:86400} # 24 hours in seconds

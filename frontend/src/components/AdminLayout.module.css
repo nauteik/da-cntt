@@ -1,0 +1,213 @@
+/* AdminLayout Specific Styles */
+
+/* Sidebar Styling */
+.sidebar {
+  overflow: auto !important;
+  height: 100vh !important;
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+}
+
+.sidebarLight {
+  background: white !important;
+  border-right: 1px solid #e5e7eb !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.sidebarDark {
+  background: var(--bg-surface) !important;
+  border-right: 1px solid var(--border-color) !important;
+}
+
+/* Brand Header */
+.brandHeader {
+  padding: 1rem;
+  text-align: center;
+}
+
+.brandHeaderLight {
+  color: #374151;
+}
+
+.brandHeaderDark {
+  color: var(--text-primary);
+}
+
+.brandTitle {
+  margin: 0 !important;
+}
+
+.brandTitleLight {
+  color: #0077CC !important;
+}
+
+.brandTitleDark {
+  color: var(--primary) !important;
+}
+
+.brandSubtitle {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.brandSubtitleLight {
+  color: #6b7280;
+}
+
+.brandSubtitleDark {
+  color: var(--text-secondary);
+}
+
+/* Menu Styling */
+.menuLight {
+  border-right: 0;
+}
+
+.menuDark {
+  background: var(--bg-surface) !important;
+}
+
+/* Light Mode Menu Items */
+:global(.ant-menu-light .ant-menu-item-selected) {
+  background-color: #e6f4ff !important;
+  border-right: 3px solid var(--primary) !important;
+  border-radius: 0 !important;
+}
+
+:global(.ant-menu-light .ant-menu-item-selected .ant-menu-item-icon) {
+  color: var(--primary) !important;
+}
+
+:global(.ant-menu-light .ant-menu-item-selected span) {
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+}
+
+:global(.ant-menu-light .ant-menu-item:hover) {
+  background-color: #f0f8ff !important;
+}
+
+:global(.ant-menu-light .ant-menu-submenu-selected > .ant-menu-submenu-title) {
+  color: var(--primary) !important;
+}
+
+/* Dark Mode Menu Items - WCAG AA Compliant */
+:global(.ant-menu-dark .ant-menu-item-selected) {
+  background-color: rgba(88, 166, 255, 0.15) !important;
+  border-right: 3px solid var(--primary) !important;
+  border-radius: 0 !important;
+}
+
+:global(.ant-menu-dark .ant-menu-item-selected .ant-menu-item-icon) {
+  color: var(--primary) !important;
+}
+
+:global(.ant-menu-dark .ant-menu-item-selected span) {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+:global(.ant-menu-dark .ant-menu-item:hover) {
+  background-color: rgba(88, 166, 255, 0.08) !important;
+}
+
+:global(.ant-menu-dark .ant-menu-item span) {
+  color: var(--text-secondary) !important;
+}
+
+:global(.ant-menu-dark .ant-menu-item .ant-menu-item-icon) {
+  color: var(--text-secondary) !important;
+}
+
+:global(.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title) {
+  color: var(--primary) !important;
+}
+
+:global(.ant-menu-dark .ant-menu-submenu-title) {
+  color: var(--text-secondary) !important;
+}
+
+/* Ensure dark menu background consistency */
+:global(.ant-menu-dark) {
+  background: var(--bg-surface) !important;
+}
+
+:global(.ant-menu-dark .ant-menu-submenu-title) {
+  background: var(--bg-surface) !important;
+}
+
+:global(.ant-menu-dark .ant-menu-submenu-inline > .ant-menu-submenu-title) {
+  background: var(--bg-surface) !important;
+}
+
+/* Header Styling */
+.header {
+  padding: 0 1.5rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.menuToggle {
+  font-size: 1rem !important;
+  width: 4rem !important;
+  height: 4rem !important;
+}
+
+.headerTitle {
+  margin: 0 !important;
+  margin-left: 1rem !important;
+  color: var(--text-primary);
+}
+
+.userInfo {
+  margin-left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.userName {
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.officeName {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+}
+
+/* Layout Transitions */
+.layoutContent {
+  transition: margin-left 200ms ease;
+}
+
+.layoutContentExpanded {
+  margin-left: 260px;
+}
+
+.layoutContentCollapsed {
+  margin-left: 80px;
+}
+
+/* Content Area */
+.contentArea {
+  margin: 1.5rem;
+  padding: 1.5rem;
+  background-color: var(--bg-surface);
+  border-radius: 0.5rem;
+  min-height: calc(100vh - 7rem);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+}

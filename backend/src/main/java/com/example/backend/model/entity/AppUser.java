@@ -1,0 +1,114 @@
+package com.example.backend.model.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Application user entity for system accounts
+ */
+@Entity
+@Table(name = "app_user", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"organization_id", "username"}),
+    @UniqueConstraint(columnNames = {"organization_id", "email"})
+})
+@Data
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
+@NoArgsConstructor
+@ToString(exclude = {"organization", "passwordHash", "roles", "userOffices"})
+public class AppUser extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    @JsonIgnore
+    private Organization organization;
+
+    @Column(name = "username", nullable = false)
+    private String username;
+
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "password_hash", nullable = false)
+    @JsonIgnore
+    private String passwordHash;
+
+    @Column(name = "display_name", nullable = false)
+    private String displayName;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @Column(name = "mfa_enabled", nullable = false)
+    private Boolean mfaEnabled = false;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
+    @Column(name = "created_by")
+    private UUID createdBy;
+
+    @Column(name = "updated_by")
+    private UUID updatedBy;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "preferences", columnDefinition = "jsonb")
+    private Map<String, Object> preferences = new HashMap<>();
+
+    // Relationships
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<UserRole> roles = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<UserOffice> userOffices = new HashSet<>();
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private Staff staff;
+
+    public AppUser(Organization organization, String username, String displayName, String passwordHash) {
+        this.organization = organization;
+        this.username = username;
+        this.displayName = displayName;
+        this.passwordHash = passwordHash;
+    }
+
+    // Helper methods
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public void markAsDeleted() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void updateLastLogin() {
+        this.lastLoginAt = LocalDateTime.now();
+    }
+
+    public boolean isMfaEnabled() {
+        return Boolean.TRUE.equals(mfaEnabled);
+    }
+
+    public boolean isActiveUser() {
+        return Boolean.TRUE.equals(isActive) && !isDeleted();
+    }
+}
+

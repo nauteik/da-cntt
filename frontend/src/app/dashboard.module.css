@@ -1,0 +1,214 @@
+/* Dashboard Specific Styles - WCAG AA Compliant */
+
+/* Status Cards */
+.statusCard {
+  transition: all 0.3s ease;
+}
+
+.statusCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Progress Cards */
+.progressCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progressTitle {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.progressItem {
+  margin-bottom: 1rem;
+}
+
+.progressLabel {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.progressValue {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Dark mode specific overrides for better contrast */
+:global(.dark) .progressLabel {
+  color: var(--text-secondary); /* #C9D1D9 - WCAG AA compliant */
+}
+
+:global(.dark) .progressValue {
+  color: var(--text-primary); /* #F0F6FC - High contrast */
+}
+
+/* Activity Table */
+.activityTable {
+  background: var(--bg-surface);
+}
+
+.activityTime {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.activityDescription {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.activityMeta {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+/* Dark mode table text improvements */
+:global(.dark) .activityTime {
+  color: var(--text-secondary); /* Better contrast */
+}
+
+:global(.dark) .activityDescription {
+  color: var(--text-primary);
+}
+
+:global(.dark) .activityMeta {
+  color: var(--text-secondary); /* Improved from tertiary */
+}
+
+/* Timeline improvements */
+.timelineItem {
+  margin-bottom: 1.5rem;
+}
+
+.timelineTitle {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.timelineDescription {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Dark mode timeline */
+:global(.dark) .timelineTitle {
+  color: var(--text-primary);
+}
+
+:global(.dark) .timelineDescription {
+  color: var(--text-secondary);
+}
+
+/* Chart containers */
+.chartContainer {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.chartTitle {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Alert improvements */
+.alertInfo {
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  color: var(--text-primary);
+}
+
+:global(.dark) .alertInfo {
+  background: rgba(88, 166, 255, 0.15);
+  border: 1px solid rgba(88, 166, 255, 0.4);
+}
+
+/* Tag improvements for better contrast */
+.tagSuccess {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(63, 185, 80, 0.3);
+}
+
+.tagWarning {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+.tagError {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--error);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+.tagProcessing {
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+}
+
+/* Ant Design overrides for better dark mode contrast */
+:global(.dark .ant-card) {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+:global(.dark .ant-card-head-title) {
+  color: var(--text-primary);
+}
+
+:global(.dark .ant-table-thead > tr > th) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:global(.dark .ant-table-tbody > tr > td) {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:global(.dark .ant-table-tbody > tr:hover > td) {
+  background: rgba(88, 166, 255, 0.05);
+}
+
+:global(.dark .ant-timeline-item-head) {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+:global(.dark .ant-timeline-item-tail) {
+  border-left-color: var(--border-color);
+}
+
+/* Progress bar improvements */
+:global(.dark .ant-progress-text) {
+  color: var(--text-primary) !important;
+}
+
+:global(.dark .ant-progress-inner) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Divider improvements */
+:global(.dark .ant-divider) {
+  border-color: var(--border-color);
+}
+
+:global(.dark .ant-divider-inner-text) {
+  color: var(--text-secondary);
+}
