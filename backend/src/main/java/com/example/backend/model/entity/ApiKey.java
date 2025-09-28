@@ -22,14 +22,8 @@ import java.util.UUID;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "keyHash", "createdByUser"})
+@ToString(exclude = {"keyHash", "createdByUser"})
 public class ApiKey extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
-
     @Column(name = "name", nullable = false)
     private String name;
 
@@ -59,8 +53,7 @@ public class ApiKey extends BaseEntity {
     @JoinColumn(name = "created_by", insertable = false, updatable = false)
     private AppUser createdByUser;
 
-    public ApiKey(Organization organization, String name, String keyHash) {
-        this.organization = organization;
+    public ApiKey(String name, String keyHash) {
         this.name = name;
         this.keyHash = keyHash;
     }

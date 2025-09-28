@@ -1,6 +1,4 @@
 package com.example.backend.model.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -17,18 +15,13 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "file_object", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "sha256"})
+    @UniqueConstraint(columnNames = {"sha256"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "createdByUser"})
+@ToString(exclude = {"office", "createdByUser"})
 public class FileObject extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")
@@ -57,8 +50,7 @@ public class FileObject extends BaseEntity {
     @JoinColumn(name = "created_by")
     private AppUser createdByUser;
 
-    public FileObject(Organization organization, String filename, String mimeType, Long sizeBytes, String storageUri) {
-        this.organization = organization;
+    public FileObject(String filename, String mimeType, Long sizeBytes, String storageUri) {
         this.filename = filename;
         this.mimeType = mimeType;
         this.sizeBytes = sizeBytes;

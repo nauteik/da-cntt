@@ -1,7 +1,6 @@
 package com.example.backend.model.entity;
 
 import com.example.backend.model.enums.ClaimStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -22,18 +21,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "claim", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "claim_number"})
+    @UniqueConstraint(columnNames = {"claim_number"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "payor", "claimLines"})
+@ToString(exclude = {"office", "payor", "claimLines"})
 public class Claim extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")
@@ -64,8 +58,7 @@ public class Claim extends BaseEntity {
     @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ClaimLine> claimLines = new HashSet<>();
 
-    public Claim(Organization organization, Payor payor, String claimNumber) {
-        this.organization = organization;
+    public Claim(Payor payor, String claimNumber) {
         this.payor = payor;
         this.claimNumber = claimNumber;
     }

@@ -18,13 +18,8 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "staff", "versions"})
+@ToString(exclude = {"staff", "versions"})
 public class StaffDocument extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staff_id", nullable = false)
@@ -44,8 +39,7 @@ public class StaffDocument extends BaseEntity {
     @OneToMany(mappedBy = "staffDocument", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<DocumentVersion> versions = new HashSet<>();
 
-    public StaffDocument(Organization organization, Staff staff, String docType, String title) {
-        this.organization = organization;
+    public StaffDocument(Staff staff, String docType, String title) {
         this.staff = staff;
         this.docType = docType;
         this.title = title;

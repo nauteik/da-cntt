@@ -1,7 +1,9 @@
 package com.example.backend.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -12,28 +14,19 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Organization setting entity for key-value configuration at org/office level
+ * Application setting entity for key-value configuration
  */
 @Entity
-@Table(name = "org_setting", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "office_id", "key"})
+@Table(name = "app_setting", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"key"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office"})
-public class OrgSetting extends BaseEntity {
+@ToString
+public class AppSetting extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "office_id")
-    private Office office;
-
-    @Column(name = "key", nullable = false)
+    @Column(name = "key", nullable = false, unique = true)
     private String key;
 
     @Column(name = "value", columnDefinition = "TEXT")
@@ -48,8 +41,7 @@ public class OrgSetting extends BaseEntity {
     @Column(name = "updated_by")
     private UUID updatedBy;
 
-    public OrgSetting(Organization organization, String key, String value, String valueType) {
-        this.organization = organization;
+    public AppSetting(String key, String value, String valueType) {
         this.key = key;
         this.value = value;
         this.valueType = valueType;
@@ -58,14 +50,6 @@ public class OrgSetting extends BaseEntity {
     // Helper methods
     public boolean isSensitiveSetting() {
         return Boolean.TRUE.equals(isSensitive);
-    }
-
-    public boolean isOrganizationLevel() {
-        return office == null;
-    }
-
-    public boolean isOfficeLevel() {
-        return office != null;
     }
 
     public boolean isStringType() {

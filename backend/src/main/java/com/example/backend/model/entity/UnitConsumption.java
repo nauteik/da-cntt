@@ -19,18 +19,13 @@ import java.util.UUID;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"serviceAuthorization", "organization"})
+@ToString(exclude = {"serviceAuthorization"})
 public class UnitConsumption extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_authorization_id", nullable = false)
     @JsonIgnore
     private ServiceAuthorization serviceAuthorization;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "source_type", nullable = false)
     private String sourceType;
@@ -47,10 +42,9 @@ public class UnitConsumption extends BaseEntity {
     @Column(name = "recorded_at", nullable = false)
     private LocalDateTime recordedAt = LocalDateTime.now();
 
-    public UnitConsumption(ServiceAuthorization serviceAuthorization, Organization organization, 
+    public UnitConsumption(ServiceAuthorization serviceAuthorization, 
                           String sourceType, UUID sourceId, LocalDate serviceDate, Integer unitsUsed) {
         this.serviceAuthorization = serviceAuthorization;
-        this.organization = organization;
         this.sourceType = sourceType;
         this.sourceId = sourceId;
         this.serviceDate = serviceDate;

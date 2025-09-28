@@ -22,13 +22,8 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "staff", "patient", "scheduleShift", "serviceDelivery", "exceptions"})
+@ToString(exclude = {"staff", "patient", "scheduleShift", "serviceDelivery", "exceptions"})
 public class CheckEvent extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staff_id", nullable = false)
@@ -74,8 +69,7 @@ public class CheckEvent extends BaseEntity {
     @OneToMany(mappedBy = "checkEvent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<CheckException> exceptions = new HashSet<>();
 
-    public CheckEvent(Organization organization, Staff staff, CheckEventType eventType, LocalDateTime occurredAt) {
-        this.organization = organization;
+    public CheckEvent(Staff staff, CheckEventType eventType, LocalDateTime occurredAt) {
         this.staff = staff;
         this.eventType = eventType;
         this.occurredAt = occurredAt;

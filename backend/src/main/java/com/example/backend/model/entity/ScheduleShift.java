@@ -20,18 +20,13 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"weeklySchedule", "organization", "office", "patient", "serviceType", "ispGoal", "assignments", "changeRequests"})
+@ToString(exclude = {"weeklySchedule", "office", "patient", "serviceType", "ispGoal", "assignments", "changeRequests"})
 public class ScheduleShift extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "weekly_schedule_id", nullable = false)
     @JsonIgnore
     private WeeklySchedule weeklySchedule;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id", nullable = false)
@@ -73,10 +68,9 @@ public class ScheduleShift extends BaseEntity {
     @OneToMany(mappedBy = "scheduleShift", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ServiceDelivery> serviceDeliveries = new HashSet<>();
 
-    public ScheduleShift(WeeklySchedule weeklySchedule, Organization organization, Office office, 
+    public ScheduleShift(WeeklySchedule weeklySchedule, Office office, 
                         Patient patient, LocalDateTime startAt, LocalDateTime endAt, Integer plannedUnits) {
         this.weeklySchedule = weeklySchedule;
-        this.organization = organization;
         this.office = office;
         this.patient = patient;
         this.startAt = startAt;

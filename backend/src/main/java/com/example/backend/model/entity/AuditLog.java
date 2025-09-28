@@ -1,6 +1,4 @@
 package com.example.backend.model.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -21,14 +19,8 @@ import java.util.UUID;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "user"})
+@ToString(exclude = {"office", "user"})
 public class AuditLog extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")
     private Office office;
@@ -61,8 +53,7 @@ public class AuditLog extends BaseEntity {
     @Column(name = "metadata", columnDefinition = "jsonb")
     private Map<String, Object> metadata = new HashMap<>();
 
-    public AuditLog(Organization organization, String moduleCode, String entityName, String action) {
-        this.organization = organization;
+    public AuditLog(String moduleCode, String entityName, String action) {
         this.moduleCode = moduleCode;
         this.entityName = entityName;
         this.action = action;

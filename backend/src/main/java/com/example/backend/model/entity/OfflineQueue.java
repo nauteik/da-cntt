@@ -21,13 +21,8 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "user"})
+@ToString(exclude = {"user"})
 public class OfflineQueue extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -50,8 +45,7 @@ public class OfflineQueue extends BaseEntity {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
-    public OfflineQueue(Organization organization, AppUser user, String operationType, Map<String, Object> payload) {
-        this.organization = organization;
+    public OfflineQueue(AppUser user, String operationType, Map<String, Object> payload) {
         this.user = user;
         this.operationType = operationType;
         this.payload = payload;

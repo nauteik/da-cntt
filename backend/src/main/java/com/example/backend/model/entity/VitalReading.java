@@ -22,13 +22,8 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "patient", "staff"})
+@ToString(exclude = {"patient", "staff"})
 public class VitalReading extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
@@ -67,8 +62,7 @@ public class VitalReading extends BaseEntity {
     @Column(name = "meta", columnDefinition = "jsonb")
     private Map<String, Object> meta = new HashMap<>();
 
-    public VitalReading(Organization organization, Patient patient, LocalDateTime measuredAt) {
-        this.organization = organization;
+    public VitalReading(Patient patient, LocalDateTime measuredAt) {
         this.patient = patient;
         this.measuredAt = measuredAt;
     }

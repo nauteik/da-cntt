@@ -2,17 +2,13 @@ package com.example.backend.data;
 
 import com.example.backend.model.entity.Address;
 import com.example.backend.model.entity.Office;
-import com.example.backend.model.entity.Organization;
 import com.example.backend.repository.AddressRepository;
 import com.example.backend.repository.OfficeRepository;
-import com.example.backend.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Loads office data with addresses
@@ -22,31 +18,24 @@ import java.util.Map;
 @Slf4j
 public class OfficeDataLoader {
 
-    private final OrganizationRepository organizationRepository;
     private final OfficeRepository officeRepository;
     private final AddressRepository addressRepository;
 
     @Transactional
     public void loadData() {
         log.info("Loading office data...");
-        
-        // Get the organization (should be created by CoreDataLoader)
-        Organization organization = organizationRepository.findAll().stream()
-            .filter(org -> "BAC".equals(org.getCode()))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("BAC Organization not found. Run CoreDataLoader first."));
-        
-        loadOffices(organization);
-        
+
+        loadOffices();
+
         log.info("Office data loaded successfully");
     }
 
-    private void loadOffices(Organization organization) {
+    private void loadOffices() {
         String[][] officeData = {
             // Main Office
             {
                 "MAIN",
-                "BAC Main Office", 
+                "BAC Main Office",
                 "Delaware",
                 "+1-610-000-0001",
                 "office@blueangelscare.com",
@@ -60,7 +49,7 @@ public class OfficeDataLoader {
             {
                 "CHESTER",
                 "BAC Chester Office",
-                "Delaware", 
+                "Delaware",
                 "+1-610-000-0002",
                 "chester@blueangelscare.com",
                 "456 Chester Avenue",
@@ -74,7 +63,7 @@ public class OfficeDataLoader {
                 "MONTGOMERY",
                 "BAC Montgomery Office",
                 "Montgomery",
-                "+1-610-000-0003", 
+                "+1-610-000-0003",
                 "montgomery@blueangelscare.com",
                 "789 Montgomery Drive",
                 "Floor 3",
@@ -95,34 +84,22 @@ public class OfficeDataLoader {
             String city = data[7];
             String state = data[8];
             String postalCode = data[9];
-            
-            if (!officeRepository.existsByOrganizationAndCode(organization, code)) {
+
+            if (officeRepository.findByCode(code).isEmpty()) {
                 // Create address first
-                Address address = new Address();
-                address.setOrganization(organization);
-                address.setLine1(line1);
+                Address address = new Address(line1, city, state, postalCode);
                 address.setLine2(line2);
-                address.setCity(city);
-                address.setState(state);
-                address.setPostalCode(postalCode);
-                address.setCountry("USA");
-                address.setMeta(new HashMap<>());
-                Address savedAddress = addressRepository.save(address);
-                
+                addressRepository.save(address);
+
                 // Create office
-                Office office = new Office(organization, code, name);
-                office.setAddress(savedAddress);
+                Office office = new Office(code, name);
                 office.setCounty(county);
                 office.setPhone(phone);
                 office.setEmail(email);
-                office.setTimezone("America/New_York");
-                
-                Map<String, Object> billingConfig = new HashMap<>();
-                billingConfig.put("claim_submission_method", "medicaid_portal");
-                office.setBillingConfig(billingConfig);
-                
+                office.setAddress(address);
                 officeRepository.save(office);
-                log.info("Created office: {} - {} at {}, {}", code, name, city, state);
+
+                log.info("Created office: {} - {}", code, name);
             }
         }
     }

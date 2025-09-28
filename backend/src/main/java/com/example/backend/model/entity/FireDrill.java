@@ -1,6 +1,4 @@
 package com.example.backend.model.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -20,13 +18,8 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "reportFile", "createdBy", "participants", "issues"})
+@ToString(exclude = {"office", "reportFile", "createdBy", "participants", "issues"})
 public class FireDrill extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")
@@ -71,9 +64,8 @@ public class FireDrill extends BaseEntity {
     @OneToMany(mappedBy = "fireDrill", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<FireDrillIssue> issues = new HashSet<>();
 
-    public FireDrill(Organization organization, LocalDate drillDate, LocalTime drillTime, 
+    public FireDrill(LocalDate drillDate, LocalTime drillTime, 
                     String location, String sessionType, Integer evacuationTimeSec) {
-        this.organization = organization;
         this.drillDate = drillDate;
         this.drillTime = drillTime;
         this.location = location;

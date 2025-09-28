@@ -26,13 +26,8 @@ import java.util.UUID;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "patient", "ispVersion", "shifts"})
+@ToString(exclude = {"office", "patient", "ispVersion", "shifts"})
 public class WeeklySchedule extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id", nullable = false)
@@ -65,8 +60,7 @@ public class WeeklySchedule extends BaseEntity {
     @OneToMany(mappedBy = "weeklySchedule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ScheduleShift> shifts = new HashSet<>();
 
-    public WeeklySchedule(Organization organization, Office office, Patient patient, LocalDate weekStart) {
-        this.organization = organization;
+    public WeeklySchedule(Office office, Patient patient, LocalDate weekStart) {
         this.office = office;
         this.patient = patient;
         this.weekStart = weekStart;

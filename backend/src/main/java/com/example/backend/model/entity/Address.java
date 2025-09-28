@@ -1,6 +1,5 @@
 package com.example.backend.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -21,13 +20,8 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization"})
+@ToString
 public class Address extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "line1", nullable = false)
     private String line1;
@@ -57,8 +51,7 @@ public class Address extends BaseEntity {
     @Column(name = "meta", columnDefinition = "jsonb")
     private Map<String, Object> meta = new HashMap<>();
 
-    public Address(Organization organization, String line1, String city, String state, String postalCode) {
-        this.organization = organization;
+    public Address(String line1, String city, String state, String postalCode) {
         this.line1 = line1;
         this.city = city;
         this.state = state;

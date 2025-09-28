@@ -16,18 +16,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "device", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "device_identifier"})
+    @UniqueConstraint(columnNames = {"device_identifier"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "user", "mobileSessions"})
+@ToString(exclude = {"user", "mobileSessions"})
 public class Device extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -53,8 +48,7 @@ public class Device extends BaseEntity {
     @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<MobileSession> mobileSessions = new HashSet<>();
 
-    public Device(Organization organization, AppUser user, String platform, String deviceIdentifier) {
-        this.organization = organization;
+    public Device(AppUser user, String platform, String deviceIdentifier) {
         this.user = user;
         this.platform = platform;
         this.deviceIdentifier = deviceIdentifier;

@@ -1,6 +1,4 @@
 package com.example.backend.model.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -22,13 +20,8 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "patient"})
+@ToString(exclude = {"office", "patient"})
 public class Expense extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")
@@ -51,8 +44,7 @@ public class Expense extends BaseEntity {
     @Column(name = "meta", columnDefinition = "jsonb")
     private Map<String, Object> meta = new HashMap<>();
 
-    public Expense(Organization organization, String category, BigDecimal amount, LocalDate incurredAt) {
-        this.organization = organization;
+    public Expense(String category, BigDecimal amount, LocalDate incurredAt) {
         this.category = category;
         this.amount = amount;
         this.incurredAt = incurredAt;

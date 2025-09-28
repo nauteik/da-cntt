@@ -21,18 +21,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "staff", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "employee_code"})
+    @UniqueConstraint(columnNames = {"office_id", "employee_code"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "user", "portraitFile", "documents", "certifications", "backgroundChecks"})
+@ToString(exclude = {"office", "user", "portraitFile", "documents", "certifications", "backgroundChecks"})
 public class Staff extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id", nullable = false)
@@ -100,8 +95,7 @@ public class Staff extends BaseEntity {
     @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<StaffRate> rates = new HashSet<>();
 
-    public Staff(Organization organization, Office office, String firstName, String lastName) {
-        this.organization = organization;
+    public Staff(Office office, String firstName, String lastName) {
         this.office = office;
         this.firstName = firstName;
         this.lastName = lastName;

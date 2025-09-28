@@ -15,18 +15,13 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"ispGoal", "organization"})
+@ToString(exclude = {"ispGoal"})
 public class ISPTask extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "isp_goal_id", nullable = false)
     @JsonIgnore
     private ISPGoal ispGoal;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "task", nullable = false)
     private String task;
@@ -40,9 +35,8 @@ public class ISPTask extends BaseEntity {
     @Column(name = "sort_order")
     private Integer sortOrder;
 
-    public ISPTask(ISPGoal ispGoal, Organization organization, String task) {
+    public ISPTask(ISPGoal ispGoal, String task) {
         this.ispGoal = ispGoal;
-        this.organization = organization;
         this.task = task;
     }
 

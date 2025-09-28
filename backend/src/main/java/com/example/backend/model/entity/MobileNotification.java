@@ -21,13 +21,8 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "user"})
+@ToString(exclude = {"user"})
 public class MobileNotification extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -53,8 +48,7 @@ public class MobileNotification extends BaseEntity {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
-    public MobileNotification(Organization organization, AppUser user, String notificationType) {
-        this.organization = organization;
+    public MobileNotification(AppUser user, String notificationType) {
         this.user = user;
         this.notificationType = notificationType;
     }

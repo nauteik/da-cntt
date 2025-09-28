@@ -17,13 +17,8 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "medicationOrder", "patient", "staff", "serviceDelivery"})
+@ToString(exclude = {"medicationOrder", "patient", "staff", "serviceDelivery"})
 public class MedicationAdministration extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medication_order_id", nullable = false)
@@ -61,9 +56,8 @@ public class MedicationAdministration extends BaseEntity {
     @Column(name = "prn_follow_up")
     private String prnFollowUp;
 
-    public MedicationAdministration(Organization organization, MedicationOrder medicationOrder, 
+    public MedicationAdministration(MedicationOrder medicationOrder, 
                                    Patient patient, Staff staff, LocalDateTime administeredAt) {
-        this.organization = organization;
         this.medicationOrder = medicationOrder;
         this.patient = patient;
         this.staff = staff;

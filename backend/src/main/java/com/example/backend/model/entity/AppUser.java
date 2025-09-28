@@ -21,19 +21,14 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "app_user", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "username"}),
-    @UniqueConstraint(columnNames = {"organization_id", "email"})
+    @UniqueConstraint(columnNames = {"username"}),
+    @UniqueConstraint(columnNames = {"email"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "passwordHash", "roles", "userOffices"})
+@ToString(exclude = {"passwordHash", "roles", "userOffices"})
 public class AppUser extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "username", nullable = false)
     private String username;
@@ -83,11 +78,10 @@ public class AppUser extends BaseEntity {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Staff staff;
 
-    public AppUser(Organization organization, String username, String displayName, String passwordHash) {
-        this.organization = organization;
+    public AppUser(String username, String displayName, String passwordHash) {
         this.username = username;
-        this.displayName = displayName;
         this.passwordHash = passwordHash;
+        this.displayName = displayName;
     }
 
     // Helper methods

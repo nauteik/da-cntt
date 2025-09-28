@@ -26,18 +26,13 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"isp", "organization", "file", "goals", "serviceAuthorizations", "acknowledgements"})
+@ToString(exclude = {"isp","file", "goals", "serviceAuthorizations", "acknowledgements"})
 public class ISPVersion extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "isp_id", nullable = false)
     @JsonIgnore
     private ISP isp;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "version_no", nullable = false)
     private Integer versionNo;
@@ -73,9 +68,8 @@ public class ISPVersion extends BaseEntity {
     @OneToMany(mappedBy = "ispVersion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ProgressReport> progressReports = new HashSet<>();
 
-    public ISPVersion(ISP isp, Organization organization, Integer versionNo, LocalDate effectiveAt) {
+    public ISPVersion(ISP isp, Integer versionNo, LocalDate effectiveAt) {
         this.isp = isp;
-        this.organization = organization;
         this.versionNo = versionNo;
         this.effectiveAt = effectiveAt;
     }

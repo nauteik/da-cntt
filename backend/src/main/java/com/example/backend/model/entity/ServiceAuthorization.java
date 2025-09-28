@@ -23,18 +23,13 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"ispVersion", "organization", "serviceType", "payor", "unitConsumptions"})
+@ToString(exclude = {"ispVersion", "serviceType", "payor", "unitConsumptions"})
 public class ServiceAuthorization extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "isp_version_id", nullable = false)
     @JsonIgnore
     private ISPVersion ispVersion;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_type_id")
@@ -64,9 +59,8 @@ public class ServiceAuthorization extends BaseEntity {
     @OneToMany(mappedBy = "serviceAuthorization", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<UnitConsumption> unitConsumptions = new HashSet<>();
 
-    public ServiceAuthorization(ISPVersion ispVersion, Organization organization, Integer unitsAuthorized, String period, LocalDate effectiveAt) {
+    public ServiceAuthorization(ISPVersion ispVersion, Integer unitsAuthorized, String period, LocalDate effectiveAt) {
         this.ispVersion = ispVersion;
-        this.organization = organization;
         this.unitsAuthorized = unitsAuthorized;
         this.period = period;
         this.effectiveAt = effectiveAt;

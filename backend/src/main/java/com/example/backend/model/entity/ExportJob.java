@@ -1,6 +1,4 @@
 package com.example.backend.model.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -21,13 +19,8 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "file", "createdByUser"})
+@ToString(exclude = {"file", "createdByUser"})
 public class ExportJob extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "target", nullable = false)
     private String target;
@@ -50,8 +43,7 @@ public class ExportJob extends BaseEntity {
     @JoinColumn(name = "created_by")
     private AppUser createdByUser;
 
-    public ExportJob(Organization organization, String target) {
-        this.organization = organization;
+    public ExportJob(String target) {
         this.target = target;
     }
 

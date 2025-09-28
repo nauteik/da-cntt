@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 /**
  * Loads core system data: Organization, Modules, Roles, and basic Permissions
  */
@@ -18,7 +16,6 @@ import java.util.UUID;
 @Slf4j
 public class CoreDataLoader {
 
-    private final OrganizationRepository organizationRepository;
     private final ModuleRepository moduleRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
@@ -26,50 +23,17 @@ public class CoreDataLoader {
     @Transactional
     public void loadData() {
         log.info("Loading core system data...");
-        
-        // Load organization
-        Organization organization = loadOrganization();
-        
+
         // Load modules
         loadModules();
-        
-        // Load roles
-        loadRoles(organization);
-        
-        // Load basic permissions
-        loadPermissions(organization);
-        
-        log.info("Core system data loaded successfully");
-    }
 
-    private Organization loadOrganization() {
-        UUID orgId = UUID.fromString("11111111-1111-1111-1111-111111111111");
-        
-        // Check if organization already exists
-        if (organizationRepository.existsById(orgId)) {
-            return organizationRepository.findById(orgId).get();
-        }
-        
-        // Create new organization with manual ID using native SQL
-        Organization org = new Organization("BAC", "Blue Angels Care");
-        org.setLegalName("Blue Angels Care LLC");
-        org.setTaxId("XX-XXXXXXX");
-        org.setEmail("info@blueangelscare.com");
-        org.setPhone("+1-610-000-0000");
-        
-        // Save without setting ID first, then update with desired ID
-        Organization saved = organizationRepository.save(org);
-        
-        // Update the ID using native query if needed
-        if (!saved.getId().equals(orgId)) {
-            organizationRepository.flush();
-            // For now, we'll use the generated ID instead of forcing a specific one
-            log.info("Created organization: {} with ID: {}", saved.getName(), saved.getId());
-        } else {
-            log.info("Created organization: {}", saved.getName());
-        }
-        
-        return saved;
+        // Load roles
+        loadRoles();
+
+        // Load basic permissions
+        loadPermissions();
+
+        log.info("Core system data loaded successfully");
     }
 
     private void loadModules() {
@@ -98,7 +62,7 @@ public class CoreDataLoader {
         }
     }
 
-    private void loadRoles(Organization organization) {
+    private void loadRoles() {
         String[][] roles = {
             {"ADMIN", "System Admin", "Toàn quyền cấu hình và vận hành hệ thống", "true"},
             {"MANAGER", "Office Manager", "Quản lý văn phòng, điều phối lịch và giám sát tuân thủ", "false"},
@@ -111,9 +75,9 @@ public class CoreDataLoader {
             String name = roleData[1];
             String description = roleData[2];
             Boolean isSystem = Boolean.valueOf(roleData[3]);
-            
-            if (!roleRepository.existsByOrganizationAndCode(organization, code)) {
-                Role role = new Role(organization, code, name);
+
+            if (!roleRepository.existsByCode(code)) {
+                Role role = new Role(code, name);
                 role.setDescription(description);
                 role.setIsSystem(isSystem);
                 roleRepository.save(role);
@@ -122,7 +86,7 @@ public class CoreDataLoader {
         }
     }
 
-    private void loadPermissions(Organization organization) {
+    private void loadPermissions() {
         // Basic permissions for each module
         String[][] permissions = {
             // Admin permissions
@@ -130,73 +94,67 @@ public class CoreDataLoader {
             {"users", "read", "ORG", "Xem danh sách user"},
             {"users", "update", "ORG", "Cập nhật thông tin user"},
             {"users", "delete", "ORG", "Xóa user"},
-            {"roles", "create", "ORG", "Tạo role mới"},
-            {"roles", "read", "ORG", "Xem danh sách role"},
-            {"roles", "update", "ORG", "Cập nhật role"},
-            {"roles", "delete", "ORG", "Xóa role"},
-            {"offices", "create", "ORG", "Tạo office mới"},
-            {"offices", "read", "ORG", "Xem danh sách office"},
-            {"offices", "update", "ORG", "Cập nhật thông tin office"},
-            {"offices", "delete", "ORG", "Xóa office"},
-            
+            {"roles", "read", "ORG", "Xem danh sách vai trò"},
+            {"roles", "assign", "ORG", "Gán vai trò cho user"},
+            {"settings", "read", "ORG", "Xem cấu hình hệ thống"},
+            {"settings", "update", "ORG", "Cập nhật cấu hình hệ thống"},
+
             // Staff permissions
-            {"staff", "create", "OFFICE", "Tạo nhân viên mới"},
-            {"staff", "read", "OFFICE", "Xem danh sách nhân viên"},
-            {"staff", "update", "OFFICE", "Cập nhật thông tin nhân viên"},
-            {"staff", "delete", "OFFICE", "Xóa nhân viên"},
-            
+            {"staff", "create", "OFFICE", "Tạo hồ sơ nhân viên"},
+            {"staff", "read", "OFFICE", "Xem hồ sơ nhân viên"},
+            {"staff", "update", "OFFICE", "Cập nhật hồ sơ nhân viên"},
+            {"staff", "delete", "OFFICE", "Xóa hồ sơ nhân viên"},
+
             // Patient permissions
-            {"patients", "create", "OFFICE", "Tạo bệnh nhân mới"},
-            {"patients", "read", "OFFICE", "Xem danh sách bệnh nhân"},
-            {"patients", "update", "OFFICE", "Cập nhật thông tin bệnh nhân"},
-            {"patients", "delete", "OFFICE", "Xóa bệnh nhân"},
-            
+            {"patients", "create", "OFFICE", "Tạo hồ sơ bệnh nhân"},
+            {"patients", "read", "OFFICE", "Xem hồ sơ bệnh nhân"},
+            {"patients", "update", "OFFICE", "Cập nhật hồ sơ bệnh nhân"},
+            {"patients", "delete", "OFFICE", "Xóa hồ sơ bệnh nhân"},
+
+            // ISP permissions
+            {"isp", "create", "OFFICE", "Tạo ISP"},
+            {"isp", "read", "OFFICE", "Xem ISP"},
+            {"isp", "update", "OFFICE", "Cập nhật ISP"},
+            {"isp", "delete", "OFFICE", "Xóa ISP"},
+
             // Schedule permissions
-            {"schedules", "create", "OFFICE", "Tạo lịch làm việc"},
-            {"schedules", "read", "OFFICE", "Xem lịch làm việc"},
-            {"schedules", "update", "OFFICE", "Cập nhật lịch làm việc"},
-            {"schedules", "approve", "OFFICE", "Phê duyệt lịch làm việc"},
-            
+            {"schedule", "create", "OFFICE", "Tạo lịch làm việc"},
+            {"schedule", "read", "OFFICE", "Xem lịch làm việc"},
+            {"schedule", "update", "OFFICE", "Cập nhật lịch làm việc"},
+            {"schedule", "delete", "OFFICE", "Xóa lịch làm việc"},
+
             // Mobile permissions
-            {"mobile", "checkin", "SELF", "Check-in trên mobile"},
-            {"mobile", "checkout", "SELF", "Check-out trên mobile"},
-            {"mobile", "notes", "SELF", "Ghi chú hằng ngày"},
-            
-            // Medication permissions
-            {"medications", "read", "OFFICE", "Xem đơn thuốc"},
-            {"medications", "administer", "SELF", "Cho thuốc"},
-            {"medications", "manage", "OFFICE", "Quản lý đơn thuốc"},
-            
+            {"mobile", "check-in", "OFFICE", "Check-in qua mobile"},
+            {"mobile", "check-out", "OFFICE", "Check-out qua mobile"},
+            {"mobile", "read-notes", "SELF", "Đọc ghi chú bệnh nhân"},
+            {"mobile", "write-notes", "SELF", "Tạo/cập nhật ghi chú bệnh nhân"},
+
             // Billing permissions
-            {"billing", "read", "ORG", "Xem thông tin billing"},
-            {"billing", "create", "ORG", "Tạo claim"},
-            {"billing", "submit", "ORG", "Nộp claim"},
-            
-            // Fire drill permissions
-            {"fire_drills", "create", "OFFICE", "Tạo fire drill"},
-            {"fire_drills", "read", "OFFICE", "Xem fire drill"},
-            {"fire_drills", "update", "OFFICE", "Cập nhật fire drill"},
-            
+            {"billing", "read", "OFFICE", "Xem thông tin billing"},
+            {"billing", "generate", "OFFICE", "Tạo claims"},
+            {"billing", "submit", "OFFICE", "Submit claims"},
+
+            // Fire Drill permissions
+            {"firedrill", "create", "OFFICE", "Tạo fire drill"},
+            {"firedrill", "read", "OFFICE", "Xem fire drill"},
+            {"firedrill", "update", "OFFICE", "Cập nhật fire drill"},
+
             // Compliance permissions
             {"compliance", "read", "ORG", "Xem báo cáo tuân thủ"},
-            {"compliance", "audit", "ORG", "Thực hiện audit"}
         };
 
         for (String[] permData : permissions) {
             String resource = permData[0];
             String action = permData[1];
-            PermissionScope scope = PermissionScope.valueOf(permData[2]);
+            String scope = permData[2];
             String description = permData[3];
-            
-            if (!permissionRepository.existsByOrganizationAndResourceAndActionAndScope(
-                    organization, resource, action, scope)) {
-                Permission permission = new Permission(organization, resource, action, scope);
+
+            if (permissionRepository.findByResourceAndActionAndScope(resource, action, PermissionScope.valueOf(scope)).isEmpty()) {
+                Permission permission = new Permission(resource, action, PermissionScope.valueOf(scope));
                 permission.setDescription(description);
                 permissionRepository.save(permission);
-                log.debug("Created permission: {}:{}:{}", resource, action, scope);
+                log.info("Created permission: {}:{}:{}", resource, action, scope);
             }
         }
-        
-        log.info("Created {} permissions", permissions.length);
     }
 }

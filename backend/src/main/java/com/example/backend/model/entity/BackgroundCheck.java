@@ -17,14 +17,9 @@ import java.time.LocalDate;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "staff", "evidenceFile"})
+@ToString(exclude = {"staff", "evidenceFile"})
 public class BackgroundCheck extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
-
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staff_id", nullable = false)
     @JsonIgnore
@@ -46,8 +41,7 @@ public class BackgroundCheck extends BaseEntity {
     @JoinColumn(name = "evidence_file_id")
     private FileObject evidenceFile;
 
-    public BackgroundCheck(Organization organization, Staff staff, String checkType, String status) {
-        this.organization = organization;
+    public BackgroundCheck(Staff staff, String checkType, String status) {
         this.staff = staff;
         this.checkType = checkType;
         this.status = status;

@@ -1,12 +1,14 @@
 package com.example.backend.model.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Permission scope levels
  */
 public enum PermissionScope {
-    ORG("org"),
+    SELF("self"),
     OFFICE("office"),
-    SELF("self");
+    ORG("org");
 
     private final String value;
 
@@ -14,17 +16,9 @@ public enum PermissionScope {
         this.value = value;
     }
 
+    @JsonValue
     public String getValue() {
         return value;
-    }
-
-    public static PermissionScope fromValue(String value) {
-        for (PermissionScope scope : PermissionScope.values()) {
-            if (scope.value.equals(value)) {
-                return scope;
-            }
-        }
-        throw new IllegalArgumentException("Unknown permission scope: " + value);
     }
 }
 

@@ -1,7 +1,6 @@
 package com.example.backend.model.entity;
 
 import com.example.backend.model.enums.PayorType;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -20,18 +19,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "payor", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "name"})
+    @UniqueConstraint(columnNames = {"name"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "serviceAuthorizations", "claims"})
+@ToString(exclude = {"serviceAuthorizations", "claims"})
 public class Payor extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -60,8 +54,7 @@ public class Payor extends BaseEntity {
     @OneToMany(mappedBy = "payor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Claim> claims = new HashSet<>();
 
-    public Payor(Organization organization, String name, PayorType type) {
-        this.organization = organization;
+    public Payor(String name, PayorType type) {
         this.name = name;
         this.type = type;
     }

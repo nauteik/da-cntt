@@ -1,7 +1,6 @@
 package com.example.backend.model.entity;
 
 import com.example.backend.model.enums.CareSetting;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,18 +15,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "service_type", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "code"})
+    @UniqueConstraint(columnNames = {"code"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "staffRates", "rateEntries"})
+@ToString(exclude = {"staffRates", "rateEntries"})
 public class ServiceType extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "code", nullable = false)
     private String code;
@@ -55,8 +49,7 @@ public class ServiceType extends BaseEntity {
     @OneToMany(mappedBy = "serviceType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<RateEntry> rateEntries = new HashSet<>();
 
-    public ServiceType(Organization organization, String code, String name, CareSetting careSetting) {
-        this.organization = organization;
+    public ServiceType(String code, String name, CareSetting careSetting) {
         this.code = code;
         this.name = name;
         this.careSetting = careSetting;

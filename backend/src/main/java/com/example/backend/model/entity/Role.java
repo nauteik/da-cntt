@@ -1,6 +1,4 @@
 package com.example.backend.model.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,18 +14,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "role", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "code"})
+    @UniqueConstraint(columnNames = {"code"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "permissions", "userRoles"})
+@ToString(exclude = {"permissions", "userRoles"})
 public class Role extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "code", nullable = false)
     private String code;
@@ -51,8 +44,7 @@ public class Role extends BaseEntity {
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<UserRole> userRoles = new HashSet<>();
 
-    public Role(Organization organization, String code, String name) {
-        this.organization = organization;
+    public Role(String code, String name) {
         this.code = code;
         this.name = name;
     }

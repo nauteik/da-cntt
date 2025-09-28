@@ -21,13 +21,8 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "patient", "versions"})
+@ToString(exclude = {"patient", "versions"})
 public class ISP extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
@@ -42,8 +37,7 @@ public class ISP extends BaseEntity {
     @OneToMany(mappedBy = "isp", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ISPVersion> versions = new HashSet<>();
 
-    public ISP(Organization organization, Patient patient) {
-        this.organization = organization;
+    public ISP(Patient patient) {
         this.patient = patient;
     }
 

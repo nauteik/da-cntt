@@ -1,7 +1,6 @@
 package com.example.backend.model.entity;
 
 import com.example.backend.model.enums.PermissionScope;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,18 +15,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "permission", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "resource", "action", "scope"})
+    @UniqueConstraint(columnNames = {"resource", "action", "scope"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "module", "rolePermissions"})
+@ToString(exclude = {"module", "rolePermissions"})
 public class Permission extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id")
@@ -50,8 +44,7 @@ public class Permission extends BaseEntity {
     @OneToMany(mappedBy = "permission", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<RolePermission> rolePermissions = new HashSet<>();
 
-    public Permission(Organization organization, String resource, String action, PermissionScope scope) {
-        this.organization = organization;
+    public Permission(String resource, String action, PermissionScope scope) {
         this.resource = resource;
         this.action = action;
         this.scope = scope;

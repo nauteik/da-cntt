@@ -21,18 +21,13 @@ import java.util.List;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"serviceDelivery", "organization", "authorStaff", "attachmentFile"})
+@ToString(exclude = {"serviceDelivery", "authorStaff", "attachmentFile"})
 public class DailyNote extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_delivery_id", nullable = false)
     @JsonIgnore
     private ServiceDelivery serviceDelivery;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_staff_id", nullable = false)
@@ -65,9 +60,8 @@ public class DailyNote extends BaseEntity {
     @JoinColumn(name = "attachment_file_id")
     private FileObject attachmentFile;
 
-    public DailyNote(ServiceDelivery serviceDelivery, Organization organization, Staff authorStaff, String content) {
+    public DailyNote(ServiceDelivery serviceDelivery, Staff authorStaff, String content) {
         this.serviceDelivery = serviceDelivery;
-        this.organization = organization;
         this.authorStaff = authorStaff;
         this.content = content;
     }

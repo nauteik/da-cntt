@@ -17,13 +17,8 @@ import java.time.LocalDate;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "staff", "certificateFile"})
+@ToString(exclude = {"staff", "certificateFile"})
 public class StaffCertification extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staff_id", nullable = false)
@@ -49,8 +44,7 @@ public class StaffCertification extends BaseEntity {
     @Column(name = "status", nullable = false)
     private String status = "valid";
 
-    public StaffCertification(Organization organization, Staff staff, String certType) {
-        this.organization = organization;
+    public StaffCertification(Staff staff, String certType) {
         this.staff = staff;
         this.certType = certType;
     }

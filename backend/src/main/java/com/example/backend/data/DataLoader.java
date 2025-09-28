@@ -25,19 +25,19 @@ public class DataLoader implements CommandLineRunner {
         log.info("Starting data initialization...");
 
         try {
-            // Load core data first (Organization, Modules, Roles)
-            log.info("Step 1/4: Loading core data (Organization, Modules, Roles)...");
+            // Load core data first (Permissions, Roles)
+            log.info("Step 1/4: Loading core data (Permissions, Roles)...");
             coreDataLoader.loadData();
             
             // Load offices
             log.info("Step 2/4: Loading offices...");
             officeDataLoader.loadData();
             
-            // Load role permissions
-            log.info("Step 3/4: Loading role permissions...");
+            // Load role-permission mappings
+            log.info("Step 3/4: Loading role-permission mappings...");
             rolePermissionDataLoader.loadData();
             
-            // Load users (depends on roles and offices)
+            // Load users and assign them to roles and offices
             log.info("Step 4/4: Loading users...");
             userDataLoader.loadData();
             

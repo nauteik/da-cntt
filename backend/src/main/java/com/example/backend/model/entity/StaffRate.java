@@ -18,13 +18,8 @@ import java.time.LocalDate;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "staff", "serviceType"})
+@ToString(exclude = {"staff", "serviceType"})
 public class StaffRate extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staff_id", nullable = false)
@@ -47,8 +42,7 @@ public class StaffRate extends BaseEntity {
     @Column(name = "expires_at")
     private LocalDate expiresAt;
 
-    public StaffRate(Organization organization, Staff staff, String payBasis, BigDecimal hourlyRate, LocalDate effectiveAt) {
-        this.organization = organization;
+    public StaffRate(Staff staff, String payBasis, BigDecimal hourlyRate, LocalDate effectiveAt) {
         this.staff = staff;
         this.payBasis = payBasis;
         this.hourlyRate = hourlyRate;

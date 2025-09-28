@@ -23,13 +23,8 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "patient", "prescriptionFile", "prnRules", "administrations"})
+@ToString(exclude = {"patient", "prescriptionFile", "prnRules", "administrations"})
 public class MedicationOrder extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
@@ -81,9 +76,8 @@ public class MedicationOrder extends BaseEntity {
     @OneToMany(mappedBy = "medicationOrder", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<MedicationAdministration> administrations = new HashSet<>();
 
-    public MedicationOrder(Organization organization, Patient patient, String drugName, 
+    public MedicationOrder(Patient patient, String drugName, 
                           String dosage, String route, String frequency, LocalDate startAt) {
-        this.organization = organization;
         this.patient = patient;
         this.drugName = drugName;
         this.dosage = dosage;

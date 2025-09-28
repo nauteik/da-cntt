@@ -18,13 +18,8 @@ import java.time.temporal.ChronoUnit;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "user", "device"})
+@ToString(exclude = {"user", "device"})
 public class MobileSession extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -53,8 +48,7 @@ public class MobileSession extends BaseEntity {
     @Column(name = "mfa_passed", nullable = false)
     private Boolean mfaPassed = false;
 
-    public MobileSession(Organization organization, AppUser user, Device device) {
-        this.organization = organization;
+    public MobileSession(AppUser user, Device device) {
         this.user = user;
         this.device = device;
     }

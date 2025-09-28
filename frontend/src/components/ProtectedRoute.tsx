@@ -16,7 +16,6 @@ export default function ProtectedRoute({
   requiredRoles = [],
   fallback,
 }: ProtectedRouteProps) {
-  // FIX: Removed 'isLoading' and rely solely on 'isInitialized'
   const { isAuthenticated, user, isInitialized } = useAuth();
   const router = useRouter();
 
@@ -32,7 +31,6 @@ export default function ProtectedRoute({
     return (
       fallback || (
         <div className="min-h-screen flex flex-col items-center justify-center bg-theme-primary">
-          {/* FIX: Always render Spin during the loading state */}
           <Spin size="large" />
           <div className="mt-4 font-medium text-lg text-theme-primary">
             Đang kiểm tra quyền truy cập...

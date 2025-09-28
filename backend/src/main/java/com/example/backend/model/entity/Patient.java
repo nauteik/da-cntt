@@ -21,18 +21,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "patient", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "mrn"})
+    @UniqueConstraint(columnNames = {"mrn"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "office", "address", "contacts", "providers", "residenceStays", "isps"})
+@ToString(exclude = {"office", "address", "contacts", "providers", "residenceStays", "isps"})
 public class Patient extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id", nullable = false)
@@ -93,8 +88,7 @@ public class Patient extends BaseEntity {
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<MedicationOrder> medicationOrders = new HashSet<>();
 
-    public Patient(Organization organization, Office office, String firstName, String lastName) {
-        this.organization = organization;
+    public Patient(Office office, String firstName, String lastName) {
         this.office = office;
         this.firstName = firstName;
         this.lastName = lastName;

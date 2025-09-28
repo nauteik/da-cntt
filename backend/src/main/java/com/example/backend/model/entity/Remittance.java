@@ -1,6 +1,4 @@
 package com.example.backend.model.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -21,18 +19,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "remittance", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"organization_id", "remit_number"})
+    @UniqueConstraint(columnNames = {"remit_number"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"organization", "payor", "file", "allocations"})
+@ToString(exclude = {"payor", "file", "allocations"})
 public class Remittance extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payor_id")
@@ -59,8 +52,7 @@ public class Remittance extends BaseEntity {
     @OneToMany(mappedBy = "remittance", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<RemittanceAllocation> allocations = new HashSet<>();
 
-    public Remittance(Organization organization, String remitNumber, LocalDateTime receivedAt, BigDecimal totalAmount) {
-        this.organization = organization;
+    public Remittance(String remitNumber, LocalDateTime receivedAt, BigDecimal totalAmount) {
         this.remitNumber = remitNumber;
         this.receivedAt = receivedAt;
         this.totalAmount = totalAmount;

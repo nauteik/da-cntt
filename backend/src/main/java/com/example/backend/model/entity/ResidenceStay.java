@@ -17,18 +17,13 @@ import java.time.LocalDate;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"patient", "organization", "address", "leaseFile"})
+@ToString(exclude = {"patient","address", "leaseFile"})
 public class ResidenceStay extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
     @JsonIgnore
     private Patient patient;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    @JsonIgnore
-    private Organization organization;
 
     @Column(name = "residence_type", nullable = false)
     private String residenceType;
@@ -50,9 +45,8 @@ public class ResidenceStay extends BaseEntity {
     @Column(name = "note")
     private String note;
 
-    public ResidenceStay(Patient patient, Organization organization, String residenceType, LocalDate moveInAt) {
+    public ResidenceStay(Patient patient, String residenceType, LocalDate moveInAt) {
         this.patient = patient;
-        this.organization = organization;
         this.residenceType = residenceType;
         this.moveInAt = moveInAt;
     }
