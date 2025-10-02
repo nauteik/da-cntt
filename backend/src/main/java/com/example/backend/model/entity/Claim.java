@@ -26,7 +26,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"office", "payor", "claimLines"})
+@ToString(exclude = {"office", "payer", "claimLines"})
 public class Claim extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,8 +34,8 @@ public class Claim extends BaseEntity {
     private Office office;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payor_id", nullable = false)
-    private Payor payor;
+    @JoinColumn(name = "payer_id", nullable = false)
+    private Payer payer;
 
     @Column(name = "claim_number", nullable = false)
     private String claimNumber;
@@ -58,8 +58,8 @@ public class Claim extends BaseEntity {
     @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ClaimLine> claimLines = new HashSet<>();
 
-    public Claim(Payor payor, String claimNumber) {
-        this.payor = payor;
+    public Claim(Payer payer, String claimNumber) {
+        this.payer = payer;
         this.claimNumber = claimNumber;
     }
 

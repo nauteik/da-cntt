@@ -1,6 +1,7 @@
 package com.example.backend.data;
 
 import com.example.backend.model.entity.*;
+import com.example.backend.model.enums.CareSetting;
 import com.example.backend.model.enums.PermissionScope;
 import com.example.backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,9 @@ public class CoreDataLoader {
     private final ModuleRepository moduleRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final ServiceTypeRepository serviceTypeRepository;
+    private final ProgramRepository programRepository;
+    private final PayerRepository payerRepository;
 
     @Transactional
     public void loadData() {
@@ -32,6 +36,15 @@ public class CoreDataLoader {
 
         // Load basic permissions
         loadPermissions();
+
+        // Load service types
+        loadServiceTypes();
+
+        // Load programs
+        loadPrograms();
+
+        // Load payers
+        loadPayers();
 
         log.info("Core system data loaded successfully");
     }
@@ -64,10 +77,10 @@ public class CoreDataLoader {
 
     private void loadRoles() {
         String[][] roles = {
-            {"ADMIN", "System Admin", "Toàn quyền cấu hình và vận hành hệ thống", "true"},
-            {"MANAGER", "Office Manager", "Quản lý văn phòng, điều phối lịch và giám sát tuân thủ", "false"},
-            {"DSP", "Direct Support Professional", "Nhân viên chăm sóc sử dụng mobile app và ghi nhận dịch vụ", "false"},
-            {"FINANCE", "Finance & Billing", "Nhân viên phụ trách billing & claims", "false"}
+            {"ADMIN", "System Admin", "Full access to system configuration and operation", "true"},
+            {"MANAGER", "Office Manager", "Manages office, coordinates schedules, and monitors compliance", "false"},
+            {"DSP", "Direct Support Professional", "Caregiver who uses the mobile app and records services", "false"},
+            {"FINANCE", "Finance & Billing", "Staff responsible for billing & claims", "false"}
         };
 
         for (String[] roleData : roles) {
@@ -90,57 +103,63 @@ public class CoreDataLoader {
         // Basic permissions for each module
         String[][] permissions = {
             // Admin permissions
-            {"users", "create", "ORG", "Tạo user mới"},
-            {"users", "read", "ORG", "Xem danh sách user"},
-            {"users", "update", "ORG", "Cập nhật thông tin user"},
-            {"users", "delete", "ORG", "Xóa user"},
-            {"roles", "read", "ORG", "Xem danh sách vai trò"},
-            {"roles", "assign", "ORG", "Gán vai trò cho user"},
-            {"settings", "read", "ORG", "Xem cấu hình hệ thống"},
-            {"settings", "update", "ORG", "Cập nhật cấu hình hệ thống"},
+            {"users", "create", "ORG", "Create new users"},
+            {"users", "read", "ORG", "View user list"},
+            {"users", "update", "ORG", "Update user information"},
+            {"users", "delete", "ORG", "Delete users"},
+            {"roles", "read", "ORG", "View role list"},
+            {"roles", "assign", "ORG", "Assign roles to users"},
+            {"settings", "read", "ORG", "View system settings"},
+            {"settings", "update", "ORG", "Update system settings"},
 
             // Staff permissions
-            {"staff", "create", "OFFICE", "Tạo hồ sơ nhân viên"},
-            {"staff", "read", "OFFICE", "Xem hồ sơ nhân viên"},
-            {"staff", "update", "OFFICE", "Cập nhật hồ sơ nhân viên"},
-            {"staff", "delete", "OFFICE", "Xóa hồ sơ nhân viên"},
+            {"staff", "create", "OFFICE", "Create staff profiles"},
+            {"staff", "read", "OFFICE", "View staff profiles"},
+            {"staff", "update", "OFFICE", "Update staff profiles"},
+            {"staff", "delete", "OFFICE", "Delete staff profiles"},
 
             // Patient permissions
-            {"patients", "create", "OFFICE", "Tạo hồ sơ bệnh nhân"},
-            {"patients", "read", "OFFICE", "Xem hồ sơ bệnh nhân"},
-            {"patients", "update", "OFFICE", "Cập nhật hồ sơ bệnh nhân"},
-            {"patients", "delete", "OFFICE", "Xóa hồ sơ bệnh nhân"},
+            {"patients", "create", "OFFICE", "Create patient records"},
+            {"patients", "read", "OFFICE", "View patient records"},
+            {"patients", "update", "OFFICE", "Update patient records"},
+            {"patients", "delete", "OFFICE", "Delete patient records"},
 
             // ISP permissions
-            {"isp", "create", "OFFICE", "Tạo ISP"},
-            {"isp", "read", "OFFICE", "Xem ISP"},
-            {"isp", "update", "OFFICE", "Cập nhật ISP"},
-            {"isp", "delete", "OFFICE", "Xóa ISP"},
+            {"isp", "create", "OFFICE", "Create ISP"},
+            {"isp", "read", "OFFICE", "View ISP"},
+            {"isp", "update", "OFFICE", "Update ISP"},
+            {"isp", "delete", "OFFICE", "Delete ISP"},
 
             // Schedule permissions
-            {"schedule", "create", "OFFICE", "Tạo lịch làm việc"},
-            {"schedule", "read", "OFFICE", "Xem lịch làm việc"},
-            {"schedule", "update", "OFFICE", "Cập nhật lịch làm việc"},
-            {"schedule", "delete", "OFFICE", "Xóa lịch làm việc"},
+            {"schedule", "create", "OFFICE", "Create work schedules"},
+            {"schedule", "read", "OFFICE", "View work schedules"},
+            {"schedule", "update", "OFFICE", "Update work schedules"},
+            {"schedule", "delete", "OFFICE", "Delete work schedules"},
 
             // Mobile permissions
-            {"mobile", "check-in", "OFFICE", "Check-in qua mobile"},
-            {"mobile", "check-out", "OFFICE", "Check-out qua mobile"},
-            {"mobile", "read-notes", "SELF", "Đọc ghi chú bệnh nhân"},
-            {"mobile", "write-notes", "SELF", "Tạo/cập nhật ghi chú bệnh nhân"},
+            {"mobile", "check-in", "OFFICE", "Check-in via mobile"},
+            {"mobile", "check-out", "OFFICE", "Check-out via mobile"},
+            {"mobile", "read-notes", "SELF", "Read patient notes"},
+            {"mobile", "write-notes", "SELF", "Create/update patient notes"},
+
+            // Office permissions
+            {"offices", "create", "ORG", "Create new offices"},
+            {"offices", "read", "ORG", "View office list"},
+            {"offices", "update", "ORG", "Update office information"},
+            {"offices", "delete", "ORG", "Delete offices"},
 
             // Billing permissions
-            {"billing", "read", "OFFICE", "Xem thông tin billing"},
-            {"billing", "generate", "OFFICE", "Tạo claims"},
-            {"billing", "submit", "OFFICE", "Submit claims"},
+            {"billing", "read", "ORG", "View billing information"},
+            {"billing", "generate", "ORG", "Generate claims"},
+            {"billing", "submit", "ORG", "Submit claims"},
 
             // Fire Drill permissions
-            {"firedrill", "create", "OFFICE", "Tạo fire drill"},
-            {"firedrill", "read", "OFFICE", "Xem fire drill"},
-            {"firedrill", "update", "OFFICE", "Cập nhật fire drill"},
+            {"firedrill", "create", "OFFICE", "Create fire drill"},
+            {"firedrill", "read", "OFFICE", "View fire drill"},
+            {"firedrill", "update", "OFFICE", "Update fire drill"},
 
             // Compliance permissions
-            {"compliance", "read", "ORG", "Xem báo cáo tuân thủ"},
+            {"compliance", "read", "ORG", "View compliance reports"},
         };
 
         for (String[] permData : permissions) {
@@ -154,6 +173,92 @@ public class CoreDataLoader {
                 permission.setDescription(description);
                 permissionRepository.save(permission);
                 log.info("Created permission: {}:{}:{}", resource, action, scope);
+            }
+        }
+    }
+    
+    private void loadServiceTypes() {
+        Object[][] serviceTypes = {
+            // Format: code, name, careSetting, description, unitBasis, isBillable
+            // Non-Residential (SRS 3.1)
+            {"HOME_COMM", "Home & Community Habilitation", CareSetting.NON_RESIDENTIAL, "Assists individuals in acquiring, maintaining, and improving self-help, domestic, and social skills.", "15min", true},
+            {"COMPANION", "Companion Services", CareSetting.NON_RESIDENTIAL, "Provides daily companionship, assistance with travel, and social interaction.", "15min", true},
+            {"EMP_SUPPORT", "Employment / Supported Employment", CareSetting.NON_RESIDENTIAL, "Supports individuals in finding, training for, and maintaining employment in an integrated setting.", "hour", true},
+            {"THERAPY", "Therapy Services", CareSetting.NON_RESIDENTIAL, "Includes physical, speech, behavioral therapy, and psychological counseling.", "15min", true},
+            {"BEHAVIOR", "Behavior Support", CareSetting.NON_RESIDENTIAL, "Behavioral assessment, intervention planning, and support to reduce challenging behaviors.", "15min", true},
+            {"TRANSPORT", "Transportation", CareSetting.NON_RESIDENTIAL, "Assists with travel to programs, work, medical appointments, and social activities.", "trip", true},
+            {"RESPITE_DAY", "Respite Services (Day/Night)", CareSetting.NON_RESIDENTIAL, "Provides short-term relief for primary caregivers, either in-home or during the day.", "hour", true},
+            {"ASSISTIVE", "Assistive Technology / Environmental Modifications", CareSetting.NON_RESIDENTIAL, "Provides devices, home modifications, and tools to support mobility, communication, and safety.", "item", true},
+            
+            // Residential (SRS 3.2)
+            {"GROUP_HOME", "Group Homes / Community Living", CareSetting.RESIDENTIAL, "Group homes or apartments with 24/7 staff support to ensure safety and daily living.", "day", true},
+            {"LIFE_SHARING", "Life Sharing / Family Living", CareSetting.RESIDENTIAL, "Individuals live with a host family or their own family with continuous support.", "day", true},
+            {"SUPPORTED_LIVING", "Supported / Independent Living with Supports", CareSetting.RESIDENTIAL, "Independent living with needs-based support for housekeeping, medical care, and medication management.", "day", true},
+            {"ICF", "Intermediate Care Facilities (ICF/IID)", CareSetting.RESIDENTIAL, "Facilities with higher supervision, providing intensive medical/behavioral support for complex needs.", "day", true}
+        };
+
+        for (Object[] typeData : serviceTypes) {
+            String code = (String) typeData[0];
+            String name = (String) typeData[1];
+            CareSetting careSetting = (CareSetting) typeData[2];
+            String description = (String) typeData[3];
+            String unitBasis = (String) typeData[4];
+            Boolean isBillable = (Boolean) typeData[5];
+
+            if (!serviceTypeRepository.existsByCode(code)) {
+                ServiceType serviceType = new ServiceType(code, name, careSetting);
+                serviceType.setDescription(description);
+                serviceType.setUnitBasis(unitBasis);
+                serviceType.setIsBillable(isBillable);
+                serviceTypeRepository.save(serviceType);
+                log.info("Created service type: {} - {}", code, name);
+            }
+        }
+    }
+
+    private void loadPrograms() {
+        String[][] programs = {
+            {"ODP", "Office of Developmental Programs", "Provides services for individuals with developmental disabilities."},
+            {"OLTL", "Office of Long-Term Living", "Provides long-term care services for seniors and adults with disabilities."},
+            {"OMAP", "Office of Medical Assistance Programs", "Administers the Medicaid program in Pennsylvania."}
+        };
+
+        for (String[] programData : programs) {
+            String identifier = programData[0];
+            String name = programData[1];
+            String description = programData[2];
+
+            if (!programRepository.existsByProgramIdentifier(identifier)) {
+                Program program = new Program();
+                program.setProgramIdentifier(identifier);
+                program.setProgramName(name);
+                program.setDescription(description);
+                program.setActive(true);
+                programRepository.save(program);
+                log.info("Created program: {} - {}", identifier, name);
+            }
+        }
+    }
+
+    private void loadPayers() {
+        String[][] payers = {
+            {"PAODP", "Pennsylvania ODP"},
+            {"PAOLTL", "Pennsylvania OLTL"},
+            {"PAOMAP", "Pennsylvania OMAP"}
+        };
+
+        for (String[] payerData : payers) {
+            String identifier = payerData[0];
+            String name = payerData[1];
+
+            if (payerRepository.findByPayerIdentifier(identifier).isEmpty()) {
+                Payer payer = new Payer();
+                payer.setPayerIdentifier(identifier);
+                payer.setPayerName(name);
+                payer.setType(com.example.backend.model.enums.PayerType.MEDICAID);
+                payer.setIsActive(true);
+                payerRepository.save(payer);
+                log.info("Created payer: {} - {}", identifier, name);
             }
         }
     }

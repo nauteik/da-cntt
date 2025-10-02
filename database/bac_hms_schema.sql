@@ -8,10 +8,12 @@ CREATE TABLE address (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     line1 text NOT NULL,
     line2 text,
+    label text,
     city text NOT NULL,
     state text NOT NULL,
     postal_code text NOT NULL,
     country text NOT NULL DEFAULT 'USA',
+    type text CHECK (type IN ('HOME', 'COMMUNITY', 'SENIOR', 'BUSINESS')),
     latitude numeric(9,6),
     longitude numeric(9,6),
     meta jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -51,22 +53,21 @@ CREATE TABLE service_type (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     code text NOT NULL UNIQUE,
     name text NOT NULL,
-    care_setting text NOT NULL DEFAULT 'non_residential',
+    care_setting text NOT NULL DEFAULT 'NON_RESIDENTIAL',
     description text,
     unit_basis text NOT NULL DEFAULT '15min',
     is_billable boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT service_type_care_setting_check CHECK (care_setting IN ('residential', 'non_residential'))
+    updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_service_type_setting ON service_type (care_setting);
 
-CREATE TABLE payor (
+CREATE TABLE payer (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    name text NOT NULL UNIQUE,
+    payer_identifier text NOT NULL UNIQUE,
+    payer_name text NOT NULL UNIQUE,
     type text NOT NULL DEFAULT 'Medicaid',
-    payer_identifier text,
     submission_endpoint text,
     config jsonb NOT NULL DEFAULT '{}'::jsonb,
     is_active boolean NOT NULL DEFAULT true,
@@ -74,13 +75,11 @@ CREATE TABLE payor (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+
 CREATE TABLE app_user (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    username text NOT NULL UNIQUE,
-    email text UNIQUE,
+    email text NOT NULL UNIQUE,
     password_hash text NOT NULL,
-    display_name text NOT NULL,
-    phone text,
     is_active boolean NOT NULL DEFAULT true,
     mfa_enabled boolean NOT NULL DEFAULT false,
     last_login_at timestamptz,
@@ -320,24 +319,39 @@ CREATE INDEX idx_staff_rate_staff ON staff_rate (staff_id, service_type_id);
 CREATE TABLE patient (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
-    mrn text UNIQUE,
+    supervisor_id uuid REFERENCES staff(id),
+    medicaid_id text UNIQUE,
     first_name text NOT NULL,
     last_name text NOT NULL,
     dob date,
     gender text,
-    address_id uuid REFERENCES address(id) ON DELETE SET NULL,
     primary_language text,
-    guardian_name text,
-    guardian_phone text,
     medical_profile jsonb NOT NULL DEFAULT '{}'::jsonb,
-    is_active boolean NOT NULL DEFAULT true,
+    status text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACTIVE', 'INACTIVE')),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz
 );
 
 CREATE INDEX idx_patient_office ON patient (office_id);
+CREATE INDEX idx_patient_supervisor ON patient (supervisor_id);
 CREATE INDEX idx_patient_deleted_at ON patient (deleted_at);
+CREATE INDEX idx_patient_name_active ON patient(last_name, first_name);
+
+
+CREATE TABLE patient_address (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    address_id uuid NOT NULL REFERENCES address(id) ON DELETE CASCADE,
+    is_main boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT patient_address_unique UNIQUE (patient_id, address_id)
+);
+
+CREATE INDEX idx_patient_address_patient ON patient_address (patient_id);
+CREATE INDEX idx_patient_address_address ON patient_address (address_id);
+CREATE UNIQUE INDEX idx_patient_address_unique_main ON patient_address (patient_id) WHERE is_main;
 
 CREATE TABLE patient_contact (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -355,19 +369,22 @@ CREATE TABLE patient_contact (
 
 CREATE INDEX idx_patient_contact_patient ON patient_contact (patient_id);
 
-CREATE TABLE patient_provider (
+CREATE TABLE patient_payer (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    role text NOT NULL,
-    name text NOT NULL,
-    phone text,
-    email text,
-    npi text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    payer_id uuid NOT NULL REFERENCES payer(id) ON DELETE RESTRICT,
+    client_payer_id text NOT NULL,
+    medicaid_id text,
+    rank integer DEFAULT 1,
+    group_no text,
+    start_date date,
+    end_date date,
+    meta jsonb DEFAULT '{}'::jsonb,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    CONSTRAINT patient_payer_unique UNIQUE (patient_id, payer_id)
 );
-
-CREATE INDEX idx_patient_provider_patient ON patient_provider (patient_id, role);
+CREATE INDEX idx_patient_payer_patient ON patient_payer (patient_id);
 
 CREATE TABLE residence_stay (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -387,31 +404,47 @@ CREATE INDEX idx_residence_stay_patient ON residence_stay (patient_id, move_in_a
 CREATE TABLE isp (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    current_status text NOT NULL DEFAULT 'draft',
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT isp_patient_status_unique UNIQUE (patient_id, current_status)
-);
-
-CREATE TABLE isp_version (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_id uuid NOT NULL REFERENCES isp(id) ON DELETE CASCADE,
     version_no integer NOT NULL,
     effective_at date NOT NULL,
     expires_at date,
-    status text NOT NULL DEFAULT 'draft',
+    total_unit numeric(10, 2),
     file_id uuid REFERENCES file_object(id) ON DELETE SET NULL,
     metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT isp_version_unique UNIQUE (isp_id, version_no)
+    CONSTRAINT isp_patient_version_unique UNIQUE (patient_id, version_no)
 );
 
-CREATE INDEX idx_isp_version_status ON isp_version (status);
+CREATE INDEX idx_isp_patient ON isp (patient_id);
+
+CREATE TABLE service_authorization (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    isp_id uuid REFERENCES isp(id) ON DELETE CASCADE,
+    patient_payer_id uuid NOT NULL REFERENCES patient_payer(id) ON DELETE CASCADE,
+    service_type_id uuid NOT NULL REFERENCES service_type(id) ON DELETE RESTRICT,
+    authorization_no text NOT NULL UNIQUE,
+    format text DEFAULT 'units',
+    event_code text,
+    modifiers jsonb DEFAULT '{}'::jsonb,
+    max_units numeric(10,2) NOT NULL CHECK (max_units >= 0),
+    total_used numeric(10,2) DEFAULT 0,
+    total_missed numeric(10,2) DEFAULT 0,
+    total_remaining numeric(10,2) GENERATED ALWAYS AS (max_units - total_used - total_missed) STORED,
+    start_date date NOT NULL,
+    end_date date,
+    comments text,
+    meta jsonb DEFAULT '{}'::jsonb,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_service_auth_patient_payer ON service_authorization (patient_payer_id, start_date);
+
 
 CREATE TABLE isp_goal (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_version_id uuid NOT NULL REFERENCES isp_version(id) ON DELETE CASCADE,
+    isp_id uuid NOT NULL REFERENCES isp(id) ON DELETE CASCADE,
+    service_authorization_id uuid REFERENCES service_authorization(id) ON DELETE SET NULL,
     title text NOT NULL,
     description text,
     measure text,
@@ -420,7 +453,7 @@ CREATE TABLE isp_goal (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_isp_goal_version ON isp_goal (isp_version_id);
+CREATE INDEX idx_isp_goal ON isp_goal (isp_id);
 
 CREATE TABLE isp_task (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -435,21 +468,20 @@ CREATE TABLE isp_task (
 
 CREATE INDEX idx_isp_task_goal ON isp_task (isp_goal_id);
 
-CREATE TABLE service_authorization (
+CREATE TABLE patient_service (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_version_id uuid NOT NULL REFERENCES isp_version(id) ON DELETE CASCADE,
-    service_type_id uuid REFERENCES service_type(id) ON DELETE SET NULL,
-    payor_id uuid REFERENCES payor(id) ON DELETE SET NULL,
-    units_authorized integer NOT NULL CHECK (units_authorized >= 0),
-    period text NOT NULL,
-    allocation jsonb NOT NULL DEFAULT '{}'::jsonb,
-    effective_at date NOT NULL,
-    expires_at date,
+    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    service_type_id uuid NOT NULL REFERENCES service_type(id) ON DELETE CASCADE,
+    start_date date,
+    end_date date,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT patient_service_unique UNIQUE (patient_id, service_type_id)
 );
 
-CREATE INDEX idx_service_authorization_version ON service_authorization (isp_version_id);
+CREATE INDEX idx_patient_service_patient ON patient_service (patient_id);
+CREATE INDEX idx_patient_service_service ON patient_service (service_type_id);
+CREATE INDEX idx_patient_service_lookup ON patient_service(patient_id, service_type_id);
 
 CREATE TABLE unit_consumption (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -465,19 +497,9 @@ CREATE TABLE unit_consumption (
 
 CREATE INDEX idx_unit_consumption_auth_date ON unit_consumption (service_authorization_id, service_date);
 
-CREATE TABLE isp_acknowledgement (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_version_id uuid NOT NULL REFERENCES isp_version(id) ON DELETE CASCADE,
-    staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
-    acknowledged_at timestamptz NOT NULL DEFAULT now(),
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT isp_acknowledgement_unique UNIQUE (isp_version_id, staff_id)
-);
-
 CREATE TABLE progress_report (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_version_id uuid NOT NULL REFERENCES isp_version(id) ON DELETE CASCADE,
+    isp_id uuid NOT NULL REFERENCES isp(id) ON DELETE CASCADE,
     period_start date NOT NULL,
     period_end date NOT NULL,
     summary jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -487,103 +509,120 @@ CREATE TABLE progress_report (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_progress_report_period ON progress_report (isp_version_id, period_start);
+CREATE INDEX idx_progress_report_period ON progress_report (isp_id, period_start);
 
-CREATE TABLE weekly_schedule (
+-- Bảng Template cho lịch mẫu (Master Weekly)
+CREATE TABLE schedule_template (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    isp_version_id uuid REFERENCES isp_version(id) ON DELETE SET NULL,
-    week_start date NOT NULL,
-    status text NOT NULL DEFAULT 'draft',
-    unit_summary jsonb NOT NULL DEFAULT '{}'::jsonb,
+    name text NOT NULL DEFAULT 'Master Weekly',  -- Ví dụ: 'Master Weekly', 'Quarterly Template'
+    description text,
+    status text NOT NULL DEFAULT 'active',  -- 'active', 'archived'
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    created_by uuid,
-    CONSTRAINT weekly_schedule_unique UNIQUE (patient_id, week_start)
+    created_by uuid REFERENCES app_user(id) ON DELETE SET NULL,
+    CONSTRAINT schedule_template_unique UNIQUE (patient_id, name)
 );
 
-CREATE INDEX idx_weekly_schedule_office ON weekly_schedule (office_id, week_start);
+CREATE INDEX idx_schedule_template_patient ON schedule_template (patient_id);
 
-CREATE TABLE schedule_shift (
+-- Events trong Template (per weekday)
+CREATE TABLE template_event (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    weekly_schedule_id uuid NOT NULL REFERENCES weekly_schedule(id) ON DELETE CASCADE,
-    office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
-    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    schedule_template_id uuid NOT NULL REFERENCES schedule_template(id) ON DELETE CASCADE,
+    weekday smallint NOT NULL CHECK (weekday BETWEEN 0 AND 6),  -- 0=Sun, 6=Sat
+    start_time time NOT NULL,
+    end_time time NOT NULL,
     service_type_id uuid REFERENCES service_type(id) ON DELETE SET NULL,
-    isp_goal_id uuid REFERENCES isp_goal(id) ON DELETE SET NULL,
-    start_at timestamptz NOT NULL,
-    end_at timestamptz NOT NULL,
+    event_code text,  -- Ví dụ: W1726, W7060 từ hình ảnh
     planned_units integer NOT NULL CHECK (planned_units >= 0),
-    status text NOT NULL DEFAULT 'planned',
+    meta jsonb NOT NULL DEFAULT '{}'::jsonb,  -- Lưu thêm (ví dụ: tổng giờ, tổng units theo ngày)
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
+    CHECK (end_time > start_time),
+    CONSTRAINT template_event_unique UNIQUE (schedule_template_id, weekday, start_time)
+);
+
+CREATE INDEX idx_template_event_template ON template_event (schedule_template_id);
+
+-- Events thực tế (generated hoặc thủ công, per day)
+CREATE TABLE schedule_event (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
+    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    event_date date NOT NULL,
+    start_at timestamptz NOT NULL,
+    end_at timestamptz NOT NULL,
+    service_type_id uuid REFERENCES service_type(id) ON DELETE SET NULL,
+    event_code text,
+    status text NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'PLANNED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')),
+    planned_units integer NOT NULL CHECK (planned_units >= 0),
+    actual_units integer CHECK (actual_units >= 0),
+    unit_summary jsonb NOT NULL DEFAULT '{}'::jsonb,  -- Lưu lý do cancelled, tổng units
+    source_template_id uuid REFERENCES schedule_template(id) ON DELETE SET NULL,
+    generated_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    created_by uuid REFERENCES app_user(id) ON DELETE SET NULL,
     CHECK (end_at > start_at)
 );
 
-CREATE INDEX idx_schedule_shift_schedule ON schedule_shift (weekly_schedule_id);
-CREATE INDEX idx_schedule_shift_time ON schedule_shift (patient_id, start_at);
+CREATE INDEX idx_schedule_event_patient_date ON schedule_event (patient_id, event_date);
+CREATE INDEX idx_schedule_event_office_date ON schedule_event (office_id, event_date DESC);
 
-CREATE TABLE shift_assignment (
+CREATE TABLE isp_task_schedule (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    schedule_shift_id uuid NOT NULL REFERENCES schedule_shift(id) ON DELETE CASCADE,
-    staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
-    role text NOT NULL DEFAULT 'primary',
-    assignment_status text NOT NULL DEFAULT 'assigned',
+    isp_task_id uuid NOT NULL REFERENCES isp_task(id) ON DELETE CASCADE,
+    schedule_event_id uuid NOT NULL REFERENCES schedule_event(id) ON DELETE CASCADE,
+    status text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'IN_PROGRESS', 'INCOMPLETE', 'COMPLETED')),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT isp_task_schedule_unique UNIQUE (isp_task_id, schedule_event_id)
+);
+
+CREATE INDEX idx_isp_task_schedule_task ON isp_task_schedule (isp_task_id);
+CREATE INDEX idx_isp_task_schedule_event ON isp_task_schedule (schedule_event_id);
+
+CREATE TABLE isp_task_template (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    isp_task_id uuid NOT NULL REFERENCES isp_task(id) ON DELETE CASCADE,
+    template_event_id uuid NOT NULL REFERENCES template_event(id) ON DELETE CASCADE,
+    assigned_by_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     assigned_at timestamptz NOT NULL DEFAULT now(),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT shift_assignment_unique UNIQUE (schedule_shift_id, staff_id)
+    CONSTRAINT isp_task_template_unique UNIQUE (isp_task_id, template_event_id)
 );
 
-CREATE TABLE shift_change_request (
+CREATE INDEX idx_isp_task_template_task ON isp_task_template (isp_task_id);
+CREATE INDEX idx_isp_task_template_event ON isp_task_template (template_event_id);
+
+-- Gán nhân viên cho Events (hỗ trợ multiple nếu cần, nhưng default primary)
+CREATE TABLE event_assignment (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    schedule_shift_id uuid NOT NULL REFERENCES schedule_shift(id) ON DELETE CASCADE,
-    requested_by_staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
-    request_type text NOT NULL,
-    reason text,
-    status text NOT NULL DEFAULT 'pending',
-    requested_at timestamptz NOT NULL DEFAULT now(),
+    schedule_event_id uuid NOT NULL REFERENCES schedule_event(id) ON DELETE CASCADE,
+    staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+    role text NOT NULL DEFAULT 'primary',  -- 'primary', 'backup', 'supervisor'
+    status text NOT NULL DEFAULT 'ASSIGNED' CHECK (status IN ('ASSIGNED', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'COMPLETED')),
+    meta jsonb NOT NULL DEFAULT '{}'::jsonb,  -- Lý do decline, thời gian swap, v.v.
+    assigned_at timestamptz NOT NULL DEFAULT now(),
+    created_by uuid REFERENCES app_user(id) ON DELETE SET NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT event_assignment_unique UNIQUE (schedule_event_id, staff_id)
 );
 
-CREATE INDEX idx_shift_change_request_shift ON shift_change_request (schedule_shift_id, status);
-
-CREATE TABLE shift_change_approval (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    change_request_id uuid NOT NULL REFERENCES shift_change_request(id) ON DELETE CASCADE,
-    approver_id uuid NOT NULL REFERENCES staff(id) ON DELETE SET NULL,
-    decision text NOT NULL,
-    decided_at timestamptz NOT NULL DEFAULT now(),
-    note text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_shift_change_approval_request ON shift_change_approval (change_request_id);
-
-CREATE TABLE shift_log (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    schedule_shift_id uuid NOT NULL REFERENCES schedule_shift(id) ON DELETE CASCADE,
-    actor_id uuid REFERENCES app_user(id) ON DELETE SET NULL,
-    action text NOT NULL,
-    before_state jsonb,
-    after_state jsonb,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_shift_log_shift ON shift_log (schedule_shift_id, created_at);
+CREATE INDEX idx_event_assignment_event ON event_assignment (schedule_event_id);
+CREATE INDEX idx_event_assignment_staff ON event_assignment (staff_id);
 
 CREATE TABLE service_delivery (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    schedule_shift_id uuid REFERENCES schedule_shift(id) ON DELETE SET NULL,
+    schedule_event_id uuid REFERENCES schedule_event(id) ON DELETE SET NULL,
     office_id uuid REFERENCES office(id) ON DELETE SET NULL,
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE SET NULL,
-    service_type_id uuid REFERENCES service_type(id) ON DELETE SET NULL,
-    isp_goal_id uuid REFERENCES isp_goal(id) ON DELETE SET NULL,
+    service_authorization_id uuid REFERENCES service_authorization(id) ON DELETE SET NULL,
     start_at timestamptz NOT NULL,
     end_at timestamptz NOT NULL,
     units integer NOT NULL CHECK (units >= 0),
@@ -698,7 +737,7 @@ CREATE TABLE check_event (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
     patient_id uuid REFERENCES patient(id) ON DELETE SET NULL,
-    schedule_shift_id uuid REFERENCES schedule_shift(id) ON DELETE SET NULL,
+    schedule_event_id uuid REFERENCES schedule_event(id) ON DELETE SET NULL,
     service_delivery_id uuid REFERENCES service_delivery(id) ON DELETE SET NULL,
     event_type text NOT NULL,
     occurred_at timestamptz NOT NULL,
@@ -878,7 +917,7 @@ CREATE INDEX idx_rate_entry_card ON rate_entry (rate_card_id);
 CREATE TABLE claim (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     office_id uuid REFERENCES office(id) ON DELETE SET NULL,
-    payor_id uuid NOT NULL REFERENCES payor(id) ON DELETE SET NULL,
+    payer_id uuid NOT NULL REFERENCES payer(id) ON DELETE SET NULL,
     claim_number text NOT NULL UNIQUE,
     status text NOT NULL DEFAULT 'draft',
     submitted_at timestamptz,
@@ -910,152 +949,35 @@ CREATE TABLE claim_line (
 CREATE INDEX idx_claim_line_claim ON claim_line (claim_id);
 CREATE INDEX idx_claim_line_service_date ON claim_line (service_date);
 
-CREATE TABLE remittance (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    payor_id uuid REFERENCES payor(id) ON DELETE SET NULL,
-    remit_number text NOT NULL,
-    received_at timestamptz NOT NULL,
-    total_amount numeric(12,2) NOT NULL,
-    file_id uuid REFERENCES file_object(id) ON DELETE SET NULL,
-    meta jsonb NOT NULL DEFAULT '{}'::jsonb,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT remittance_org_number_unique UNIQUE (remit_number));
-
-CREATE TABLE remittance_allocation (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    remittance_id uuid NOT NULL REFERENCES remittance(id) ON DELETE CASCADE,
-    claim_line_id uuid REFERENCES claim_line(id) ON DELETE SET NULL,
-    paid_amount numeric(12,2) NOT NULL,
-    adjustment_amount numeric(12,2) NOT NULL DEFAULT 0,
-    adjustment_code text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now());
-
-CREATE INDEX idx_remittance_allocation_remittance ON remittance_allocation (remittance_id);
-
-CREATE TABLE expense (
+CREATE TABLE program (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    office_id uuid REFERENCES office(id) ON DELETE SET NULL,
-    category text NOT NULL,
-    amount numeric(12,2) NOT NULL,
-    incurred_at date NOT NULL,
-    patient_id uuid REFERENCES patient(id) ON DELETE SET NULL,
-    meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+    program_identifier varchar(50) UNIQUE NOT NULL,
+    program_name varchar(255) NOT NULL,
+    description text,
+    is_active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_expense_date ON expense (incurred_at);
-
-CREATE TABLE export_job (
+CREATE TABLE patient_program (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    target text NOT NULL,
-    status text NOT NULL DEFAULT 'queued',
-    parameters jsonb NOT NULL DEFAULT '{}'::jsonb,
-    file_id uuid REFERENCES file_object(id) ON DELETE SET NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    completed_at timestamptz,
-    created_by uuid REFERENCES app_user(id) ON DELETE SET NULL
+    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    program_id uuid NOT NULL REFERENCES program(id) ON DELETE RESTRICT,
+    supervisor_id uuid REFERENCES app_user(id) ON DELETE SET NULL,
+    enrollment_date date,
+    status_effective_date date NOT NULL,
+    soc_date date,
+    eoc_date date,
+    eligibility_begin_date date,
+    eligibility_end_date date,
+    created_date timestamptz NOT NULL DEFAULT now(),
+    reason_for_change jsonb,
+    meta jsonb DEFAULT '{}'::jsonb,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    CONSTRAINT patient_program_unique UNIQUE (patient_id, program_id)
 );
+CREATE INDEX idx_patient_program_patient ON patient_program (patient_id);
 
-CREATE INDEX idx_export_job_status ON export_job (status);
 
--- Seed data
-INSERT INTO office (id, code, name, county, phone, email, timezone, billing_config)
-VALUES (
-    '22222222-2222-2222-2222-222222222222',
-    'MAIN',
-    'BAC Main Office',
-    'Delaware',
-    '+1-610-000-0001',
-    'office@blueangelscare.com',
-    'America/New_York',
-    '{"claim_submission_method":"medicaid_portal"}'::jsonb
-)
-ON CONFLICT (code) DO UPDATE
-SET name = EXCLUDED.name,
-    county = EXCLUDED.county,
-    phone = EXCLUDED.phone,
-    email = EXCLUDED.email,
-    timezone = EXCLUDED.timezone,
-    billing_config = EXCLUDED.billing_config;
-
-INSERT INTO module (code, name) VALUES
-    ('ADMIN', 'System Administration'),
-    ('STAFF', 'Staff Management'),
-    ('PATIENT', 'Patient Records'),
-    ('ISP', 'Care Plan (ISP)'),
-    ('SCHEDULE', 'Weekly Scheduling'),
-    ('MOBILE', 'Mobile Operations'),
-    ('MEDICATION', 'Medication Management'),
-    ('BILLING', 'Billing & Claims'),
-    ('FIRE_DRILL', 'Fire Drill Compliance'),
-    ('COMPLIANCE', 'Compliance & Audit')
-ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;
-
-INSERT INTO service_type (id, code, name, care_setting, description, unit_basis)
-VALUES
-    -- Non-Residential (SRS 3.1)
-    ('33333333-3333-3333-3333-333333333331', 'HOME_COMM', 'Home & Community Habilitation', 'non_residential', 'Giúp người khuyết tật học duy trì kỹ năng sinh hoạt, giao tiếp xã hội, tự chăm sóc, quản lý công việc nhà.', '15min'),
-    ('33333333-3333-3333-3333-333333333332', 'COMPANION', 'Companion Services', 'non_residential', 'Hỗ trợ đồng hành hằng ngày, di lại, giao tiếp xã hội, giám sát nếu cần.', '15min'),
-    ('33333333-3333-3333-3333-333333333333', 'EMP_SUPPORT', 'Employment / Supported Employment', 'non_residential', 'Hỗ trợ tìm việc, đào tạo nghề, duy trì việc làm trong môi trường hòa nhập.', 'hour'),
-    ('33333333-3333-3333-3333-333333333334', 'THERAPY', 'Therapy Services', 'non_residential', 'Vật lý trị liệu, ngôn ngữ trị liệu, trị liệu hành vi, tư vấn tâm lý.', '15min'),
-    ('33333333-3333-3333-3333-333333333335', 'BEHAVIOR', 'Behavior Support', 'non_residential', 'Đánh giá hành vi, lập kế hoạch can thiệp, hỗ trợ giảm hành vi khó khăn.', '15min'),
-    ('33333333-3333-3333-3333-333333333336', 'TRANSPORT', 'Transportation', 'non_residential', 'Hỗ trợ di chuyển tới chương trình, công việc, y tế, hoạt động xã hội.', 'trip'),
-    ('33333333-3333-3333-3333-333333333337', 'RESPITE_DAY', 'Respite Services (Day/Night)', 'non_residential', 'Thay thế caregiver, giúp nghỉ ngơi ngắn hạn tại nhà hoặc ban ngày.', 'hour'),
-    ('33333333-3333-3333-3333-333333333338', 'ASSISTIVE', 'Assistive Technology / Environmental Modifications', 'non_residential', 'Thiết bị trợ giúp, sửa đổi nhà/công cụ hỗ trợ di chuyển, giao tiếp, an toàn.', 'item'),
-
-    -- Residential (SRS 3.2)
-    ('33333333-3333-3333-3333-333333333339', 'GROUP_HOME', 'Group Homes / Community Living', 'residential', 'Nhà nhóm/căn hộ có nhân viên hỗ trợ 24/7 đảm bảo an toàn và sinh hoạt.', 'day'),
-    ('33333333-3333-3333-3333-33333333333A', 'LIFE_SHARING', 'Life Sharing / Family Living', 'residential', 'Người khuyết tật sống cùng gia đình host hoặc gia đình mình với hỗ trợ liên tục.', 'day'),
-    ('33333333-3333-3333-3333-33333333333B', 'SUPPORTED_LIVING', 'Supported / Independent Living with Supports', 'residential', 'Sống độc lập với hỗ trợ theo nhu cầu: trợ giúp nhà cửa, y tế, quản lý thuốc.', 'day'),
-    ('33333333-3333-3333-3333-33333333333C', 'ICF', 'Intermediate Care Facilities (ICF/IID)', 'residential', 'Cơ sở giám sát cao hơn, hỗ trợ y tế/hành vi sâu hơn cho nhu cầu phức tạp.', 'day')
-ON CONFLICT (code) DO UPDATE
-SET name = EXCLUDED.name,
-    care_setting = EXCLUDED.care_setting,
-    description = EXCLUDED.description,
-    unit_basis = EXCLUDED.unit_basis;
-
-INSERT INTO payor (id, name, type, payer_identifier, submission_endpoint)
-VALUES (
-    '44444444-4444-4444-4444-444444444444',
-    'PA Medicaid',
-    'Medicaid',
-    'PA-MA',
-    'https://providerportal.dhs.pa.gov/claims'
-)
-ON CONFLICT (name) DO UPDATE
-SET type = EXCLUDED.type,
-    payer_identifier = EXCLUDED.payer_identifier,
-    submission_endpoint = EXCLUDED.submission_endpoint;
-
-INSERT INTO role (id, code, name, description, is_system)
-VALUES
-    ('55555555-5555-5555-5555-555555555551', 'ADMIN', 'System Admin', 'Toàn quyền cấu hình và vận hành hệ thống', true),
-    ('55555555-5555-5555-5555-555555555552', 'MANAGER', 'Office Manager', 'Quản lý văn phòng, điều phối lịch và giám sát tuân thủ', false),
-    ('55555555-5555-5555-5555-555555555553', 'DSP', 'Direct Support Professional', 'Nhân viên chăm sóc sử dụng mobile app và ghi nhận dịch vụ', false),
-    ('55555555-5555-5555-5555-555555555554', 'FINANCE', 'Finance & Billing', 'Nhân viên phụ trách billing & claims', false)
-ON CONFLICT (code) DO UPDATE
-SET name = EXCLUDED.name,
-    description = EXCLUDED.description,
-    is_system = EXCLUDED.is_system;
-
-INSERT INTO rate_card (id, name, scope, effective_at)
-VALUES (
-    '66666666-6666-6666-6666-666666666666',
-    'Default Medicaid Rates',
-    'org',
-    '2025-01-01'
-)
-ON CONFLICT (name) DO UPDATE
-SET scope = EXCLUDED.scope,
-    effective_at = EXCLUDED.effective_at;
-
-INSERT INTO rate_entry (id, rate_card_id, service_type_id, staff_id, patient_id, rate, pay_basis)
-VALUES
-    ('77777777-7777-7777-7777-777777777771', '66666666-6666-6666-6666-666666666666', '33333333-3333-3333-3333-333333333331', NULL, NULL, 44.50, 'per_unit'),
-    ('77777777-7777-7777-7777-777777777772', '66666666-6666-6666-6666-666666666666', '33333333-3333-3333-3333-333333333332', NULL, NULL, 38.25, 'per_unit'),
-    ('77777777-7777-7777-7777-777777777773', '66666666-6666-6666-6666-666666666666', '33333333-3333-3333-3333-333333333333', NULL, NULL, 36.00, 'per_unit')
-ON CONFLICT (rate_card_id, service_type_id, staff_id, patient_id) DO UPDATE
-SET rate = EXCLUDED.rate,
-    pay_basis = EXCLUDED.pay_basis;
+    

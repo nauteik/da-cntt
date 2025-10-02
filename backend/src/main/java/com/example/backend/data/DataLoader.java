@@ -19,6 +19,7 @@ public class DataLoader implements CommandLineRunner {
     private final OfficeDataLoader officeDataLoader;
     private final UserDataLoader userDataLoader;
     private final RolePermissionDataLoader rolePermissionDataLoader;
+    private final PatientDataLoader patientDataLoader;
 
     @Override
     public void run(String... args) throws Exception {
@@ -26,20 +27,25 @@ public class DataLoader implements CommandLineRunner {
 
         try {
             // Load core data first (Permissions, Roles)
-            log.info("Step 1/4: Loading core data (Permissions, Roles)...");
+            log.info("Step 1/5: Loading core data (Permissions, Roles)...");
             coreDataLoader.loadData();
             
             // Load offices
-            log.info("Step 2/4: Loading offices...");
+            log.info("Step 2/5: Loading offices...");
             officeDataLoader.loadData();
             
             // Load role-permission mappings
-            log.info("Step 3/4: Loading role-permission mappings...");
+            log.info("Step 3/5: Loading role-permission mappings...");
             rolePermissionDataLoader.loadData();
             
             // Load users and assign them to roles and offices
-            log.info("Step 4/4: Loading users...");
+            log.info("Step 4/5: Loading users...");
             userDataLoader.loadData();
+
+            // Load patient data
+            log.info("Step 5/5: Loading patient data...");
+            patientDataLoader.loadData();
+
             
             log.info("✅ Data initialization completed successfully");
         } catch (Exception e) {

@@ -49,7 +49,7 @@ export async function apiClient<T>(
     console.error("Error: ", error);
     return {
       success: false,
-      message: "Không thể kết nối đến máy chủ",
+      message: "Failed to connect to server. Please try again later.",
       status: 503, // Service Unavailable
       errorType: "SYSTEM_ERROR",
       timestamp: new Date().toISOString(),

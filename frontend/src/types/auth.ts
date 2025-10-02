@@ -1,13 +1,12 @@
 export interface User {
   id: string;
-  username: string;
   email: string;
   displayName: string; // Added this property
   roles: string[];
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
   rememberMe?: boolean;
 }
@@ -20,7 +19,6 @@ export interface LoginResponse {
   tokenType: string;
   refreshToken?: string;
   userId: string;
-  username: string;
   displayName: string;
   email: string;
   roles: string[];

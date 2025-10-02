@@ -1,0 +1,156 @@
+/* Clients Page Styles */
+
+.clientsContainer {
+  padding: 24px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.controlBar {
+  margin-bottom: 16px;
+  background: var(--bg-surface);
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.controlsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.rightControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.actionButton {
+  border-color: var(--btn-secondary) !important;
+  color: var(--btn-secondary) !important;
+  font-weight: 550 !important;
+}
+
+.actionButton:hover {
+  border-color: var(--btn-secondary-hover);
+  color: var(--btn-secondary-hover);
+  background-color: rgba(32, 98, 172, 0.05);
+}
+
+.createButton {
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 550 !important;
+  flex-shrink: 0;
+}
+
+.createButton:hover {
+  opacity: 1 !important;
+}
+
+.searchInput {
+  min-width: 240px !important;
+  flex: 1 1 0 !important;
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+.searchInput input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.searchInput input::placeholder {
+  color: var(--text-secondary);
+}
+
+.tableCard {
+  background: var(--bg-surface);
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.clientName {
+  font-weight: 500;
+  color: var(--primary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.clientName:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* Table customization */
+.tableCard :global(.ant-table) {
+  background: var(--bg-surface);
+}
+
+.tableCard :global(.ant-table-thead > tr > th) {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tableCard :global(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.tableCard :global(.ant-table-tbody > tr:hover > td) {
+  background: var(--bg-primary) !important;
+}
+
+.tableCard :global(.ant-pagination) {
+  margin: 16px 0;
+}
+
+.tableCard :global(.ant-pagination-item) {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+.tableCard :global(.ant-pagination-item a) {
+  color: var(--text-primary);
+}
+
+.tableCard :global(.ant-pagination-item-active) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.tableCard :global(.ant-pagination-item-active a) {
+  color: white;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .clientsContainer {
+    padding: 16px;
+  }
+
+  .controlsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rightControls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .searchInput {
+    width: 100%;
+  }
+}

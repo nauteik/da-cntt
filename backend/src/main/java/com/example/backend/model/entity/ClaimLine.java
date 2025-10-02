@@ -9,8 +9,6 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Claim line entity for individual claim line items
@@ -20,7 +18,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"claim", "serviceDelivery", "patient", "staff", "serviceType", "remittanceAllocations"})
+@ToString(exclude = {"claim", "serviceDelivery", "patient", "staff", "serviceType"})
 public class ClaimLine extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -63,9 +61,6 @@ public class ClaimLine extends BaseEntity {
     @Column(name = "denial_reason")
     private String denialReason;
 
-    // Relationships
-    @OneToMany(mappedBy = "claimLine", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<RemittanceAllocation> remittanceAllocations = new HashSet<>();
 
     public ClaimLine(Claim claim, Patient patient, LocalDate serviceDate, Integer units, BigDecimal rate, BigDecimal amount) {
         this.claim = claim;
@@ -93,17 +88,4 @@ public class ClaimLine extends BaseEntity {
         return "paid".equals(status);
     }
 
-    public BigDecimal getTotalPaidAmount() {
-        return remittanceAllocations.stream()
-                .map(RemittanceAllocation::getPaidAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    public BigDecimal getOutstandingAmount() {
-        return amount.subtract(getTotalPaidAmount());
-    }
-
-    public boolean isFullyPaid() {
-        return getTotalPaidAmount().compareTo(amount) >= 0;
-    }
 }

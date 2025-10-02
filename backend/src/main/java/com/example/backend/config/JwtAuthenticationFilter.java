@@ -45,18 +45,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             if (StringUtils.hasText(jwt) && validateToken(jwt)) {
                 Claims claims = getClaimsFromToken(jwt);
-                String username = claims.getSubject();
+                String email = claims.getSubject();
                 
                 @SuppressWarnings("unchecked")
                 List<String> roles = (List<String>) claims.get("roles");
                 
-                if (username != null) {
+                if (email != null) {
                     List<SimpleGrantedAuthority> authorities = roles.stream()
                             .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                             .collect(Collectors.toList());
                     
                     UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+                            new UsernamePasswordAuthenticationToken(email, null, authorities);
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     
                     SecurityContextHolder.getContext().setAuthentication(authentication);

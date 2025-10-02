@@ -2,30 +2,34 @@
 
 :root {
   /* Light mode colors (default) */
-  --bg-primary: #FAFAFA;
-  --bg-surface: #F0F2F5;
-  --primary: #0077CC;
-  --primary-hover: #005FAF;
-  --accent: #00B3CC;
+  --bg-primary: #fafafa;
+  --bg-surface: #f0f2f5;
+  --primary: #0077cc;
+  --primary-hover: #005faf;
+  --accent: #00b3cc;
+  --btn-secondary: #2062ac;
+  --btn-secondary-hover: #1a4f8a;
   --text-primary: #222222;
   --text-secondary: #555555;
-  --border-color: #E0E0E0;
+  --border-color: #e0e0e0;
 }
 
 .dark {
   /* Dark mode color overrides - WCAG AA compliant */
-  --bg-primary: #0D1117;
-  --bg-surface: #161B22;
-  --primary: #58A6FF;
-  --primary-hover: #79C0FF;
-  --accent: #56D4DD;
-  --text-primary: #F0F6FC;
-  --text-secondary: #C9D1D9;
-  --text-tertiary: #8B949E;
-  --border-color: #30363D;
-  --success: #3FB950;
-  --warning: #D29922;
-  --error: #F85149;
+  --bg-primary: #0d1117;
+  --bg-surface: #161b22;
+  --primary: #58a6ff;
+  --primary-hover: #79c0ff;
+  --accent: #56d4dd;
+  --btn-secondary: #4a9eff;
+  --btn-secondary-hover: #6bb3ff;
+  --text-primary: #f0f6fc;
+  --text-secondary: #c9d1d9;
+  --text-tertiary: #8b949e;
+  --border-color: #30363d;
+  --success: #3fb950;
+  --warning: #d29922;
+  --error: #f85149;
 }
 
 /* Apply transitions to html rather than body for smoother theme changes */

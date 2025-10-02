@@ -23,7 +23,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
-        log.info("Login request received for username: {}", loginRequest.getUsername());
+        log.info("Login request received for email: {}", loginRequest.getEmail());
         LoginResponse loginResponse = authService.login(loginRequest);
         return ResponseEntity.ok(ApiResponse.success(loginResponse, "Login successful"));
     }

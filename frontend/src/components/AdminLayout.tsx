@@ -15,16 +15,16 @@ import {
   DashboardOutlined,
   UserOutlined,
   TeamOutlined,
-  MedicineBoxOutlined,
   CalendarOutlined,
-  FileTextOutlined,
-  DollarOutlined,
   SafetyOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BellOutlined,
   SettingOutlined,
   LogoutOutlined,
+  ToolOutlined,
+  BarChartOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
@@ -40,93 +40,76 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [currentPath, setCurrentPath] = useState("/");
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
   const { isDarkMode } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
+
+  React.useEffect(() => {
+    const path = window.location.pathname;
+    setCurrentPath(path);
+
+    // Auto-open parent menu based on current route
+    if (path.startsWith("/clients")) {
+      setOpenKeys(["clients"]);
+    }
+  }, []);
 
   const menuItems = [
     {
       key: "dashboard",
       icon: <DashboardOutlined />,
       label: "Dashboard",
+      onClick: () => router.push("/"),
     },
     {
-      key: "users",
+      key: "clients",
       icon: <UserOutlined />,
-      label: "Quản lý Người dùng",
+      label: "Clients",
       children: [
-        { key: "users-list", label: "Danh sách Người dùng" },
-        { key: "roles", label: "Phân quyền" },
+        {
+          key: "client-management",
+          label: "Client Management",
+          onClick: () => router.push("/clients"),
+        },
       ],
     },
     {
       key: "employees",
       icon: <TeamOutlined />,
-      label: "Quản lý Nhân viên",
-      children: [
-        { key: "employees-list", label: "Danh sách Nhân viên" },
-        { key: "documents", label: "Tài liệu & Chứng chỉ" },
-        { key: "schedules", label: "Lịch Khả dụng" },
-      ],
-    },
-    {
-      key: "patients",
-      icon: <MedicineBoxOutlined />,
-      label: "Quản lý Bệnh nhân",
-      children: [
-        { key: "patients-list", label: "Danh sách Bệnh nhân" },
-        { key: "medical-records", label: "Hồ sơ Y tế" },
-        { key: "incidents", label: "Báo cáo Sự cố" },
-      ],
-    },
-    {
-      key: "isp",
-      icon: <FileTextOutlined />,
-      label: "Kế hoạch ISP",
-      children: [
-        { key: "isp-list", label: "Danh sách ISP" },
-        { key: "isp-tracking", label: "Theo dõi Units" },
-      ],
+      label: "Employees",
+      onClick: () => router.push("/employees"),
     },
     {
       key: "scheduling",
       icon: <CalendarOutlined />,
-      label: "Quản lý Lịch",
-      children: [
-        { key: "calendar", label: "Lịch Tổng quan" },
-        { key: "assignments", label: "Phân công Ca làm" },
-        { key: "conflicts", label: "Xử lý Xung đột" },
-      ],
+      label: "Scheduling",
+      onClick: () => router.push("/scheduling"),
     },
     {
-      key: "medications",
-      icon: <MedicineBoxOutlined />,
-      label: "Quản lý Thuốc",
-      children: [
-        { key: "medication-orders", label: "Y lệnh Thuốc" },
-        { key: "emar", label: "Bảng ghi eMAR" },
-        { key: "medication-alerts", label: "Cảnh báo Thuốc" },
-      ],
+      key: "visit-maintenance",
+      icon: <ToolOutlined />,
+      label: "Visit Maintenance",
+      onClick: () => router.push("/visit-maintenance"),
     },
     {
-      key: "billing",
-      icon: <DollarOutlined />,
-      label: "Thanh toán",
-      children: [
-        { key: "claims", label: "Yêu cầu Thanh toán" },
-        { key: "payments", label: "Theo dõi Thanh toán" },
-        { key: "reports", label: "Báo cáo Tài chính" },
-      ],
+      key: "reports",
+      icon: <BarChartOutlined />,
+      label: "Reports",
+      onClick: () => router.push("/reports"),
     },
     {
-      key: "compliance",
+      key: "authorizations",
+      icon: <CheckCircleOutlined />,
+      label: "Authorizations",
+      onClick: () => router.push("/authorizations"),
+    },
+    {
+      key: "security",
       icon: <SafetyOutlined />,
-      label: "Tuân thủ & Pháp lý",
-      children: [
-        { key: "fire-drills", label: "Diễn tập PCCC" },
-        { key: "legal-docs", label: "Tài liệu Pháp lý" },
-        { key: "audit-logs", label: "Nhật ký Kiểm tra" },
-      ],
+      label: "Security",
+      onClick: () => router.push("/security"),
     },
   ];
 
@@ -139,12 +122,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       key: "profile",
       icon: <UserOutlined />,
-      label: "Hồ sơ cá nhân",
+      label: "Profile",
     },
     {
       key: "settings",
       icon: <SettingOutlined />,
-      label: "Cài đặt",
+      label: "Settings",
     },
     {
       type: "divider" as const,
@@ -152,7 +135,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       key: "logout",
       icon: <LogoutOutlined />,
-      label: "Đăng xuất",
+      label: "Logout",
       danger: true,
       onClick: handleLogout,
     },
@@ -169,6 +152,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           isDarkMode ? styles.sidebarDark : styles.sidebarLight
         }`}
         theme={isDarkMode ? "dark" : "light"}
+        data-scrollbar-enterprise="true"
       >
         <div
           className={`${styles.brandHeader} ${
@@ -209,7 +193,27 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <Menu
           theme={isDarkMode ? "dark" : "light"}
           mode="inline"
-          defaultSelectedKeys={["dashboard"]}
+          selectedKeys={[
+            currentPath === "/"
+              ? "dashboard"
+              : currentPath.startsWith("/clients")
+              ? "client-management"
+              : currentPath.startsWith("/employees")
+              ? "employees"
+              : currentPath.startsWith("/scheduling")
+              ? "scheduling"
+              : currentPath.startsWith("/visit-maintenance")
+              ? "visit-maintenance"
+              : currentPath.startsWith("/reports")
+              ? "reports"
+              : currentPath.startsWith("/authorizations")
+              ? "authorizations"
+              : currentPath.startsWith("/security")
+              ? "security"
+              : "dashboard",
+          ]}
+          openKeys={openKeys}
+          onOpenChange={setOpenKeys}
           items={menuItems}
           className={isDarkMode ? styles.menuDark : styles.menuLight}
         />
@@ -243,7 +247,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <Avatar size="default" icon={<UserOutlined />} />
                 <div className={styles.userInfo}>
                   <div className={styles.userName}>{user?.displayName}</div>
-                  <div className={styles.officeName}>@{user?.username}</div>
+                  <div className={styles.officeName}>{user?.email}</div>
                 </div>
               </div>
             </Dropdown>

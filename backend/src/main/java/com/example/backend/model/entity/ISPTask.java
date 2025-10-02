@@ -7,6 +7,9 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * ISP Task entity for tasks within ISP goals
  */
@@ -15,7 +18,7 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"ispGoal"})
+@ToString(exclude = {"ispGoal", "taskSchedules", "taskTemplates"})
 public class ISPTask extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,6 +37,13 @@ public class ISPTask extends BaseEntity {
 
     @Column(name = "sort_order")
     private Integer sortOrder;
+
+    // Relationships
+    @OneToMany(mappedBy = "ispTask", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ISPTaskSchedule> taskSchedules = new HashSet<>();
+
+    @OneToMany(mappedBy = "ispTask", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ISPTaskTemplate> taskTemplates = new HashSet<>();
 
     public ISPTask(ISPGoal ispGoal, String task) {
         this.ispGoal = ispGoal;

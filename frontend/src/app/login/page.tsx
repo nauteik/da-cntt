@@ -1,43 +1,22 @@
 "use client";
 
 import React, { useEffect } from "react";
-import {
-  Form,
-  Input,
-  Button,
-  Checkbox,
-  Alert,
-  Card,
-  Typography,
-  Space,
-  Divider,
-} from "antd";
-import {
-  UserOutlined,
-  LockOutlined,
-  EyeInvisibleOutlined,
-  EyeTwoTone,
-  MedicineBoxOutlined,
-} from "@ant-design/icons";
+import { Card, Typography } from "antd";
+import { MedicineBoxOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { useAuth, getRememberedCredentials } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import LoginForm from "./LoginForm";
 import { LoginCredentials } from "@/types/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 import ClientOnly from "@/components/ClientOnly";
 
 const { Title, Text } = Typography;
 
-interface LoginFormValues {
-  username: string;
-  password: string;
-  rememberMe: boolean;
-}
-
 export default function LoginPage() {
-  const [form] = Form.useForm<LoginFormValues>();
   const router = useRouter();
+  1;
   const { login, isAuthenticated, isInitialized } = useAuth();
-  const { isPending, error, reset } = login; // Get state directly from the mutation
+  const { isPending, error, reset } = login;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -46,29 +25,11 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, isInitialized, router]);
 
-  // Load remembered credentials
-  useEffect(() => {
-    const remembered = getRememberedCredentials();
-    if (remembered) {
-      form.setFieldsValue({
-        username: remembered.username,
-        rememberMe: remembered.rememberMe,
-      });
-    }
-  }, [form]);
-
-  const handleSubmit = async (values: LoginFormValues) => {
-    const credentials: LoginCredentials = {
-      username: values.username,
-      password: values.password,
-      rememberMe: values.rememberMe || false,
-    };
-    // Just call mutate, onSuccess/onError are handled in the context
+  const handleSubmit = (credentials: LoginCredentials) => {
     login.mutate(credentials);
   };
 
   const handleFormChange = () => {
-    // Reset mutation state when user starts typing
     if (error) {
       reset();
     }
@@ -145,139 +106,13 @@ export default function LoginPage() {
       </div>
 
       {/* Login Form */}
-      <Form
-        form={form}
-        name="login"
-        onFinish={handleSubmit}
+      <LoginForm
+        onLogin={handleSubmit}
         onValuesChange={handleFormChange}
-        layout="vertical"
-        size="large"
-        className="!mt-0"
-        requiredMark={false}
-      >
-        <Form.Item
-          name="username"
-          label={
-            <span className="text-theme-primary font-medium">
-              Tên đăng nhập
-            </span>
-          }
-          rules={[{ required: true, message: "Vui lòng nhập tên đăng nhập" }]}
-          validateTrigger={["onBlur"]}
-        >
-          <Input
-            prefix={
-              <UserOutlined className="mr-1 text-theme-secondary opacity-70" />
-            }
-            placeholder="Nhập tên đăng nhập"
-            autoComplete="username"
-            className="rounded-lg"
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="password"
-          label={
-            <span className="text-theme-primary font-medium">Mật khẩu</span>
-          }
-          rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
-          validateTrigger={["onBlur"]}
-        >
-          <Input.Password
-            prefix={
-              <LockOutlined className="mr-1 text-theme-secondary opacity-70" />
-            }
-            placeholder="Nhập mật khẩu"
-            iconRender={(visible) =>
-              visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-            }
-            autoComplete="current-password"
-            className="rounded-lg"
-          />
-        </Form.Item>
-
-        <div className="flex justify-between items-center mb-6">
-          <Form.Item name="rememberMe" valuePropName="checked" noStyle>
-            <Checkbox>Ghi nhớ đăng nhập</Checkbox>
-          </Form.Item>
-          <Button
-            type="link"
-            className="text-theme-accent hover:text-blue-500 transition-colors duration-200 p-0"
-            onClick={() => {}}
-          >
-            Quên mật khẩu?
-          </Button>
-        </div>
-
-        {/* Error Alert - Now uses the error from the mutation */}
-        {error && (
-          <Form.Item className="mb-6">
-            <Alert
-              // message="Đăng nhập thất bại"
-              message={error.message} // error is now an ApiError instance
-              type="error"
-              showIcon
-              closable
-              onClose={reset} // Use reset from mutation to clear the error
-              className="border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
-            />
-          </Form.Item>
-        )}
-
-        <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            className="w-full h-12 rounded-lg text-base font-medium shadow-md hover:shadow-lg transition-shadow"
-            loading={isPending} // Use isPending from mutation
-            disabled={isPending} // Use isPending from mutation
-          >
-            Đăng nhập
-          </Button>
-        </Form.Item>
-      </Form>
-
-      {/* Demo Credentials */}
-      <Divider plain className="!my-6">
-        <span className="text-theme-secondary text-xs px-3">
-          Demo Credentials
-        </span>
-      </Divider>
-
-      <div className="border border-theme rounded-lg px-4 py-3 bg-theme-surface/50">
-        <Space direction="vertical" size="small" className="w-full">
-          <div className="flex justify-between items-center">
-            <Text className="text-sm font-mono text-theme-secondary">
-              Admin:
-            </Text>
-            <Text className="text-sm font-mono font-bold text-theme-accent">
-              admin
-            </Text>
-          </div>
-          <div className="flex justify-between items-center">
-            <Text className="text-sm font-mono text-theme-secondary">
-              Password:
-            </Text>
-            <Text className="text-sm font-mono font-bold text-theme-accent">
-              password
-            </Text>
-          </div>
-        </Space>
-        <Button
-          size="small"
-          type="link"
-          className="text-sm mt-3 p-2 h-auto font-medium text-theme-accent hover:text-blue-500 transition-colors duration-200"
-          onClick={() => {
-            form.setFieldsValue({
-              username: "admin1",
-              password: "password123",
-              rememberMe: true,
-            });
-          }}
-        >
-          ✨ Điền tự động
-        </Button>
-      </div>
+        isPending={isPending}
+        error={error}
+        onResetError={reset}
+      />
     </Card>
   );
 

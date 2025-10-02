@@ -2,6 +2,7 @@ package com.example.backend.data;
 
 import com.example.backend.model.entity.*;
 import com.example.backend.repository.*;
+import com.example.backend.repository.StaffRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,7 @@ public class UserDataLoader {
     private final AppUserRepository appUserRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserOfficeRepository userOfficeRepository;
+    private final StaffRepository staffRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -76,17 +78,12 @@ public class UserDataLoader {
 
         for (int i = 0; i < userData.length; i++) {
             String[] data = userData[i];
-            String username = data[0];
             String email = data[1];
-            String displayName = data[2];
-            String phone = data[3];
 
-            if (appUserRepository.findByUsername(username).isEmpty()) {
+            if (appUserRepository.findByEmail(email).isEmpty()) {
                 // Create user
                 String hashedPassword = passwordEncoder.encode("password123"); // Default password
-                AppUser user = new AppUser(username, displayName, hashedPassword);
-                user.setEmail(email);
-                user.setPhone(phone);
+                AppUser user = new AppUser(email, hashedPassword);
                 user.setPreferences(new HashMap<>());
                 AppUser savedUser = appUserRepository.save(user);
 
@@ -95,24 +92,55 @@ public class UserDataLoader {
                 userRoleRepository.save(userRole);
 
                 // Assign to offices
-                assignUserToOffices(savedUser, offices, roleCode, i);
+                Office office = assignUserToOffices(savedUser, offices, roleCode, i);
 
-                log.info("Created user: {} ({}) with role: {}", username, displayName, roleCode);
+                // Create Staff entity
+                createStaffForUser(savedUser, office, data);
+
+                log.info("Created user: {} with role: {}", email, roleCode);
             }
         }
     }
 
-    private void assignUserToOffices(AppUser user, List<Office> offices, String roleCode, int userIndex) {
+    private void createStaffForUser(AppUser user, Office office, String[] data) {
+        if (office == null) {
+            log.warn("Cannot create staff for user {} as no office is assigned.", user.getEmail());
+            return;
+        }
+
+        String fullName = data[2];
+        String phone = data[3];
+
+        String[] nameParts = fullName.split(" ", 2);
+        String firstName = nameParts[0];
+        String lastName = nameParts.length > 1 ? nameParts[1] : "";
+
+        Staff staff = new Staff(office, firstName, lastName);
+        staff.setUser(user);
+        staff.setEmail(user.getEmail());
+        staff.setPhone(phone);
+        staff.setEmployeeCode(data[0]); // Using username as employee code
+        staff.setIsActive(true);
+
+        staffRepository.save(staff);
+    }
+
+    private Office assignUserToOffices(AppUser user, List<Office> offices, String roleCode, int userIndex) {
+        Office assignedOffice = null;
         if ("ADMIN".equals(roleCode)) {
             // Admins are assigned to all offices
             offices.forEach(office -> userOfficeRepository.save(new UserOffice(user, office)));
+            if (!offices.isEmpty()) {
+                assignedOffice = offices.get(0); // Assign to the first office for staff record purposes
+            }
         } else {
             // Other roles are assigned to a specific office based on index (cycling through offices)
             if (!offices.isEmpty()) {
-                Office office = offices.get(userIndex % offices.size());
-                userOfficeRepository.save(new UserOffice(user, office));
+                assignedOffice = offices.get(userIndex % offices.size());
+                userOfficeRepository.save(new UserOffice(user, assignedOffice));
             }
         }
+        return assignedOffice;
     }
 }
 

@@ -1,9 +1,9 @@
 package com.example.backend.model.enums;
 
 /**
- * Types of payors (insurance providers)
+ * Types of payers (insurance providers)
  */
-public enum PayorType {
+public enum PayerType {
     MEDICAID("Medicaid"),
     MEDICARE("Medicare"),
     PRIVATE_PAY("Private Pay"),
@@ -12,7 +12,7 @@ public enum PayorType {
 
     private final String value;
 
-    PayorType(String value) {
+    PayerType(String value) {
         this.value = value;
     }
 
@@ -20,13 +20,13 @@ public enum PayorType {
         return value;
     }
 
-    public static PayorType fromValue(String value) {
-        for (PayorType type : PayorType.values()) {
+    public static PayerType fromValue(String value) {
+        for (PayerType type : PayerType.values()) {
             if (type.value.equals(value)) {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown payor type: " + value);
+        throw new IllegalArgumentException("Unknown payer type: " + value);
     }
 }
 

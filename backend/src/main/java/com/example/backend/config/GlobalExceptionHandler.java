@@ -125,7 +125,7 @@ public class GlobalExceptionHandler {
         logger.warn("Bad credentials at {}: {}", request.getRequestURI(), ex.getMessage());
         
         ApiResponse<Void> response = ApiResponse.error(
-            "Invalid username or password",
+            "Invalid email or password",
             HttpStatus.UNAUTHORIZED.value(),
             request.getRequestURI(),
             ErrorType.AUTHENTICATION_ERROR

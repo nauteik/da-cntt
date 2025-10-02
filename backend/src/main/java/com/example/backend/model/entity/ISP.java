@@ -1,14 +1,19 @@
 package com.example.backend.model.entity;
 
-import com.example.backend.model.enums.ISPStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -16,12 +21,12 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "isp", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"patient_id", "current_status"})
+    @UniqueConstraint(columnNames = {"patient_id", "version_no"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"patient", "versions"})
+@ToString(exclude = {"patient", "file", "goals", "serviceAuthorizations", "progressReports"})
 public class ISP extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,42 +34,58 @@ public class ISP extends BaseEntity {
     @JsonIgnore
     private Patient patient;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "current_status", nullable = false)
-    private ISPStatus currentStatus = ISPStatus.DRAFT;
+    @Column(name = "version_no", nullable = false)
+    private Integer versionNo;
+
+    @Column(name = "effective_at", nullable = false)
+    private LocalDate effectiveAt;
+
+    @Column(name = "expires_at")
+    private LocalDate expiresAt;
+
+    @Column(name = "total_unit", precision = 10, scale = 2)
+    private BigDecimal totalUnit;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "file_id")
+    private FileObject file;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata", columnDefinition = "jsonb")
+    private Map<String, Object> metadata = new HashMap<>();
 
     // Relationships
     @OneToMany(mappedBy = "isp", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ISPVersion> versions = new HashSet<>();
+    private Set<ISPGoal> goals = new HashSet<>();
+
+    @OneToMany(mappedBy = "isp", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ServiceAuthorization> serviceAuthorizations = new HashSet<>();
+
+    @OneToMany(mappedBy = "isp", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ProgressReport> progressReports = new HashSet<>();
 
     public ISP(Patient patient) {
         this.patient = patient;
     }
 
     // Helper methods
-    public boolean isDraft() {
-        return ISPStatus.DRAFT.equals(currentStatus);
-    }
-
-    public boolean isActive() {
-        return ISPStatus.ACTIVE.equals(currentStatus);
-    }
-
     public boolean isExpired() {
-        return ISPStatus.EXPIRED.equals(currentStatus);
+        return expiresAt != null && expiresAt.isBefore(LocalDate.now());
     }
 
-    public ISPVersion getActiveVersion() {
-        return versions.stream()
-                .filter(version -> ISPStatus.ACTIVE.equals(version.getStatus()))
-                .findFirst()
-                .orElse(null);
+    public boolean isEffective() {
+        LocalDate now = LocalDate.now();
+        return !effectiveAt.isAfter(now) && (expiresAt == null || expiresAt.isAfter(now));
     }
 
-    public ISPVersion getLatestVersion() {
-        return versions.stream()
-                .max((v1, v2) -> Integer.compare(v1.getVersionNo(), v2.getVersionNo()))
-                .orElse(null);
+    public boolean isExpiringSoon(int daysWarning) {
+        if (expiresAt == null) return false;
+        return expiresAt.isBefore(LocalDate.now().plusDays(daysWarning));
+    }
+
+    public long getDaysUntilExpiry() {
+        if (expiresAt == null) return Long.MAX_VALUE;
+        return LocalDate.now().until(expiresAt).getDays();
     }
 }
 

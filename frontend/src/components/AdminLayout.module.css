@@ -2,12 +2,46 @@
 
 /* Sidebar Styling */
 .sidebar {
-  overflow: auto !important;
+  overflow: overlay !important; /* Uses overlay scrolling when available */
   height: 100vh !important;
   position: fixed !important;
   left: 0 !important;
   top: 0 !important;
   bottom: 0 !important;
+
+  /* Modern enterprise scrollbar styling - Firefox */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent; /* Firefox */
+}
+
+/* Enterprise-style scrollbars for WebKit browsers */
+.sidebar::-webkit-scrollbar {
+  width: 4px; /* Enterprise standard width - visible but minimal */
+  height: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0; /* Creates padding around scrollbar */
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+.sidebar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3); /* More visible on hover */
+}
+
+/* Dark mode scrollbar - WCAG compliant */
+.sidebarDark::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebarDark:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.35); /* More visible on hover */
 }
 
 .sidebarLight {
@@ -40,7 +74,7 @@
 }
 
 .brandTitleLight {
-  color: #0077CC !important;
+  color: #0077cc !important;
 }
 
 .brandTitleDark {
@@ -148,8 +182,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid var(--border-color);
 }
 
 .headerLeft {
@@ -203,11 +235,7 @@
 
 /* Content Area */
 .contentArea {
-  margin: 1.5rem;
-  padding: 1.5rem;
-  background-color: var(--bg-surface);
-  border-radius: 0.5rem;
-  min-height: calc(100vh - 7rem);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-color);
+  padding: 0.1rem;
+  background-color: transparent;
+  min-height: calc(100vh - 4rem);
 }

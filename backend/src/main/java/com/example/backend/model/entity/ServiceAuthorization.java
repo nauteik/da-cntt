@@ -1,19 +1,18 @@
 package com.example.backend.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.Type;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Service authorization entity for managing unit limits and consumption
@@ -23,71 +22,62 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"ispVersion", "serviceType", "payor", "unitConsumptions"})
+@ToString(exclude = {"patientPayer", "serviceType", "isp"})
 public class ServiceAuthorization extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "isp_version_id", nullable = false)
+    @JoinColumn(name = "patient_payer_id", nullable = false)
     @JsonIgnore
-    private ISPVersion ispVersion;
+    private PatientPayer patientPayer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_type_id")
+    @JoinColumn(name = "service_type_id", nullable = false)
     private ServiceType serviceType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payor_id")
-    private Payor payor;
+    @JoinColumn(name = "isp_id")
+    @JsonIgnore
+    private ISP isp;
 
-    @Column(name = "units_authorized", nullable = false)
-    private Integer unitsAuthorized;
+    @Column(name = "authorization_no", nullable = false, unique = true)
+    private String authorizationNo;
 
-    @Column(name = "period", nullable = false)
-    private String period;
+    @Column(name = "format")
+    private String format = "units";
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "allocation", columnDefinition = "jsonb")
-    private Map<String, Object> allocation = new HashMap<>();
+    @Column(name = "event_code")
+    private String eventCode;
 
-    @Column(name = "effective_at", nullable = false)
-    private LocalDate effectiveAt;
+    @Type(JsonBinaryType.class)
+    @Column(name = "modifiers", columnDefinition = "jsonb")
+    private Map<String, Object> modifiers;
 
-    @Column(name = "expires_at")
-    private LocalDate expiresAt;
+    @Column(name = "max_units", nullable = false, precision = 10, scale = 2)
+    private BigDecimal maxUnits;
 
-    // Relationships
-    @OneToMany(mappedBy = "serviceAuthorization", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<UnitConsumption> unitConsumptions = new HashSet<>();
+    @Column(name = "total_used", precision = 10, scale = 2)
+    private BigDecimal totalUsed = BigDecimal.ZERO;
 
-    public ServiceAuthorization(ISPVersion ispVersion, Integer unitsAuthorized, String period, LocalDate effectiveAt) {
-        this.ispVersion = ispVersion;
-        this.unitsAuthorized = unitsAuthorized;
-        this.period = period;
-        this.effectiveAt = effectiveAt;
-    }
+    @Column(name = "total_missed", precision = 10, scale = 2)
+    private BigDecimal totalMissed = BigDecimal.ZERO;
 
-    // Helper methods
-    public boolean isActive() {
-        LocalDate now = LocalDate.now();
-        return !effectiveAt.isAfter(now) && (expiresAt == null || expiresAt.isAfter(now));
-    }
+    @Generated
+    @Column(name = "total_remaining", precision = 10, scale = 2)
+    private BigDecimal totalRemaining;
 
-    public boolean isExpired() {
-        return expiresAt != null && expiresAt.isBefore(LocalDate.now());
-    }
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
 
-    public int getUnitsUsed() {
-        return unitConsumptions.stream()
-                .mapToInt(UnitConsumption::getUnitsUsed)
-                .sum();
-    }
+    @Column(name = "end_date")
+    private LocalDate endDate;
 
-    public int getUnitsRemaining() {
-        return Math.max(0, unitsAuthorized - getUnitsUsed());
-    }
+    @Column(name = "comments", columnDefinition = "text")
+    private String comments;
 
-    public boolean hasUnitsAvailable() {
-        return getUnitsRemaining() > 0;
-    }
+
+    @Type(JsonBinaryType.class)
+    @Column(name = "meta", columnDefinition = "jsonb")
+    private Map<String, Object> meta;
+
 }
 

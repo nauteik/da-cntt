@@ -22,13 +22,13 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"ispVersion","file"})
+@ToString(exclude = {"isp","file"})
 public class ProgressReport extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "isp_version_id", nullable = false)
+    @JoinColumn(name = "isp_id", nullable = false)
     @JsonIgnore
-    private ISPVersion ispVersion;
+    private ISP isp;
 
     @Column(name = "period_start", nullable = false)
     private LocalDate periodStart;
@@ -47,8 +47,8 @@ public class ProgressReport extends BaseEntity {
     @Column(name = "generated_at", nullable = false)
     private LocalDateTime generatedAt = LocalDateTime.now();
 
-    public ProgressReport(ISPVersion ispVersion, LocalDate periodStart, LocalDate periodEnd) {
-        this.ispVersion = ispVersion;
+    public ProgressReport(ISP isp, LocalDate periodStart, LocalDate periodEnd) {
+        this.isp = isp;
         this.periodStart = periodStart;
         this.periodEnd = periodEnd;
     }

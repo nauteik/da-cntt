@@ -102,7 +102,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // This mapping is now type-safe because the types in auth.ts are correct.
         const user: User = {
           id: data.userId,
-          username: data.username,
           email: data.email,
           displayName: data.displayName,
           roles: data.roles,
@@ -120,7 +119,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.setItem(
             STORAGE_KEYS.REMEMBER_CREDENTIALS,
             JSON.stringify({
-              username: variables.username,
+              email: variables.email,
               rememberMe: true,
             })
           );
