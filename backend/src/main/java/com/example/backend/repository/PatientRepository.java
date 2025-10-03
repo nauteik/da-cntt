@@ -76,10 +76,19 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             s.first_name, s.last_name,
             pp.client_payer_id,
             pp_latest.status_effective_date, pp_latest.soc_date, pp_latest.eoc_date
-        ORDER BY p.last_name, p.first_name
+        ORDER BY :#{#pageable.sort.toString().replace(': ', ' ')}
         """,
         countQuery = """
-            SELECT COUNT(*) FROM patient WHERE deleted_at IS NULL
+            SELECT COUNT(DISTINCT p.id) 
+            FROM patient p
+            LEFT JOIN staff s ON p.supervisor_id = s.id
+            LEFT JOIN patient_program pp_latest ON pp_latest.id = (
+                SELECT id FROM patient_program pp1 
+                WHERE pp1.patient_id = p.id 
+                ORDER BY pp1.status_effective_date DESC 
+                LIMIT 1
+            )
+            WHERE p.deleted_at IS NULL
         """,
         nativeQuery = true)
     Page<PatientSummaryDTO> findPatientSummaries(Pageable pageable);

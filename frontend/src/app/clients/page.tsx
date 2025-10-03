@@ -25,7 +25,7 @@ async function getInitialClients(
   try {
     const page = searchParams.page || "0";
     const size = searchParams.size || "25";
-    const sortBy = searchParams.sortBy || "lastName";
+    const sortBy = searchParams.sortBy || "clientName";
     const sortDir = searchParams.sortDir || "asc";
 
     const endpoint = `/patients?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`;
@@ -34,10 +34,8 @@ async function getInitialClients(
       await apiClient<PaginatedPatients>(endpoint);
 
     if (!response.success || !response.data) {
-      console.error("Failed to fetch clients:", response.message);
       return { data: null, error: response.message };
     }
-
     return { data: response.data };
   } catch (error) {
     console.error("Error fetching initial clients:", error);
@@ -110,10 +108,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     <ProtectedRoute>
       <AdminLayout>
         <Suspense fallback={<ClientsLoading />}>
-          <ClientsClient
-            initialData={initialData}
-            searchParams={resolvedSearchParams}
-          />
+          <ClientsClient initialData={initialData} />
         </Suspense>
       </AdminLayout>
     </ProtectedRoute>

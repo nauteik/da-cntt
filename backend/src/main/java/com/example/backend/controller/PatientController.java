@@ -39,7 +39,7 @@ public class PatientController {
     public ResponseEntity<ApiResponse<Page<PatientSummaryDTO>>> getPatients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "lastName") String sortBy,
+            @RequestParam(defaultValue = "firstName") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
         
         log.info("Fetching patients - page: {}, size: {}, sortBy: {}, sortDir: {}", 
@@ -62,8 +62,8 @@ public class PatientController {
         Sort sort;
         if ("clientName".equalsIgnoreCase(sortBy)) {
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-            // Sort by last name, then first name for a natural full name sort
-            sort = Sort.by(direction, "last_name", "first_name");
+            // Sort by first name, then last name for a natural full name sort
+            sort = Sort.by(direction, "first_name", "last_name");
         } else {
             String dbColumnName = mapFieldToColumn(sortBy);
             sort = sortDir.equalsIgnoreCase("desc") 
@@ -97,13 +97,13 @@ public class PatientController {
      */
     private String mapFieldToColumn(String fieldName) {
         return switch (fieldName.toLowerCase()) {
-            case "firstname" -> "first_name";
+            case "firstname", "clientname" -> "first_name";
             case "lastname" -> "last_name";
             case "medicaidid" -> "medicaid_id";
             case "status" -> "status";
-            case "asof" -> "id"; // Using id as proxy for asOf date field
-            case "soc" -> "id"; // Using id as proxy for SOC date field
-            case "eoc" -> "id"; // Using id as proxy for EOC date field
+            case "asof" -> "as_of";
+            case "soc" -> "soc_date";
+            case "eoc" -> "eoc_date";
             case "id" -> "id";
             default -> "last_name"; // default sort by last_name
         };

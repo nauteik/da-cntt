@@ -25,7 +25,12 @@ export function useClients(
     "queryKey" | "queryFn"
   >
 ) {
-  const { page = 0, size = 20, sortBy = "lastName", sortDir = "asc" } = params;
+  const {
+    page = 0,
+    size = 25,
+    sortBy = "clientName",
+    sortDir = "asc",
+  } = params;
 
   // Build query string
   const queryString = new URLSearchParams({
@@ -41,8 +46,7 @@ export function useClients(
     ["clients", page, size, sortBy, sortDir] as const,
     endpoint,
     {
-      staleTime: 30000, // Consider data fresh for 30 seconds
-      refetchOnWindowFocus: false,
+      staleTime: 5000, // Data is fresh for 5 seconds
       ...options,
     }
   );
