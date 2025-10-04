@@ -12,6 +12,7 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult, FilterValue } from "antd/es/table/interface";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useClients } from "@/hooks/useClients";
+import { useDebounce } from "@/hooks/useDebounce";
 import type {
   PatientSummary,
   PatientStatus,
@@ -35,6 +36,32 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
   const searchText = searchParams.get("search") || "";
   const statusFilter = searchParams.getAll("status") as PatientStatus[];
 
+  // Local state for search input (for immediate UI feedback)
+  const [searchInput, setSearchInput] = React.useState(searchText);
+
+  // Debounce search input to prevent excessive API calls (500ms delay)
+  const debouncedSearch = useDebounce(searchInput, 500);
+
+  // Sync search input with URL on mount and when URL changes
+  React.useEffect(() => {
+    setSearchInput(searchText);
+  }, [searchText]);
+
+  // Update URL when debounced search value changes
+  React.useEffect(() => {
+    // Only update if the debounced value differs from the current URL search param
+    if (debouncedSearch !== searchText) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (debouncedSearch) {
+        params.set("search", debouncedSearch);
+      } else {
+        params.delete("search");
+      }
+      params.set("page", "0"); // Reset to first page on search
+      router.push(`/clients?${params.toString()}`, { scroll: false });
+    }
+  }, [debouncedSearch, searchText, searchParams, router]);
+
   // Use React Query with URL-derived state
   const { data, isLoading, error } = useClients(
     {
@@ -42,36 +69,14 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
       size: pageSize,
       sortBy,
       sortDir,
+      search: searchText, // Use URL search param for API call
+      status: statusFilter.length > 0 ? statusFilter : undefined,
     },
     {
       initialData,
       placeholderData: (previousData) => previousData,
     }
   );
-
-  // Update URL params - triggers navigation and refetch
-  const updateURLParam = (
-    key: string,
-    value: string | number | string[] | null
-  ) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (value === null || (Array.isArray(value) && value.length === 0)) {
-      params.delete(key);
-    } else if (Array.isArray(value)) {
-      params.delete(key);
-      value.forEach((val) => params.append(key, val));
-    } else {
-      params.set(key, String(value));
-    }
-
-    // Reset to page 0 when filters/sort change
-    if (key !== "page" && key !== "size") {
-      params.set("page", "0");
-    }
-
-    router.push(`/clients?${params.toString()}`, { scroll: false });
-  };
 
   // Define table columns
   const columns: ColumnsType<PatientSummary> = [
@@ -215,78 +220,72 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
     filters: Record<string, FilterValue | null>,
     sorter: SorterResult<PatientSummary> | SorterResult<PatientSummary>[]
   ) => {
+    // Create a new URLSearchParams from current params
+    const params = new URLSearchParams(searchParams.toString());
+    let shouldUpdate = false;
+
     // Handle sorting - normalize to single sorter
     const sortInfo = Array.isArray(sorter) ? sorter[0] : sorter;
-    
-    // Handle pagination
+
+    // Handle pagination changes
     if (pagination.current && pagination.current - 1 !== currentPage) {
-      updateURLParam("page", pagination.current - 1);
+      params.set("page", String(pagination.current - 1));
+      shouldUpdate = true;
     }
     if (pagination.pageSize && pagination.pageSize !== pageSize) {
-      updateURLParam("size", pagination.pageSize);
+      params.set("size", String(pagination.pageSize));
+      params.set("page", "0"); // Reset to first page on page size change
+      shouldUpdate = true;
     }
 
-    // Handle sorting
+    // Handle sorting changes
     if (sortInfo && sortInfo.order && sortInfo.field) {
       const newSortBy = String(sortInfo.field);
       const newSortDir = sortInfo.order === "ascend" ? "asc" : "desc";
-      
-      // Check current URL params (not component state)
-      const urlSortBy = searchParams.get("sortBy");
-      const urlSortDir = searchParams.get("sortDir");
-      
-      console.log('Sort change detected:', {
-        newSortBy,
-        newSortDir,
-        urlSortBy,
-        urlSortDir,
-        willUpdate: newSortBy !== urlSortBy || newSortDir !== urlSortDir
-      });
-      
-      // Update URL if sorting changed OR if URL doesn't have sort params
+      const urlSortBy = searchParams.get("sortBy") || "clientName";
+      const urlSortDir = searchParams.get("sortDir") || "asc";
+
       if (newSortBy !== urlSortBy || newSortDir !== urlSortDir) {
-        const params = new URLSearchParams(searchParams.toString());
         params.set("sortBy", newSortBy);
         params.set("sortDir", newSortDir);
-        params.set("page", "0");
-        router.push(`/clients?${params.toString()}`, { scroll: false });
+        params.set("page", "0"); // Reset to first page on sort change
+        shouldUpdate = true;
       }
     } else if (sortInfo && !sortInfo.order) {
       // User clicked to remove sorting - reset to default
-      const params = new URLSearchParams(searchParams.toString());
       params.set("sortBy", "clientName");
       params.set("sortDir", "asc");
       params.set("page", "0");
+      shouldUpdate = true;
+    }
+
+    // Handle status filter changes
+    const currentStatusFilters = searchParams.getAll("status");
+    const newStatusFilters = filters.status ? (filters.status as string[]) : [];
+
+    // Compare current and new status filters
+    const statusChanged =
+      currentStatusFilters.length !== newStatusFilters.length ||
+      !currentStatusFilters.every((s) => newStatusFilters.includes(s));
+
+    if (statusChanged) {
+      // Remove all existing status parameters
+      params.delete("status");
+
+      // Add new status filters
+      if (newStatusFilters.length > 0) {
+        newStatusFilters.forEach((status) => params.append("status", status));
+      }
+
+      params.set("page", "0"); // Reset to first page on filter change
+      shouldUpdate = true;
+    }
+
+    // Only navigate if something actually changed
+    if (shouldUpdate) {
       router.push(`/clients?${params.toString()}`, { scroll: false });
     }
-
-    // Handle status filter
-    if (filters.status && Array.isArray(filters.status)) {
-      updateURLParam("status", filters.status.map(String));
-    } else if (statusFilter.length > 0) {
-      updateURLParam("status", null);
-    }
   };
-
-  // Apply client-side filtering for search and status
-  const filteredData = React.useMemo(() => {
-    if (!data?.content) return [];
-
-    return data.content.filter((client) => {
-      // Search filter
-      const matchesSearch =
-        !searchText ||
-        client.clientName.toLowerCase().includes(searchText.toLowerCase()) ||
-        client.medicaidId?.toLowerCase().includes(searchText.toLowerCase()) ||
-        client.clientPayerId?.toLowerCase().includes(searchText.toLowerCase());
-
-      // Status filter (support multiple selections)
-      const matchesStatus =
-        statusFilter.length === 0 || statusFilter.includes(client.status);
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [data?.content, searchText, statusFilter]);
 
   return (
     <div className={styles.clientsContainer}>
@@ -305,8 +304,8 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
             <Input
               placeholder="Type here for a quick search..."
               prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => updateURLParam("search", e.target.value || null)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className={styles.searchInput}
               allowClear
             />
@@ -331,7 +330,7 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
       <Card className={styles.tableCard} variant="borderless">
         <Table
           columns={columns}
-          dataSource={filteredData}
+          dataSource={data?.content || []}
           rowKey="id"
           loading={isLoading}
           onChange={handleTableChange}
@@ -344,9 +343,16 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} of ${total} entries`,
             pageSizeOptions: ["10", "25", "50", "100"],
+            position: ["bottomCenter"],
           }}
-          scroll={{ x: 1500 }}
+          scroll={{
+            x: 1500,
+            y: "calc(100vh - 280px)", // Dynamic height: viewport - (header + controls + pagination)
+          }}
           size="small"
+          sticky={{
+            offsetHeader: 0,
+          }}
         />
       </Card>
 

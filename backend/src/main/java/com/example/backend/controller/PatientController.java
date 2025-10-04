@@ -9,8 +9,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * REST Controller for patient management
@@ -25,25 +28,29 @@ public class PatientController {
 
     /**
      * Get paginated list of patient summaries.
-     * Supports dynamic page sizes and sorting.
+     * Supports dynamic page sizes, sorting, searching, and status filtering.
      * 
      * @param page page number (0-indexed)
      * @param size page size (default 20, max 100)
-     * @param sortBy field to sort by (default: lastName)
+     * @param sortBy field to sort by (default: firstName)
      * @param sortDir sort direction (asc or desc, default: asc)
+     * @param search optional search text to filter by client name, medicaid ID, or client payer ID
+     * @param status optional list of patient statuses to filter by (ACTIVE, INACTIVE, PENDING)
      * @return paginated patient summaries
      * 
-     * Example: GET /api/patients?page=0&size=50&sortBy=lastName&sortDir=asc
+     * Example: GET /api/patients?page=0&size=50&sortBy=lastName&sortDir=asc&search=john&status=ACTIVE&status=PENDING
      */
     @GetMapping
     public ResponseEntity<ApiResponse<Page<PatientSummaryDTO>>> getPatients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "firstName") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) List<String> status) {
         
-        log.info("Fetching patients - page: {}, size: {}, sortBy: {}, sortDir: {}", 
-            page, size, sortBy, sortDir);
+        log.info("Fetching patients - page: {}, size: {}, sortBy: {}, sortDir: {}, search: '{}', status: {}", 
+            page, size, sortBy, sortDir, search, status);
         
         // Validate page size to prevent performance issues
         if (size > 100) {
@@ -60,22 +67,27 @@ public class PatientController {
         
         // Map camelCase field names to snake_case database column names and create Sort object
         Sort sort;
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+
         if ("clientName".equalsIgnoreCase(sortBy)) {
-            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             // Sort by first name, then last name for a natural full name sort
             sort = Sort.by(direction, "first_name", "last_name");
         } else {
             String dbColumnName = mapFieldToColumn(sortBy);
-            sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(dbColumnName).descending() 
-                : Sort.by(dbColumnName).ascending();
+            // For columns from joined tables, we must use JpaSort.unsafe()
+            // to prevent Spring from prepending the root entity alias.
+            if (dbColumnName.contains(".")) {
+                sort = JpaSort.unsafe(direction, dbColumnName);
+            } else {
+                sort = Sort.by(direction, dbColumnName);
+            }
         }
         
         // Create pageable
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        // Fetch patients using optimized single query
-        Page<PatientSummaryDTO> patients = patientService.getPatientSummaries(pageable);
+        // Fetch patients using optimized single query with optional filters
+        Page<PatientSummaryDTO> patients = patientService.getPatientSummaries(search, status, pageable);
         
         log.info("Retrieved {} patients out of {} total (page {}/{})", 
             patients.getNumberOfElements(), 
@@ -102,8 +114,8 @@ public class PatientController {
             case "medicaidid" -> "medicaid_id";
             case "status" -> "status";
             case "asof" -> "as_of";
-            case "soc" -> "soc_date";
-            case "eoc" -> "eoc_date";
+            case "soc" -> "pp_latest.soc_date";
+            case "eoc" -> "pp_latest.eoc_date";
             case "id" -> "id";
             default -> "last_name"; // default sort by last_name
         };

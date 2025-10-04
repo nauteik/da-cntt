@@ -1,9 +1,12 @@
 /* Clients Page Styles */
 
 .clientsContainer {
-  padding: 24px;
-  min-height: 100vh;
+  padding: 24px 12px;
+  height: 100vh;
   background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .controlBar {
@@ -75,6 +78,19 @@
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.tableCard :global(.ant-card-body) {
+  padding: 0 !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .clientName {
@@ -90,8 +106,53 @@
 }
 
 /* Table customization */
+.tableCard :global(.ant-table-wrapper),
+.tableCard :global(.ant-table-wrapper *) {
+  border-radius: 0 !important;
+}
+
 .tableCard :global(.ant-table) {
   background: var(--bg-surface);
+  border-radius: 0 !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tableCard :global(.ant-table),
+.tableCard :global(.ant-table *) {
+  border-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-container) {
+  border-radius: 0 !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tableCard :global(.ant-table-content) {
+  border-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-header) {
+  flex-shrink: 0;
+  overflow: hidden !important;
+}
+
+.tableCard :global(.ant-table-body) {
+  flex: 1;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+.tableCard :global(.ant-spin-nested-loading),
+.tableCard :global(.ant-spin-container) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 !important;
 }
 
 .tableCard :global(.ant-table-thead > tr > th) {
@@ -101,6 +162,33 @@
   font-size: 12px;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border-color);
+  border-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-thead > tr > th:first-child) {
+  border-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-thead > tr > th:last-child) {
+  border-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-thead > tr:first-child > th:first-child) {
+  border-top-left-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-thead > tr:first-child > th:last-child) {
+  border-top-right-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-thead) {
+  border-radius: 0 !important;
+}
+
+.tableCard :global(.ant-table-thead > tr) {
+  border-radius: 0 !important;
 }
 
 .tableCard :global(.ant-table-tbody > tr > td) {
@@ -114,6 +202,8 @@
 
 .tableCard :global(.ant-pagination) {
   margin: 16px 0;
+  flex-shrink: 0;
+  padding: 0 16px;
 }
 
 .tableCard :global(.ant-pagination-item) {

@@ -30,20 +30,32 @@ export function useClients(
     size = 25,
     sortBy = "clientName",
     sortDir = "asc",
+    search,
+    status,
   } = params;
 
   // Build query string
-  const queryString = new URLSearchParams({
+  const queryParams = new URLSearchParams({
     page: page.toString(),
     size: size.toString(),
     sortBy,
     sortDir,
-  }).toString();
+  });
 
-  const endpoint = `/patients?${queryString}`;
+  // Add optional search parameter
+  if (search) {
+    queryParams.append("search", search);
+  }
+
+  // Add optional status filters (can have multiple)
+  if (status && status.length > 0) {
+    status.forEach((s: string) => queryParams.append("status", s));
+  }
+
+  const endpoint = `/patients?${queryParams.toString()}`;
 
   return useApiQuery<PaginatedPatients>(
-    ["clients", page, size, sortBy, sortDir] as const,
+    ["clients", page, size, sortBy, sortDir, search, status] as const,
     endpoint,
     {
       staleTime: 5000, // Data is fresh for 5 seconds

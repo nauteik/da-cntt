@@ -12,6 +12,8 @@ interface SearchParams {
   size?: string;
   sortBy?: string;
   sortDir?: string;
+  search?: string;
+  status?: string | string[];
 }
 
 interface ClientsPageProps {
@@ -28,7 +30,30 @@ async function getInitialClients(
     const sortBy = searchParams.sortBy || "clientName";
     const sortDir = searchParams.sortDir || "asc";
 
-    const endpoint = `/patients?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`;
+    // Build query string with optional search and status parameters
+    const queryParams = new URLSearchParams({
+      page,
+      size,
+      sortBy,
+      sortDir,
+    });
+
+    // Add search parameter if present
+    if (searchParams.search) {
+      queryParams.append("search", searchParams.search);
+    }
+
+    // Add status parameters if present (can have multiple)
+    if (searchParams.status) {
+      const statuses = Array.isArray(searchParams.status)
+        ? searchParams.status
+        : [searchParams.status];
+      statuses.forEach((status: string) =>
+        queryParams.append("status", status)
+      );
+    }
+
+    const endpoint = `/patients?${queryParams.toString()}`;
 
     const response: ApiResponse<PaginatedPatients> =
       await apiClient<PaginatedPatients>(endpoint);

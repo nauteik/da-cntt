@@ -21,7 +21,6 @@ public class CoreDataLoader {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final ServiceTypeRepository serviceTypeRepository;
-    private final ProgramRepository programRepository;
     private final PayerRepository payerRepository;
 
     @Transactional
@@ -39,9 +38,6 @@ public class CoreDataLoader {
 
         // Load service types
         loadServiceTypes();
-
-        // Load programs
-        loadPrograms();
 
         // Load payers
         loadPayers();
@@ -216,29 +212,6 @@ public class CoreDataLoader {
         }
     }
 
-    private void loadPrograms() {
-        String[][] programs = {
-            {"ODP", "Office of Developmental Programs", "Provides services for individuals with developmental disabilities."},
-            {"OLTL", "Office of Long-Term Living", "Provides long-term care services for seniors and adults with disabilities."},
-            {"OMAP", "Office of Medical Assistance Programs", "Administers the Medicaid program in Pennsylvania."}
-        };
-
-        for (String[] programData : programs) {
-            String identifier = programData[0];
-            String name = programData[1];
-            String description = programData[2];
-
-            if (!programRepository.existsByProgramIdentifier(identifier)) {
-                Program program = new Program();
-                program.setProgramIdentifier(identifier);
-                program.setProgramName(name);
-                program.setDescription(description);
-                program.setActive(true);
-                programRepository.save(program);
-                log.info("Created program: {} - {}", identifier, name);
-            }
-        }
-    }
 
     private void loadPayers() {
         String[][] payers = {

@@ -47,4 +47,6 @@ export interface PatientQueryParams {
   size?: number;
   sortBy?: string;
   sortDir?: "asc" | "desc";
+  search?: string;
+  status?: PatientStatus[];
 }

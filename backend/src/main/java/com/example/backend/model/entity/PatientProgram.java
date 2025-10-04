@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Type;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.Map;
 
 @Data
@@ -47,9 +46,6 @@ public class PatientProgram extends BaseEntity {
 
     @Column(name = "eligibility_end_date")
     private LocalDate eligibilityEndDate;
-
-    @Column(name = "created_date", nullable = false, columnDefinition = "timestamptz")
-    private OffsetDateTime createdDate;
 
     @Type(JsonBinaryType.class)
     @Column(name = "reason_for_change", columnDefinition = "jsonb")

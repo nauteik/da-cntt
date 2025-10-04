@@ -970,7 +970,6 @@ CREATE TABLE patient_program (
     eoc_date date,
     eligibility_begin_date date,
     eligibility_end_date date,
-    created_date timestamptz NOT NULL DEFAULT now(),
     reason_for_change jsonb,
     meta jsonb DEFAULT '{}'::jsonb,
     created_at timestamptz DEFAULT now(),

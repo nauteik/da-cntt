@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +45,7 @@ public class PatientDataLoader {
             loadPatientAddressData(patients, addresses);
             loadPatientContactData(faker, patients, addresses);
             List<Payer> payers = loadPayerData(faker);
-            List<Program> programs = loadProgramData(faker);
+            List<Program> programs = loadProgramData();
             List<PatientPayer> patientPayers = loadPatientPayerData(faker, patients, payers);
             loadPatientProgramData(faker, patients, programs);
             List<ServiceType> serviceTypes = loadServiceTypeData(faker);
@@ -62,7 +61,8 @@ public class PatientDataLoader {
 
     private List<Patient> loadPatientData(Faker faker, Office office) {
         List<Patient> patients = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        log.info("Generating 1000 patients...");
+        for (int i = 0; i < 1000; i++) {
             Patient patient = new Patient();
             patient.setFirstName(faker.name().firstName());
             patient.setLastName(faker.name().lastName());
@@ -70,16 +70,31 @@ public class PatientDataLoader {
             patient.setGender(faker.options().option("Male", "Female"));
             patient.setMedicaidId(faker.numerify("#########"));
             patient.setPrimaryLanguage("English");
-            patient.setStatus(PatientStatus.ACTIVE);
+            // Vary status: 80% Active, 15% Inactive, 5% Pending
+            int statusRandom = faker.random().nextInt(100);
+            if (statusRandom < 80) {
+                patient.setStatus(PatientStatus.ACTIVE);
+            } else if (statusRandom < 95) {
+                patient.setStatus(PatientStatus.INACTIVE);
+            } else {
+                patient.setStatus(PatientStatus.PENDING);
+            }
             patient.setOffice(office);
             patients.add(patient);
+            
+            // Log progress every 100 patients
+            if ((i + 1) % 100 == 0) {
+                log.info("Generated {} patients...", i + 1);
+            }
         }
+        log.info("Saving 1000 patients to database...");
         return patientRepository.saveAll(patients);
     }
 
     private List<Address> loadAddressData(Faker faker) {
         List<Address> addresses = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        log.info("Generating 1000 addresses...");
+        for (int i = 0; i < 1000; i++) {
             Address address = new Address();
             address.setLine1(faker.address().streetAddress());
             address.setCity(faker.address().city());
@@ -87,12 +102,18 @@ public class PatientDataLoader {
             address.setPostalCode(faker.address().zipCode());
             address.setCountry("USA");
             addresses.add(address);
+            
+            if ((i + 1) % 100 == 0) {
+                log.info("Generated {} addresses...", i + 1);
+            }
         }
+        log.info("Saving 1000 addresses to database...");
         return addressRepository.saveAll(addresses);
     }
 
     private void loadPatientAddressData(List<Patient> patients, List<Address> addresses) {
         List<PatientAddress> patientAddresses = new ArrayList<>();
+        log.info("Linking {} patients to addresses...", patients.size());
         for (int i = 0; i < patients.size(); i++) {
             PatientAddress patientAddress = new PatientAddress();
             patientAddress.setPatient(patients.get(i));
@@ -100,11 +121,13 @@ public class PatientDataLoader {
             patientAddress.setIsMain(true);
             patientAddresses.add(patientAddress);
         }
+        log.info("Saving {} patient-address links to database...", patientAddresses.size());
         patientAddressRepository.saveAll(patientAddresses);
     }
 
     private void loadPatientContactData(Faker faker, List<Patient> patients, List<Address> addresses) {
         List<PatientContact> patientContacts = new ArrayList<>();
+        log.info("Generating {} patient contacts...", patients.size());
         for (int i = 0; i < patients.size(); i++) {
             PatientContact contact = new PatientContact();
             contact.setPatient(patients.get(i));
@@ -115,13 +138,19 @@ public class PatientDataLoader {
             contact.setAddress(addresses.get(i));
             contact.setIsPrimary(true);
             patientContacts.add(contact);
+            
+            if ((i + 1) % 100 == 0) {
+                log.info("Generated {} contacts...", i + 1);
+            }
         }
+        log.info("Saving {} patient contacts to database...", patientContacts.size());
         patientContactRepository.saveAll(patientContacts);
     }
 
     private List<Payer> loadPayerData(Faker faker) {
         List<Payer> payers = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
+        log.info("Generating 10 payers for variety...");
+        for (int i = 0; i < 10; i++) {
             Payer payer = new Payer();
             payer.setPayerName(faker.company().name());
             payer.setPayerIdentifier(faker.numerify("PAYER-#####"));
@@ -130,15 +159,30 @@ public class PatientDataLoader {
         return payerRepository.saveAll(payers);
     }
 
-    private List<Program> loadProgramData(Faker faker) {
-        List<Program> programs = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            Program program = new Program();
-            program.setProgramName(faker.commerce().department());
-            program.setProgramIdentifier(faker.numerify("PROG-#####"));
-            programs.add(program);
+    private List<Program> loadProgramData() {
+        String[][] programs = {
+            {"ODP", "Office of Developmental Programs", "Provides services for individuals with developmental disabilities."},
+            {"OLTL", "Office of Long-Term Living", "Provides long-term care services for seniors and adults with disabilities."},
+            {"OMAP", "Office of Medical Assistance Programs", "Administers the Medicaid program in Pennsylvania."}
+        };
+
+        List<Program> savedPrograms = new ArrayList<>();
+        for (String[] programData : programs) {
+            String identifier = programData[0];
+            String name = programData[1];
+            String description = programData[2];
+
+            if (!programRepository.existsByProgramIdentifier(identifier)) {
+                Program program = new Program();
+                program.setProgramIdentifier(identifier);
+                program.setProgramName(name);
+                program.setDescription(description);
+                program.setActive(true);
+                savedPrograms.add(programRepository.save(program));
+                log.info("Created program: {} - {}", identifier, name);
+            }
         }
-        return programRepository.saveAll(programs);
+        return savedPrograms;
     }
 
     private List<PatientPayer> loadPatientPayerData(Faker faker, List<Patient> patients, List<Payer> payers) {
@@ -161,7 +205,8 @@ public class PatientDataLoader {
             patientProgram.setProgram(programs.get(faker.random().nextInt(programs.size())));
             patientProgram.setEnrollmentDate(faker.date().past(365, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             patientProgram.setStatusEffectiveDate(faker.date().past(30, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-            patientProgram.setCreatedDate(OffsetDateTime.now());
+            patientProgram.setSocDate(faker.date().past(30, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+            patientProgram.setEocDate(faker.date().future(335, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             patientPrograms.add(patientProgram);
         }
         patientProgramRepository.saveAll(patientPrograms);
@@ -169,7 +214,8 @@ public class PatientDataLoader {
 
     private List<ServiceType> loadServiceTypeData(Faker faker) {
         List<ServiceType> serviceTypes = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
+        log.info("Generating 15 service types for variety...");
+        for (int i = 0; i < 15; i++) {
             ServiceType serviceType = new ServiceType();
             serviceType.setCode(faker.code().asin());
             serviceType.setName(faker.commerce().productName());
