@@ -1,19 +1,21 @@
 package com.example.backend.controller;
 
 import com.example.backend.model.ApiResponse;
+import com.example.backend.model.dto.PatientHeaderDTO;
+import com.example.backend.model.dto.PatientPersonalDTO;
 import com.example.backend.model.dto.PatientSummaryDTO;
 import com.example.backend.service.PatientService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * REST Controller for patient management
@@ -22,6 +24,7 @@ import java.util.List;
 @RequestMapping("/api/patients")
 @RequiredArgsConstructor
 @Slf4j
+@Validated // Enable method-level validation
 public class PatientController {
 
     private final PatientService patientService;
@@ -32,7 +35,7 @@ public class PatientController {
      * 
      * @param page page number (0-indexed)
      * @param size page size (default 20, max 100)
-     * @param sortBy field to sort by (default: firstName)
+     * @param sortBy field to sort by (optional)
      * @param sortDir sort direction (asc or desc, default: asc)
      * @param search optional search text to filter by client name, medicaid ID, or client payer ID
      * @param status optional list of patient statuses to filter by (ACTIVE, INACTIVE, PENDING)
@@ -42,82 +45,63 @@ public class PatientController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<Page<PatientSummaryDTO>>> getPatients(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "firstName") String sortBy,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> status) {
-        
-        log.info("Fetching patients - page: {}, size: {}, sortBy: {}, sortDir: {}, search: '{}', status: {}", 
-            page, size, sortBy, sortDir, search, status);
-        
-        // Validate page size to prevent performance issues
-        if (size > 100) {
-            size = 100;
-        }
-        if (size < 1) {
-            size = 20;
-        }
-        
-        // Validate page number
-        if (page < 0) {
-            page = 0;
-        }
-        
-        // Map camelCase field names to snake_case database column names and create Sort object
-        Sort sort;
-        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-
-        if ("clientName".equalsIgnoreCase(sortBy)) {
-            // Sort by first name, then last name for a natural full name sort
-            sort = Sort.by(direction, "first_name", "last_name");
-        } else {
-            String dbColumnName = mapFieldToColumn(sortBy);
-            // For columns from joined tables, we must use JpaSort.unsafe()
-            // to prevent Spring from prepending the root entity alias.
-            if (dbColumnName.contains(".")) {
-                sort = JpaSort.unsafe(direction, dbColumnName);
-            } else {
-                sort = Sort.by(direction, dbColumnName);
-            }
-        }
-        
-        // Create pageable
-        Pageable pageable = PageRequest.of(page, size, sort);
-        
-        // Fetch patients using optimized single query with optional filters
-        Page<PatientSummaryDTO> patients = patientService.getPatientSummaries(search, status, pageable);
-        
-        log.info("Retrieved {} patients out of {} total (page {}/{})", 
-            patients.getNumberOfElements(), 
-            patients.getTotalElements(),
-            patients.getNumber() + 1,
-            patients.getTotalPages());
+                
+        Page<PatientSummaryDTO> patients = patientService.getPatientSummaries(
+            search, status, page, size, sortBy, sortDir
+        );
         
         return ResponseEntity.ok(
             ApiResponse.success(patients, "Patients retrieved successfully")
         );
     }
-    
+
     /**
-     * Map camelCase field names to snake_case database column names.
-     * This is necessary because the native query uses actual database column names.
+     * Get patient header information by ID.
+     * Returns common patient information displayed across all tabs.
      * 
-     * @param fieldName the field name from the API request (camelCase)
-     * @return the corresponding database column name (snake_case)
+     * @param id patient UUID
+     * @return patient header information
+     * 
+     * Example: GET /api/patients/123e4567-e89b-12d3-a456-426614174000/header
      */
-    private String mapFieldToColumn(String fieldName) {
-        return switch (fieldName.toLowerCase()) {
-            case "firstname", "clientname" -> "first_name";
-            case "lastname" -> "last_name";
-            case "medicaidid" -> "medicaid_id";
-            case "status" -> "status";
-            case "asof" -> "as_of";
-            case "soc" -> "pp_latest.soc_date";
-            case "eoc" -> "pp_latest.eoc_date";
-            case "id" -> "id";
-            default -> "last_name"; // default sort by last_name
-        };
+    @GetMapping("/{id}/header")
+    public ResponseEntity<ApiResponse<PatientHeaderDTO>> getPatientHeader(
+            @PathVariable UUID id) {
+        
+        log.debug("GET /api/patients/{}/header", id);
+        
+        PatientHeaderDTO header = patientService.getPatientHeader(id);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(header, "Patient header retrieved successfully")
+        );
+    }
+
+    /**
+     * Get patient personal information by ID.
+     * Returns detailed patient information including contacts and addresses.
+     * 
+     * @param id patient UUID
+     * @return patient personal information
+     * 
+     * Example: GET /api/patients/123e4567-e89b-12d3-a456-426614174000/personal
+     */
+    @GetMapping("/{id}/personal")
+    public ResponseEntity<ApiResponse<PatientPersonalDTO>> getPatientPersonal(
+            @PathVariable UUID id) {
+        
+        log.debug("GET /api/patients/{}/personal", id);
+        
+        PatientPersonalDTO personal = patientService.getPatientPersonal(id);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(personal, "Patient personal information retrieved successfully")
+        );
     }
 }

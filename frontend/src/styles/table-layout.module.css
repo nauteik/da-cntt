@@ -1,0 +1,104 @@
+/* 
+  Table Layout Module - Reusable table page layout styles
+  
+  This module provides a standardized layout pattern for pages with:
+  - A control bar (filters, search, actions)
+  - A data table with card wrapper
+  
+  Usage:
+  import styles from '@/styles/table-layout.module.css';
+  
+  <div className={styles.pageContainer}>
+    <Card className={styles.controlBar}>
+      // filters, search, buttons
+    </Card>
+    <Card className={styles.tableCard}>
+      // table component
+    </Card>
+  </div>
+*/
+
+/* Main page container for table layouts */
+.pageContainer {
+  padding: 12px;
+  height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Control bar (top section with filters/search/actions) */
+.controlBar {
+  margin-bottom: 16px;
+  background: var(--bg-surface);
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Remove bottom padding from control bar's card body */
+/* .controlBar :global(.ant-card-body) {
+  padding-bottom: 0 !important;
+} */
+
+/* Controls row - horizontal layout for buttons and filters */
+.controlsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Right-aligned controls (search, filters, export) */
+.rightControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.searchInput {
+  min-width: 240px !important; /* Ensure search input has enough space */
+}
+
+/* Table card wrapper */
+.tableCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Remove all padding from table card body to eliminate horizontal padding */
+.tableCard :global(.ant-card-body) {
+  padding: 0 !important;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .pageContainer {
+    padding: 16px;
+  }
+
+  .controlsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rightControls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .searchInput {
+    width: 100%;
+  }
+}

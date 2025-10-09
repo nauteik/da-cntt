@@ -1,10 +1,8 @@
 package com.example.backend.repository;
 
+import com.example.backend.model.dto.PatientHeaderDTO;
 import com.example.backend.model.dto.PatientSummaryDTO;
 import com.example.backend.model.entity.Patient;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -73,30 +71,39 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                 pp.client_payer_id,
                 pp_latest.status_effective_date, pp_latest.soc_date, pp_latest.eoc_date
             ORDER BY
-                CASE WHEN :sortDirection = 'asc' THEN
+                CASE WHEN COALESCE(:sortColumn, '') != '' AND :sortDirection = 'asc' THEN
                     CASE :sortColumn
                         WHEN 'first_name' THEN p.first_name
                         WHEN 'last_name' THEN p.last_name
                         WHEN 'status' THEN p.status::text
                         WHEN 'medicaid_id' THEN p.medicaid_id
                         WHEN 'as_of' THEN pp_latest.status_effective_date::text
-                        WHEN 'pp_latest.soc_date' THEN pp_latest.soc_date::text
-                        WHEN 'pp_latest.eoc_date' THEN pp_latest.eoc_date::text
+                        WHEN 'asOf' THEN pp_latest.status_effective_date::text
+                        WHEN 'soc_date' THEN pp_latest.soc_date::text
+                        WHEN 'soc' THEN pp_latest.soc_date::text
+                        WHEN 'eoc_date' THEN pp_latest.eoc_date::text
+                        WHEN 'eoc' THEN pp_latest.eoc_date::text
+                        WHEN 'clientName' THEN p.first_name
                     END
                 END ASC NULLS LAST,
-                CASE WHEN :sortDirection = 'desc' THEN
+                CASE WHEN COALESCE(:sortColumn, '') != '' AND :sortDirection = 'desc' THEN
                     CASE :sortColumn
                         WHEN 'first_name' THEN p.first_name
                         WHEN 'last_name' THEN p.last_name
                         WHEN 'status' THEN p.status::text
                         WHEN 'medicaid_id' THEN p.medicaid_id
                         WHEN 'as_of' THEN pp_latest.status_effective_date::text
-                        WHEN 'pp_latest.soc_date' THEN pp_latest.soc_date::text
-                        WHEN 'pp_latest.eoc_date' THEN pp_latest.eoc_date::text
+                        WHEN 'asOf' THEN pp_latest.status_effective_date::text
+                        WHEN 'soc_date' THEN pp_latest.soc_date::text
+                        WHEN 'soc' THEN pp_latest.soc_date::text
+                        WHEN 'eoc_date' THEN pp_latest.eoc_date::text
+                        WHEN 'eoc' THEN pp_latest.eoc_date::text
+                        WHEN 'clientName' THEN p.first_name
                     END
                 END DESC NULLS LAST,
-                p.first_name ASC,
-                p.last_name ASC
+                CASE WHEN :sortColumn = 'clientName' AND :sortDirection = 'asc' THEN p.last_name END ASC NULLS LAST,
+                CASE WHEN :sortColumn = 'clientName' AND :sortDirection = 'desc' THEN p.last_name END DESC NULLS LAST,
+                p.id ASC
             LIMIT :limit OFFSET :offset
             """,
         nativeQuery = true
@@ -136,4 +143,46 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
         @Param("search") String search,
         @Param("statusFilter") String statusFilter
     );
+
+    /**
+     * Get patient header information by patient ID
+     */
+    @Query("""
+        SELECT new com.example.backend.model.dto.PatientHeaderDTO(
+            p.id,
+            p.firstName,
+            p.lastName,
+            p.clientId,
+            p.medicaidId,
+            mainAddr.line1,
+            pa.phone,
+            primaryContact.name,
+            program.programIdentifier,
+            p.status
+        )
+        FROM Patient p
+        LEFT JOIN p.patientAddresses pa
+        LEFT JOIN pa.address mainAddr ON pa.isMain = true
+        LEFT JOIN p.contacts primaryContact ON primaryContact.isPrimary = true
+        LEFT JOIN PatientProgram pp ON pp.patient.id = p.id
+        LEFT JOIN pp.program program
+        WHERE p.id = :patientId
+          AND p.deletedAt IS NULL
+        ORDER BY pp.statusEffectiveDate DESC
+        """)
+    PatientHeaderDTO findPatientHeaderById(@Param("patientId") UUID patientId);
+
+    /**
+     * Get patient personal information by patient ID with contacts and addresses
+     */
+    @Query("""
+        SELECT p
+        FROM Patient p
+        LEFT JOIN FETCH p.contacts
+        LEFT JOIN FETCH p.patientAddresses pa
+        LEFT JOIN FETCH pa.address
+        WHERE p.id = :patientId
+          AND p.deletedAt IS NULL
+        """)
+    Patient findPatientPersonalById(@Param("patientId") UUID patientId);
 }

@@ -1,24 +1,35 @@
 "use client";
 
 import React from "react";
-import { Table, Button, Tag, Space, Input, Card } from "antd";
-import {
-  SearchOutlined,
-  FilterOutlined,
-  ExportOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
-import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import type { SorterResult, FilterValue } from "antd/es/table/interface";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useClients } from "@/hooks/useClients";
+import {
+  Card,
+  Table,
+  Input,
+  Button,
+  Space,
+  Tag,
+  type TablePaginationConfig,
+} from "antd";
+import {
+  ExportOutlined,
+  FilterOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType, SorterResult } from "antd/es/table/interface";
+import type { FilterValue } from "antd/es/table/interface";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useClients } from "@/hooks/useClients";
 import type {
-  PatientSummary,
-  PatientStatus,
   PaginatedPatients,
+  PatientStatus,
+  PatientSummary,
 } from "@/types/patient";
 import styles from "./clients.module.css";
+import layoutStyles from "@/styles/table-layout.module.css";
+import buttonStyles from "@/styles/buttons.module.css";
+import CreateClientModal from "@/components/clients/CreateClientModal";
 
 interface ClientsClientProps {
   initialData: PaginatedPatients;
@@ -29,15 +40,19 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
   const searchParams = useSearchParams();
 
   // Derive all state from URL - single source of truth
-  const currentPage = parseInt(searchParams.get("page") || "0", 10);
+  // URL uses 1-based pagination (page=1 is first page, matching UI)
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
   const pageSize = parseInt(searchParams.get("size") || "25", 10);
-  const sortBy = searchParams.get("sortBy") || "clientName";
+  const sortBy = searchParams.get("sortBy") || "";
   const sortDir = (searchParams.get("sortDir") as "asc" | "desc") || "asc";
   const searchText = searchParams.get("search") || "";
   const statusFilter = searchParams.getAll("status") as PatientStatus[];
 
   // Local state for search input (for immediate UI feedback)
   const [searchInput, setSearchInput] = React.useState(searchText);
+
+  // Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
   // Debounce search input to prevent excessive API calls (500ms delay)
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -57,15 +72,16 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
       } else {
         params.delete("search");
       }
-      params.set("page", "0"); // Reset to first page on search
+      params.set("page", "1"); // Reset to first page on search (1-based)
       router.push(`/clients?${params.toString()}`, { scroll: false });
     }
   }, [debouncedSearch, searchText, searchParams, router]);
 
   // Use React Query with URL-derived state
+  // Convert 1-based URL page to 0-based backend page
   const { data, isLoading, error } = useClients(
     {
-      page: currentPage,
+      page: currentPage - 1, // Backend uses 0-based indexing
       size: pageSize,
       sortBy,
       sortDir,
@@ -73,8 +89,9 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
       status: statusFilter.length > 0 ? statusFilter : undefined,
     },
     {
-      initialData,
-      placeholderData: (previousData) => previousData,
+      initialData, // Use server-rendered data as initial data
+      // Don't use placeholderData here - it can cause unnecessary refetches
+      // React Query will use cached data automatically if it's still fresh (within staleTime)
     }
   );
 
@@ -226,36 +243,36 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
 
     // Handle sorting - normalize to single sorter
     const sortInfo = Array.isArray(sorter) ? sorter[0] : sorter;
+    const urlSortBy = searchParams.get("sortBy");
 
-    // Handle pagination changes
-    if (pagination.current && pagination.current - 1 !== currentPage) {
-      params.set("page", String(pagination.current - 1));
-      shouldUpdate = true;
-    }
-    if (pagination.pageSize && pagination.pageSize !== pageSize) {
-      params.set("size", String(pagination.pageSize));
-      params.set("page", "0"); // Reset to first page on page size change
-      shouldUpdate = true;
-    }
-
-    // Handle sorting changes
-    if (sortInfo && sortInfo.order && sortInfo.field) {
+    if (sortInfo && sortInfo.field && sortInfo.order) {
+      // A new sort is being applied or an existing one is changed
       const newSortBy = String(sortInfo.field);
       const newSortDir = sortInfo.order === "ascend" ? "asc" : "desc";
-      const urlSortBy = searchParams.get("sortBy") || "clientName";
       const urlSortDir = searchParams.get("sortDir") || "asc";
 
       if (newSortBy !== urlSortBy || newSortDir !== urlSortDir) {
         params.set("sortBy", newSortBy);
         params.set("sortDir", newSortDir);
-        params.set("page", "0"); // Reset to first page on sort change
+        params.set("page", "1");
         shouldUpdate = true;
       }
-    } else if (sortInfo && !sortInfo.order) {
-      // User clicked to remove sorting - reset to default
-      params.set("sortBy", "clientName");
-      params.set("sortDir", "asc");
-      params.set("page", "0");
+    } else if (urlSortBy) {
+      // No new sort is being applied, but a sort exists in the URL, so clear it.
+      params.delete("sortBy");
+      params.delete("sortDir");
+      params.set("page", "1");
+      shouldUpdate = true;
+    }
+
+    // Handle pagination changes (URL uses 1-based indexing)
+    if (pagination.current && pagination.current !== currentPage) {
+      params.set("page", String(pagination.current)); // Direct mapping: UI page = URL page
+      shouldUpdate = true;
+    }
+    if (pagination.pageSize && pagination.pageSize !== pageSize) {
+      params.set("size", String(pagination.pageSize));
+      params.set("page", "1"); // Reset to first page on page size change (1-based)
       shouldUpdate = true;
     }
 
@@ -277,7 +294,7 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
         newStatusFilters.forEach((status) => params.append("status", status));
       }
 
-      params.set("page", "0"); // Reset to first page on filter change
+      params.set("page", "1"); // Reset to first page on filter change (1-based)
       shouldUpdate = true;
     }
 
@@ -288,38 +305,38 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
   };
 
   return (
-    <div className={styles.clientsContainer}>
-      <Card className={styles.controlBar} variant="borderless">
-        <div className={styles.controlsRow}>
+    <div className={layoutStyles.pageContainer}>
+      <Card className={layoutStyles.controlBar} variant="borderless">
+        <div className={layoutStyles.controlsRow}>
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            className={styles.createButton}
-            onClick={() => router.push("/clients/create")}
+            className={buttonStyles.createButton}
+            onClick={() => setIsCreateModalOpen(true)}
           >
             CREATE CLIENT
           </Button>
 
-          <Space size="middle" className={styles.rightControls}>
+          <Space size="middle" className={layoutStyles.rightControls}>
             <Input
               placeholder="Type here for a quick search..."
               prefix={<SearchOutlined />}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className={styles.searchInput}
+              className={layoutStyles.searchInput}
               allowClear
             />
             <Button
               icon={<FilterOutlined />}
               type="default"
-              className={styles.actionButton}
+              className={buttonStyles.actionButton}
             >
               FILTERS
             </Button>
             <Button
               type="default"
               icon={<ExportOutlined />}
-              className={styles.actionButton}
+              className={buttonStyles.actionButton}
             >
               EXPORT DATA
             </Button>
@@ -327,7 +344,7 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
         </div>
       </Card>
 
-      <Card className={styles.tableCard} variant="borderless">
+      <Card className={layoutStyles.tableCard} variant="borderless">
         <Table
           columns={columns}
           dataSource={data?.content || []}
@@ -335,7 +352,7 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
           loading={isLoading}
           onChange={handleTableChange}
           pagination={{
-            current: currentPage + 1,
+            current: currentPage, // Already 1-based from URL
             pageSize: pageSize,
             total: data?.totalElements || 0,
             showSizeChanger: true,
@@ -392,6 +409,12 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
           </div>
         </Card>
       )}
+
+      {/* Create Client Modal */}
+      <CreateClientModal
+        open={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 }

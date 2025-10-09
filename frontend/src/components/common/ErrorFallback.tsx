@@ -1,25 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
 import { Card } from "antd";
 import AdminLayout from "@/components/AdminLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function ClientsError({
-  error,
-}: {
-  error: Error & { digest?: string };
-}) {
-  useEffect(() => {
-    // Log the error to an error reporting service
-    console.error("Clients page error:", error);
-  }, [error]);
+interface ErrorFallbackProps {
+  title?: string;
+  message?: string;
+}
 
+export default function ErrorFallback({ title, message }: ErrorFallbackProps) {
   return (
     <ProtectedRoute>
       <AdminLayout>
         <div className="flex items-center justify-center min-h-[60vh] p-6">
-          <Card className="max-w-md w-full border-l-4 border-l-red-500">
+          <Card
+            className="max-w-md w-full border-l-4 border-l-red-500"
+            style={{ borderRadius: 0 }}
+          >
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
                 <svg
@@ -34,13 +32,16 @@ export default function ClientsError({
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-theme-primary mb-2">
-                Unable to Load Clients
-              </h2>
-              <p className="text-theme-secondary">
-                {error.message ||
-                  "An error occurred while loading client data."}
-              </p>
+              {title && (
+                <h2 className="text-xl font-semibold text-theme-primary mb-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                  {title}
+                </h2>
+              )}
+              {message && (
+                <p className="text-theme-secondary whitespace-nowrap overflow-hidden text-ellipsis">
+                  {message}
+                </p>
+              )}
             </div>
           </Card>
         </div>

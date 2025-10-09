@@ -28,7 +28,7 @@ export function useClients(
   const {
     page = 0,
     size = 25,
-    sortBy = "clientName",
+    sortBy = "",
     sortDir = "asc",
     search,
     status,
@@ -38,9 +38,13 @@ export function useClients(
   const queryParams = new URLSearchParams({
     page: page.toString(),
     size: size.toString(),
-    sortBy,
-    sortDir,
   });
+
+  // Only add sort params if sortBy is provided
+  if (sortBy) {
+    queryParams.append("sortBy", sortBy);
+    queryParams.append("sortDir", sortDir);
+  }
 
   // Add optional search parameter
   if (search) {
@@ -58,7 +62,8 @@ export function useClients(
     ["clients", page, size, sortBy, sortDir, search, status] as const,
     endpoint,
     {
-      staleTime: 5000, // Data is fresh for 5 seconds
+      staleTime: 60 * 1000, // Data is fresh for 60 seconds (matches server cache)
+      gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
       ...options,
     }
   );

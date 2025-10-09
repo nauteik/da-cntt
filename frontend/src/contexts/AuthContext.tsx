@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, {
   createContext,
@@ -6,18 +6,26 @@ import React, {
   useReducer,
   useEffect,
   ReactNode,
+  useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { User, LoginCredentials, AuthState, LoginResponse } from "@/types/auth";
+import {
+  User,
+  LoginCredentials,
+  AuthState,
+  UserInfoResponse,
+} from "@/types/auth";
 import { useApiMutation } from "@/hooks/useApi";
 import { ApiError } from "@/types/api";
 import { UseMutationResult } from "@tanstack/react-query";
+import { apiClient } from "@/lib/apiClient";
 
 // The context will now provide the login mutation result directly
 interface AuthContextType extends Omit<AuthState, "isInitialized"> {
-  login: UseMutationResult<LoginResponse, ApiError, LoginCredentials>;
-  logout: () => void;
+  login: UseMutationResult<UserInfoResponse, ApiError, LoginCredentials>;
+  logout: () => Promise<void>;
   isInitialized: boolean;
+  isNavigating: boolean; // Track navigation transition state
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,11 +59,8 @@ const initialState: AuthState = {
   isInitialized: false, // Start as not initialized
 };
 
-// Storage keys
+// Storage keys (only for remembering credentials, not for tokens)
 const STORAGE_KEYS = {
-  ACCESS_TOKEN: "bac_access_token",
-  REFRESH_TOKEN: "bac_refresh_token",
-  USER: "bac_user",
   REMEMBER_CREDENTIALS: "bac_remember_credentials",
 } as const;
 
@@ -66,55 +71,59 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const router = useRouter();
+  const [isNavigating, startTransition] = useTransition();
 
-  // Initialize auth state from storage
+  // Initialize auth state by fetching user info from backend (cookie-based auth)
   useEffect(() => {
-    try {
-      const userStr = localStorage.getItem(STORAGE_KEYS.USER);
-      const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const initializeAuth = async () => {
+      try {
+        // Try to fetch user info - the cookie will be sent automatically
+        const response = await apiClient<UserInfoResponse>("/user/me");
 
-      if (userStr && accessToken && isTokenValid(accessToken)) {
-        // THIS IS THE FIX: Dispatch SET_USER when initializing from storage
-        dispatch({ type: "SET_USER", payload: JSON.parse(userStr) });
-      } else {
-        // If token is invalid or not found, ensure state is cleared
-        clearAuthStorage();
+        if (response.success && response.data) {
+          const userInfo = response.data;
+          const user: User = {
+            id: userInfo.userId,
+            email: userInfo.email,
+            displayName: userInfo.displayName,
+            roles: userInfo.roles,
+            officeId: userInfo.officeId,
+          };
+          dispatch({ type: "SET_USER", payload: user });
+        } else {
+          // No valid session
+          dispatch({ type: "SET_USER", payload: null });
+        }
+      } catch (error) {
+        console.error("Failed to initialize auth:", error);
         dispatch({ type: "SET_USER", payload: null });
+      } finally {
+        // Signal that initialization is complete
+        dispatch({ type: "SET_INITIALIZED", payload: true });
       }
-    } catch (error) {
-      console.error("Failed to initialize auth from storage:", error);
-      clearAuthStorage();
-      dispatch({ type: "SET_USER", payload: null });
-    } finally {
-      // This should always run to signal that initialization is complete
-      dispatch({ type: "SET_INITIALIZED", payload: true });
-    }
+    };
+
+    initializeAuth();
   }, []);
 
-  const loginMutation = useApiMutation<LoginResponse, LoginCredentials>(
-    "/auth/login", // Replace with your actual login endpoint
+  const loginMutation = useApiMutation<UserInfoResponse, LoginCredentials>(
+    "/auth/login",
     "POST",
     {
       onSuccess: (data, variables) => {
         // On successful API call, store data and update global state
         console.log("Login success data:", data);
 
-        // This mapping is now type-safe because the types in auth.ts are correct.
+        // Map response to User type
         const user: User = {
           id: data.userId,
           email: data.email,
           displayName: data.displayName,
           roles: data.roles,
+          officeId: data.officeId,
         };
 
-        // Use the correct property names from the response object
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.token);
-        // Handle missing refresh token gracefully
-        if (data.refreshToken) {
-          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
-        }
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-
+        // Handle "remember me" - only store email, not tokens
         if (variables.rememberMe) {
           localStorage.setItem(
             STORAGE_KEYS.REMEMBER_CREDENTIALS,
@@ -128,7 +137,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         dispatch({ type: "SET_USER", payload: user });
-        router.push("/"); // Redirect on success
+
+        // Use startTransition for smoother navigation
+        startTransition(() => {
+          router.push("/"); // Redirect on success
+        });
       },
       onError: (error) => {
         // Log error, the component will handle displaying it
@@ -137,17 +150,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   );
 
-  const logout = (): void => {
-    clearAuthStorage();
-    dispatch({ type: "SET_USER", payload: null });
-    // Optional: redirect to login page after logout
-    router.push("/login");
-  };
-
-  const clearAuthStorage = (): void => {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.USER);
+  const logout = async (): Promise<void> => {
+    try {
+      // Call the backend logout endpoint to clear the cookie
+      await apiClient("/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Error during logout:", error);
+    } finally {
+      // Clear user data from state
+      dispatch({ type: "SET_USER", payload: null });
+      // Redirect to login page
+      router.push("/login");
+    }
   };
 
   const value: AuthContextType = {
@@ -156,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isInitialized: state.isInitialized,
     login: loginMutation,
     logout,
+    isNavigating, // Expose navigation transition state
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -170,16 +185,6 @@ export function useAuth(): AuthContextType {
 }
 
 // Helper functions
-const isTokenValid = (token: string): boolean => {
-  try {
-    // Basic JWT token validation (check expiration)
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-};
-
 // Get remembered credentials
 export const getRememberedCredentials = () => {
   // Safe guard against server-side rendering

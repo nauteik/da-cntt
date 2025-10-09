@@ -110,9 +110,7 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
     if ((isDarkMode && !hasClass) || (!isDarkMode && hasClass)) {
       // Apply theme using our helper function
       applyTheme(isDarkMode);
-      console.log(
-        `Theme updated after mount: ${isDarkMode ? "dark" : "light"}`
-      );
+    
     }
   }, [isDarkMode, isMounted]);
 

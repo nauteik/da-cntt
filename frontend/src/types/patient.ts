@@ -50,3 +50,53 @@ export interface PatientQueryParams {
   search?: string;
   status?: PatientStatus[];
 }
+
+// Patient Detail Types
+export interface ContactDTO {
+  id: string;
+  relation: string;
+  name: string;
+  phone: string;
+  email: string;
+  isPrimary: boolean;
+}
+
+export interface AddressDTO {
+  id: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+  isMain: boolean;
+}
+
+export interface PatientHeaderDTO {
+  id: string;
+  clientName: string;
+  clientId: string;
+  medicaidId: string;
+  mainAddress: string;
+  phoneNo: string;
+  mainEmergencyContact: string;
+  programName: string;
+  status: PatientStatus;
+}
+
+export interface PatientPersonalDTO {
+  id: string;
+  medicaidId: string;
+  clientId: string;
+  agencyId: string;
+  ssn: string;
+  firstName: string;
+  lastName: string;
+  dob: string; // ISO date string
+  gender: string;
+  primaryLanguage: string;
+  medicalProfile: Record<string, unknown>;
+  contacts: ContactDTO[];
+  addresses: AddressDTO[];
+}

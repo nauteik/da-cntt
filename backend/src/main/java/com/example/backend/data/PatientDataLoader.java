@@ -42,13 +42,13 @@ public class PatientDataLoader {
             Office office = officeRepository.findAll().get(0);
             List<Patient> patients = loadPatientData(faker, office);
             List<Address> addresses = loadAddressData(faker);
-            loadPatientAddressData(patients, addresses);
+            loadPatientAddressData(faker, patients, addresses);
             loadPatientContactData(faker, patients, addresses);
             List<Payer> payers = loadPayerData(faker);
             List<Program> programs = loadProgramData();
             List<PatientPayer> patientPayers = loadPatientPayerData(faker, patients, payers);
             loadPatientProgramData(faker, patients, programs);
-            List<ServiceType> serviceTypes = loadServiceTypeData(faker);
+            List<ServiceType> serviceTypes = serviceTypeRepository.findAll();
             List<ServiceAuthorization> serviceAuthorizations = loadServiceAuthorizationData(faker, patientPayers, serviceTypes);
             List<ISP> isps = loadIspData(faker, patients);
             List<ISPGoal> ispGoals = loadIspGoalData(faker, isps, serviceAuthorizations);
@@ -68,6 +68,9 @@ public class PatientDataLoader {
             patient.setLastName(faker.name().lastName());
             patient.setDob(faker.date().birthday().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             patient.setGender(faker.options().option("Male", "Female"));
+            patient.setSsn(faker.idNumber().ssnValid());
+            patient.setClientId(faker.numerify("C-######"));
+            patient.setAgencyId(faker.numerify("A-#####"));
             patient.setMedicaidId(faker.numerify("#########"));
             patient.setPrimaryLanguage("English");
             // Vary status: 80% Active, 15% Inactive, 5% Pending
@@ -111,13 +114,14 @@ public class PatientDataLoader {
         return addressRepository.saveAll(addresses);
     }
 
-    private void loadPatientAddressData(List<Patient> patients, List<Address> addresses) {
+    private void loadPatientAddressData(Faker faker, List<Patient> patients, List<Address> addresses) {
         List<PatientAddress> patientAddresses = new ArrayList<>();
         log.info("Linking {} patients to addresses...", patients.size());
         for (int i = 0; i < patients.size(); i++) {
             PatientAddress patientAddress = new PatientAddress();
             patientAddress.setPatient(patients.get(i));
             patientAddress.setAddress(addresses.get(i));
+            patientAddress.setPhone(faker.phoneNumber().cellPhone());
             patientAddress.setIsMain(true);
             patientAddresses.add(patientAddress);
         }
@@ -212,26 +216,14 @@ public class PatientDataLoader {
         patientProgramRepository.saveAll(patientPrograms);
     }
 
-    private List<ServiceType> loadServiceTypeData(Faker faker) {
-        List<ServiceType> serviceTypes = new ArrayList<>();
-        log.info("Generating 15 service types for variety...");
-        for (int i = 0; i < 15; i++) {
-            ServiceType serviceType = new ServiceType();
-            serviceType.setCode(faker.code().asin());
-            serviceType.setName(faker.commerce().productName());
-            serviceType.setIsBillable(faker.bool().bool());
-            serviceTypes.add(serviceType);
-        }
-        return serviceTypeRepository.saveAll(serviceTypes);
-    }
-
     private List<ServiceAuthorization> loadServiceAuthorizationData(Faker faker, List<PatientPayer> patientPayers, List<ServiceType> serviceTypes) {
         List<ServiceAuthorization> serviceAuthorizations = new ArrayList<>();
+        int counter = 0;
         for (PatientPayer patientPayer : patientPayers) {
             ServiceAuthorization auth = new ServiceAuthorization();
             auth.setPatientPayer(patientPayer);
             auth.setServiceType(serviceTypes.get(faker.random().nextInt(serviceTypes.size())));
-            auth.setAuthorizationNo(faker.numerify("AUTH-#####"));
+            auth.setAuthorizationNo(String.format("AUTH-%05d-%d", faker.number().numberBetween(1, 99999), counter++));
             auth.setMaxUnits(BigDecimal.valueOf(faker.number().randomDouble(2, 10, 100)));
             auth.setStartDate(faker.date().past(90, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             auth.setEndDate(faker.date().future(90, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());

@@ -5,7 +5,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { apiClient } from "@/lib/apiClient";
 import type { ApiResponse } from "@/types/api";
 import type { PaginatedPatients } from "@/types/patient";
-import { Card, Spin } from "antd";
+import LoadingFallback from "@/components/common/LoadingFallback";
+import ErrorFallback from "@/components/common/ErrorFallback";
 
 interface SearchParams {
   page?: string;
@@ -25,18 +26,24 @@ async function getInitialClients(
   searchParams: SearchParams
 ): Promise<{ data: PaginatedPatients | null; error?: string }> {
   try {
-    const page = searchParams.page || "0";
+    // URL uses 1-based pagination, backend uses 0-based
+    const urlPage = searchParams.page || "1";
+    const backendPage = String(Math.max(0, parseInt(urlPage, 10) - 1)); // Convert to 0-based
     const size = searchParams.size || "25";
-    const sortBy = searchParams.sortBy || "clientName";
+    const sortBy = searchParams.sortBy || "";
     const sortDir = searchParams.sortDir || "asc";
 
     // Build query string with optional search and status parameters
     const queryParams = new URLSearchParams({
-      page,
+      page: backendPage, // Use 0-based page for backend
       size,
-      sortBy,
-      sortDir,
     });
+
+    // Only add sort params if sortBy is provided
+    if (sortBy) {
+      queryParams.append("sortBy", sortBy);
+      queryParams.append("sortDir", sortDir);
+    }
 
     // Add search parameter if present
     if (searchParams.search) {
@@ -56,7 +63,9 @@ async function getInitialClients(
     const endpoint = `/patients?${queryParams.toString()}`;
 
     const response: ApiResponse<PaginatedPatients> =
-      await apiClient<PaginatedPatients>(endpoint);
+      await apiClient<PaginatedPatients>(endpoint, {
+        revalidate: 60, // Cache for 60 seconds on server-side
+      });
 
     if (!response.success || !response.data) {
       return { data: null, error: response.message };
@@ -68,53 +77,6 @@ async function getInitialClients(
   }
 }
 
-// Loading fallback
-function ClientsLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-theme-primary">
-      <Card className="p-8">
-        <Spin size="large" />
-        <p className="mt-4 text-theme-secondary">Loading clients...</p>
-      </Card>
-    </div>
-  );
-}
-
-// Error fallback when backend is unavailable (Client Component for interactivity)
-function ClientsError({ message }: { message?: string }) {
-  return (
-    <ProtectedRoute>
-      <AdminLayout>
-        <div className="flex items-center justify-center min-h-[60vh] p-6">
-          <Card className="max-w-md w-full border-l-4 border-l-red-500">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-                <svg
-                  className="w-8 h-8 text-red-600 dark:text-red-400"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold text-theme-primary mb-2">
-                Unable to Load Clients
-              </h2>
-              <p className="text-theme-secondary">
-                {message || "An error occurred while loading client data."}
-              </p>
-            </div>
-          </Card>
-        </div>
-      </AdminLayout>
-    </ProtectedRoute>
-  );
-}
-
 // Server Component (default)
 export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   // Await searchParams (Next.js 15+ requirement)
@@ -122,9 +84,10 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const result = await getInitialClients(resolvedSearchParams);
 
   // If backend is down or data fetch failed, show error UI instead of crashing
-
   if (!result.data) {
-    return <ClientsError message={result.error} />;
+    return (
+      <ErrorFallback title="Unable to Load Clients" message={result.error} />
+    );
   }
 
   const initialData = result.data;
@@ -132,7 +95,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   return (
     <ProtectedRoute>
       <AdminLayout>
-        <Suspense fallback={<ClientsLoading />}>
+        <Suspense fallback={<LoadingFallback message="Loading clients..." />}>
           <ClientsClient initialData={initialData} />
         </Suspense>
       </AdminLayout>

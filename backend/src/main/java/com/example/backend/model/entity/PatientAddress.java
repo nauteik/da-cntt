@@ -23,14 +23,18 @@ public class PatientAddress extends BaseEntity {
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "address_id", nullable = false)
+    @JoinColumn(name = "address_id")
     private Address address;
+
+    @Column(name = "phone")
+    private String phone;
 
     @Column(name = "is_main", nullable = false)
     private Boolean isMain = false;
 
-    public PatientAddress(Patient patient, Address address) {
+    public PatientAddress(Patient patient, Address address, String phone) {
         this.patient = patient;
         this.address = address;
+        this.phone = phone;
     }
 }

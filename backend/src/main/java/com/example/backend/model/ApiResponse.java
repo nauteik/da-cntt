@@ -79,7 +79,6 @@ public class ApiResponse<T> {
         response.message = message;
         response.status = status;
         response.path = path;
-        response.errors = List.of(message);
         response.errorType = errorType;
         return response;
     }

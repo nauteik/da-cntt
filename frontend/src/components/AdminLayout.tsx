@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Layout,
   Menu,
@@ -26,11 +26,10 @@ import {
   BarChartOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
-
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
 
@@ -38,108 +37,143 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+function AdminLayoutComponent({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [currentPath, setCurrentPath] = useState("/");
-  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]); // State for open keys
   const { isDarkMode } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
-  React.useEffect(() => {
-    const path = window.location.pathname;
-    setCurrentPath(path);
+  // Derive active menu item directly from pathname
+  const activeMenuItem = useMemo(() => {
+    if (pathname === "/") return "dashboard";
+    if (pathname.startsWith("/clients")) return "client-management";
+    if (pathname.startsWith("/employees")) return "employees";
+    if (pathname.startsWith("/scheduling")) return "scheduling";
+    if (pathname.startsWith("/visit-maintenance")) return "visit-maintenance";
+    if (pathname.startsWith("/reports")) return "reports";
+    if (pathname.startsWith("/authorizations")) return "authorizations";
+    if (pathname.startsWith("/security")) return "security";
+    return "dashboard";
+  }, [pathname]);
 
-    // Auto-open parent menu based on current route
-    if (path.startsWith("/clients")) {
-      setOpenKeys(["clients"]);
+  // Derive open keys based on active menu item and user-controlled state
+  const openKeys = useMemo(() => {
+    const keys: string[] = [...menuOpenKeys]; // Start with user-controlled keys
+
+    if (activeMenuItem === "client-management" && !keys.includes("clients")) {
+      keys.push("clients"); // Always open "Clients" when a child is active
     }
-  }, []);
 
-  const menuItems = [
-    {
-      key: "dashboard",
-      icon: <DashboardOutlined />,
-      label: "Dashboard",
-      onClick: () => router.push("/"),
-    },
-    {
-      key: "clients",
-      icon: <UserOutlined />,
-      label: "Clients",
-      children: [
-        {
-          key: "client-management",
-          label: "Client Management",
-          onClick: () => router.push("/clients"),
-        },
-      ],
-    },
-    {
-      key: "employees",
-      icon: <TeamOutlined />,
-      label: "Employees",
-      onClick: () => router.push("/employees"),
-    },
-    {
-      key: "scheduling",
-      icon: <CalendarOutlined />,
-      label: "Scheduling",
-      onClick: () => router.push("/scheduling"),
-    },
-    {
-      key: "visit-maintenance",
-      icon: <ToolOutlined />,
-      label: "Visit Maintenance",
-      onClick: () => router.push("/visit-maintenance"),
-    },
-    {
-      key: "reports",
-      icon: <BarChartOutlined />,
-      label: "Reports",
-      onClick: () => router.push("/reports"),
-    },
-    {
-      key: "authorizations",
-      icon: <CheckCircleOutlined />,
-      label: "Authorizations",
-      onClick: () => router.push("/authorizations"),
-    },
-    {
-      key: "security",
-      icon: <SafetyOutlined />,
-      label: "Security",
-      onClick: () => router.push("/security"),
-    },
-  ];
+    return keys;
+  }, [activeMenuItem, menuOpenKeys]);
 
-  const handleLogout = () => {
+  // Memoize navigation handler to prevent recreation on every render
+  const handleNavigate = useCallback(
+    (path: string) => {
+      router.push(path);
+    },
+    [router]
+  );
+
+  // Memoize menu items to prevent recreation
+  const menuItems = useMemo(
+    () => [
+      {
+        key: "dashboard",
+        icon: <DashboardOutlined />,
+        label: "Dashboard",
+        onClick: () => handleNavigate("/"),
+      },
+      {
+        key: "clients",
+        icon: <UserOutlined />,
+        label: "Clients",
+        children: [
+          {
+            key: "client-management",
+            label: "Client Management",
+            onClick: () => handleNavigate("/clients"),
+          },
+        ],
+      },
+      {
+        key: "employees",
+        icon: <TeamOutlined />,
+        label: "Employees",
+        onClick: () => handleNavigate("/employees"),
+      },
+      {
+        key: "scheduling",
+        icon: <CalendarOutlined />,
+        label: "Scheduling",
+        onClick: () => handleNavigate("/scheduling"),
+      },
+      {
+        key: "visit-maintenance",
+        icon: <ToolOutlined />,
+        label: "Visit Maintenance",
+        onClick: () => handleNavigate("/visit-maintenance"),
+      },
+      {
+        key: "reports",
+        icon: <BarChartOutlined />,
+        label: "Reports",
+        onClick: () => handleNavigate("/reports"),
+      },
+      {
+        key: "authorizations",
+        icon: <CheckCircleOutlined />,
+        label: "Authorizations",
+        onClick: () => handleNavigate("/authorizations"),
+      },
+      {
+        key: "security",
+        icon: <SafetyOutlined />,
+        label: "Security",
+        onClick: () => handleNavigate("/security"),
+      },
+    ],
+    [handleNavigate]
+  );
+
+  const handleLogout = useCallback(() => {
     logout();
     router.push("/login");
-  };
+  }, [logout, router]);
 
-  const userMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "Profile",
-    },
-    {
-      key: "settings",
-      icon: <SettingOutlined />,
-      label: "Settings",
-    },
-    {
-      type: "divider" as const,
-    },
-    {
-      key: "logout",
-      icon: <LogoutOutlined />,
-      label: "Logout",
-      danger: true,
-      onClick: handleLogout,
-    },
-  ];
+  // Memoize user menu items
+  const userMenuItems = useMemo(
+    () => [
+      {
+        key: "profile",
+        icon: <UserOutlined />,
+        label: "Profile",
+      },
+      {
+        key: "settings",
+        icon: <SettingOutlined />,
+        label: "Settings",
+        onClick: () => handleLogout,
+      },
+      {
+        type: "divider" as const,
+      },
+      {
+        key: "logout",
+        icon: <LogoutOutlined />,
+        label: "Logout",
+        danger: true,
+        onClick: handleLogout,
+      },
+    ],
+    [handleLogout]
+  );
+
+  const onOpenChange = (keys: string[]) => {
+    setMenuOpenKeys(keys);
+  };
 
   return (
     <Layout className="min-h-screen bg-theme-primary">
@@ -193,27 +227,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <Menu
           theme={isDarkMode ? "dark" : "light"}
           mode="inline"
-          selectedKeys={[
-            currentPath === "/"
-              ? "dashboard"
-              : currentPath.startsWith("/clients")
-              ? "client-management"
-              : currentPath.startsWith("/employees")
-              ? "employees"
-              : currentPath.startsWith("/scheduling")
-              ? "scheduling"
-              : currentPath.startsWith("/visit-maintenance")
-              ? "visit-maintenance"
-              : currentPath.startsWith("/reports")
-              ? "reports"
-              : currentPath.startsWith("/authorizations")
-              ? "authorizations"
-              : currentPath.startsWith("/security")
-              ? "security"
-              : "dashboard",
-          ]}
-          openKeys={openKeys}
-          onOpenChange={setOpenKeys}
+          selectedKeys={[activeMenuItem]}
+          openKeys={openKeys} // Use the state for openKeys
+          onOpenChange={onOpenChange} // Handle open change event
           items={menuItems}
           className={isDarkMode ? styles.menuDark : styles.menuLight}
         />
@@ -259,3 +275,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     </Layout>
   );
 }
+
+// Memoize the entire component to prevent unnecessary re-renders
+const AdminLayout = React.memo(AdminLayoutComponent);
+
+export default AdminLayout;

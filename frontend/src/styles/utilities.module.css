@@ -29,6 +29,19 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Clickable Text Link */
+.clickableText {
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: bold;
+  transition: color 0.2s ease;
+}
+
+.clickableText:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
 /* Card Styles */
 .card {
   background-color: var(--bg-surface);

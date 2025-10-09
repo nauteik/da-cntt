@@ -235,7 +235,7 @@
 
 /* Content Area */
 .contentArea {
-  padding: 0.1rem;
+  padding: 0.5rem;
   background-color: transparent;
   min-height: calc(100vh - 4rem);
 }

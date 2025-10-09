@@ -3,7 +3,7 @@ package com.example.backend.service.impl;
 import com.example.backend.config.properties.JwtProperties;
 import com.example.backend.exception.UnauthorizedException;
 import com.example.backend.model.dto.LoginRequest;
-import com.example.backend.model.dto.LoginResponse;
+import com.example.backend.model.dto.UserInfoResponse;
 import com.example.backend.model.entity.AppUser;
 import com.example.backend.model.entity.Staff;
 import com.example.backend.repository.AppUserRepository;
@@ -37,7 +37,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public LoginResponse login(LoginRequest loginRequest) {
+    public LoginResult login(LoginRequest loginRequest) {
         final String normalizedEmail = loginRequest.getEmail().trim();
         log.info("Login attempt for email: {}", normalizedEmail);
 
@@ -55,48 +55,51 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Invalid email or password");
         }
 
-        // Get display name from the associated Staff entity
+        // Get display name and office from the associated Staff entity
         String displayName = Optional.ofNullable(user.getStaff())
                 .map(Staff::getFullName)
                 .orElse(user.getEmail());
-
-        // Generate JWT token
-        String token = generateToken(user, displayName);
+        
+        String officeId = Optional.ofNullable(user.getStaff())
+                .map(staff -> staff.getOffice().getId().toString())
+                .orElse(null);
 
         // Get user roles
         List<String> roles = user.getRoles().stream()
                 .map(userRole -> userRole.getRole().getCode())
                 .collect(Collectors.toList());
 
+        // Generate JWT token with user info and officeId
+        String token = generateToken(user, displayName, roles, officeId);
+
         // Calculate expiration time
         long expirationSeconds = jwtProperties.getExpiration();
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationSeconds);
 
-        // Update last login
-        user.updateLastLogin();
-        userRepository.save(user);
-
-        log.info("Login successful for email: {}", normalizedEmail);
-
-        return new LoginResponse(
-                token,
+        // Create user info response
+        UserInfoResponse userInfo = new UserInfoResponse(
                 user.getId().toString(),
                 displayName,
                 user.getEmail(),
                 roles,
                 expiresAt,
-                user.isMfaEnabled()
+                user.isMfaEnabled(),
+                officeId
         );
+
+        // Update last login
+        user.updateLastLogin();
+        userRepository.save(user);
+
+        log.info("Login successful for email: {} at office: {}", normalizedEmail, officeId);
+
+        return new LoginResult(userInfo, token);
     }
 
-    private String generateToken(AppUser user, String displayName) {
+    private String generateToken(AppUser user, String displayName, List<String> roles, String officeId) {
         Date now = new Date();
         Instant expiryInstant = Instant.now().plusSeconds(jwtProperties.getExpiration());
         Date expiryDate = Date.from(expiryInstant);
-
-        List<String> roles = user.getRoles().stream()
-                .map(userRole -> userRole.getRole().getCode())
-                .collect(Collectors.toList());
 
         SecretKey key = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
 
@@ -105,6 +108,7 @@ public class AuthServiceImpl implements AuthService {
                 .claim("email", user.getEmail())
                 .claim("displayName", displayName)
                 .claim("roles", roles)
+                .claim("officeId", officeId) // Add office ID for multi-office support
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)

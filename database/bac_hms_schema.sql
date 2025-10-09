@@ -321,6 +321,9 @@ CREATE TABLE patient (
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
     supervisor_id uuid REFERENCES staff(id),
     medicaid_id text UNIQUE,
+    client_id text UNIQUE,
+    agency_id text,
+    ssn text UNIQUE,
     first_name text NOT NULL,
     last_name text NOT NULL,
     dob date,
@@ -342,11 +345,13 @@ CREATE INDEX idx_patient_name_active ON patient(last_name, first_name);
 CREATE TABLE patient_address (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    address_id uuid NOT NULL REFERENCES address(id) ON DELETE CASCADE,
+    address_id uuid REFERENCES address(id) ON DELETE CASCADE,
+    phone text,
     is_main boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT patient_address_unique UNIQUE (patient_id, address_id)
+    CONSTRAINT patient_address_unique UNIQUE (patient_id, address_id),
+    CONSTRAINT chk_address_or_phone CHECK (address_id IS NOT NULL OR phone IS NOT NULL)
 );
 
 CREATE INDEX idx_patient_address_patient ON patient_address (patient_id);

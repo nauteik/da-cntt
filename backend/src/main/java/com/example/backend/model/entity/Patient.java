@@ -22,7 +22,9 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "patient", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"medicaid_id"})
+    @UniqueConstraint(columnNames = {"medicaid_id"}),
+    @UniqueConstraint(columnNames = {"client_id"}),
+    @UniqueConstraint(columnNames = {"ssn"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
@@ -41,6 +43,15 @@ public class Patient extends BaseEntity {
 
     @Column(name = "medicaid_id")
     private String medicaidId; // Medical Record Number
+
+    @Column(name = "client_id")
+    private String clientId;
+
+    @Column(name = "agency_id")
+    private String agencyId;
+
+    @Column(name = "ssn")
+    private String ssn;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;

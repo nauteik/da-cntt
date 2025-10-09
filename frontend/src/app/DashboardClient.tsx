@@ -159,15 +159,6 @@ export default function DashboardClient() {
     <ProtectedRoute>
       <AdminLayout>
         <div className="space-y-6">
-          {/* Alert Section */}
-          <Alert
-            message="Chào mừng đến với BAC Health Management System"
-            description="Hệ thống đang hoạt động bình thường. Có 3 cảnh báo cần xử lý và 12 ca làm việc đang diễn ra."
-            type="info"
-            showIcon
-            closable
-          />
-
           {/* Statistics Cards */}
           <Row gutter={16}>
             <Col span={6}>

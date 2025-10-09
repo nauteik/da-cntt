@@ -14,9 +14,11 @@ const { Title, Text } = Typography;
 
 export default function LoginPage() {
   const router = useRouter();
-  1;
-  const { login, isAuthenticated, isInitialized } = useAuth();
+  const { login, isAuthenticated, isInitialized, isNavigating } = useAuth();
   const { isPending, error, reset } = login;
+
+  // Combined loading state: either mutation is pending or navigation is in progress
+  const isLoading = isPending || isNavigating;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -109,7 +111,7 @@ export default function LoginPage() {
       <LoginForm
         onLogin={handleSubmit}
         onValuesChange={handleFormChange}
-        isPending={isPending}
+        isPending={isLoading}
         error={error}
         onResetError={reset}
       />
