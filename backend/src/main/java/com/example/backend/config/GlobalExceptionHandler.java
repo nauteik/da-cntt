@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<ApiResponse<Void>> handleBaseException(BaseException ex, HttpServletRequest request) {
         logger.error("Business exception occurred: {} at {}", ex.getMessage(), request.getRequestURI(), ex);
-        
+
         ApiResponse<Void> response = ApiResponse.error(
             ex.getMessage(),
             ex.getHttpStatus().value(),
@@ -125,7 +125,7 @@ public class GlobalExceptionHandler {
         logger.warn("Bad credentials at {}: {}", request.getRequestURI(), ex.getMessage());
         
         ApiResponse<Void> response = ApiResponse.error(
-            "Invalid username or password",
+            "Invalid email or password",
             HttpStatus.UNAUTHORIZED.value(),
             request.getRequestURI(),
             ErrorType.AUTHENTICATION_ERROR
@@ -207,6 +207,22 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> response = ApiResponse.error(
             String.format("Invalid value for parameter '%s'. Expected type: %s", 
                 ex.getName(), ex.getRequiredType().getSimpleName()),
+            HttpStatus.BAD_REQUEST.value(),
+            request.getRequestURI(),
+            ErrorType.VALIDATION_ERROR
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(
+            IllegalArgumentException ex, HttpServletRequest request) {
+        
+        logger.warn("Illegal argument at {}: {}", request.getRequestURI(), ex.getMessage());
+        
+        ApiResponse<Void> response = ApiResponse.error(
+            ex.getMessage(),
             HttpStatus.BAD_REQUEST.value(),
             request.getRequestURI(),
             ErrorType.VALIDATION_ERROR

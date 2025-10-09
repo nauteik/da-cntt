@@ -1,31 +1,28 @@
 export interface User {
   id: string;
-  username: string;
   email: string;
-  displayName: string; // Added this property
+  displayName: string;
   roles: string[];
+  officeId?: string; // Multi-office support (UUID as string)
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
   rememberMe?: boolean;
 }
 
 /**
- * This interface now matches the flat structure returned by the backend API.
+ * UserInfo response from backend (no token - it's in HttpOnly cookie)
  */
-export interface LoginResponse {
-  token: string;
-  tokenType: string;
-  refreshToken?: string;
+export interface UserInfoResponse {
   userId: string;
-  username: string;
   displayName: string;
   email: string;
   roles: string[];
   expiresAt: string;
   mfaEnabled: boolean;
+  officeId?: string; // Multi-office support (UUID as string)
 }
 
 export interface AuthState {

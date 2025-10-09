@@ -1,108 +1,22 @@
 package com.example.backend.service;
 
-import com.example.backend.config.properties.JwtProperties;
-import com.example.backend.exception.UnauthorizedException;
 import com.example.backend.model.dto.LoginRequest;
-import com.example.backend.model.dto.LoginResponse;
-import com.example.backend.model.entity.AppUser;
-import com.example.backend.repository.AppUserRepository;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.example.backend.model.dto.UserInfoResponse;
 
 /**
- * Authentication service
+ * Authentication service interface
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class AuthService {
-
-    private final AppUserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtProperties jwtProperties;
-
-    @Transactional
-    public LoginResponse login(LoginRequest loginRequest) {
-        final String normalizedUsername = loginRequest.getUsername().trim();
-        log.info("Login attempt for username: {}", normalizedUsername);
-
-        // Find user by username
-        AppUser user = userRepository.findByUsername(normalizedUsername)
-                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
-
-        // Check if user is active and not deleted
-        if (!user.isActiveUser()) {
-            throw new UnauthorizedException("Account is inactive or suspended");
-        }
-
-        // Verify password
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())) {
-            throw new BadCredentialsException("Invalid username or password");
-        }
-
-        // Generate JWT token
-        String token = generateToken(user);
-        
-        // Get user roles
-        List<String> roles = user.getRoles().stream()
-                .map(userRole -> userRole.getRole().getCode())
-                .collect(Collectors.toList());
-
-        // Calculate expiration time
-        long expirationSeconds = jwtProperties.getExpiration();
-        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationSeconds);
-
-        // Update last login
-        user.updateLastLogin();
-        userRepository.save(user);
-
-        log.info("Login successful for username: {}", normalizedUsername);
-
-        return new LoginResponse(
-                token,
-                user.getUsername(),
-                user.getDisplayName(),
-                user.getEmail(),
-                roles,
-                expiresAt,
-                user.isMfaEnabled()
-        );
-    }
-
-    private String generateToken(AppUser user) {
-    Date now = new Date();
-    Instant expiryInstant = Instant.now().plusSeconds(jwtProperties.getExpiration());
-    Date expiryDate = Date.from(expiryInstant);
-
-        List<String> roles = user.getRoles().stream()
-                .map(userRole -> userRole.getRole().getCode())
-                .collect(Collectors.toList());
-
-    SecretKey key = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
-
-        return Jwts.builder()
-                .subject(user.getUsername())
-                .claim("userId", user.getId())
-                .claim("displayName", user.getDisplayName())
-                .claim("email", user.getEmail())
-                .claim("roles", roles)
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(key)
-                .compact();
-    }
+public interface AuthService {
+    /**
+     * Authenticate user and return user info with generated token
+     * @param loginRequest login credentials
+     * @return LoginResult containing user info and JWT token
+     */
+    LoginResult login(LoginRequest loginRequest);
+    
+    /**
+     * Inner class to hold login result (user info + token)
+     * Token is used internally to set HttpOnly cookie, not sent to client
+     */
+    record LoginResult(UserInfoResponse userInfo, String token) {}
 }

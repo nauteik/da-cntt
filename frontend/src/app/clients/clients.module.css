@@ -1,0 +1,19 @@
+/* 
+  Clients Page Specific Styles
+  
+  Layout styles have been moved to @/styles/table-layout.module.css for reusability.
+  This file now contains only client-specific styles.
+*/
+
+/* Client name clickable style */
+.clientName {
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.clientName:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}

@@ -26,12 +26,12 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        final String normalizedUsername = username.trim();
+        final String normalizedEmail = username.trim();
 
-        // Find user by username
-        AppUser user = userRepository.findByUsername(normalizedUsername)
+        // Find user by email
+        AppUser user = userRepository.findByEmail(normalizedEmail)
                 .filter(AppUser::isActiveUser)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + normalizedUsername));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + normalizedEmail));
 
         // Get user roles
         List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
@@ -39,7 +39,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .collect(Collectors.toList());
 
         return User.builder()
-                .username(user.getUsername())
+                .username(user.getEmail())
                 .password(user.getPasswordHash())
                 .authorities(authorities)
                 .accountExpired(false)

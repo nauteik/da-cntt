@@ -18,13 +18,17 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"ispVersion","tasks"})
+@ToString(exclude = {"isp", "serviceAuthorization", "tasks"})
 public class ISPGoal extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "isp_version_id", nullable = false)
+    @JoinColumn(name = "isp_id", nullable = false)
     @JsonIgnore
-    private ISPVersion ispVersion;
+    private ISP isp;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_authorization_id")
+    private ServiceAuthorization serviceAuthorization;
 
     @Column(name = "title", nullable = false)
     private String title;
@@ -42,8 +46,8 @@ public class ISPGoal extends BaseEntity {
     @OneToMany(mappedBy = "ispGoal", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ISPTask> tasks = new HashSet<>();
 
-    public ISPGoal(ISPVersion ispVersion, String title) {
-        this.ispVersion = ispVersion;
+    public ISPGoal(ISP isp, String title) {
+        this.isp = isp;
         this.title = title;
     }
 

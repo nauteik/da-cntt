@@ -1,0 +1,140 @@
+/*
+  Global Ant Design Table Overrides
+
+  This file centralizes custom styles for the Ant Design Table component,
+  ensuring a consistent look and feel across the application. By abstracting
+  these styles, we avoid duplicating CSS and make future theme adjustments easier.
+
+  - Applies a custom background for the table header.
+  - Defines standardized styles for header text (uppercase, font weight).
+  - Sets consistent border colors for rows and headers.
+  - Implements a hover effect for table rows.
+  - Ensures the table component is flexible and fits within its container.
+  
+  Note: Using attribute selectors to work with CSS Modules hashed class names
+*/
+
+/* Apply a wrapper class to the Card containing the table to scope these overrides */
+/* Use attribute selector to match CSS Modules hashed class names */
+[class*="tableCard"] .ant-table-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+[class*="tableCard"] .ant-spin-nested-loading,
+[class*="tableCard"] .ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+[class*="tableCard"] .ant-table {
+  background: var(--bg-surface);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+[class*="tableCard"] .ant-table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+[class*="tableCard"] .ant-table-header {
+  flex-shrink: 0;
+  background: var(--bg-primary);
+}
+
+[class*="tableCard"] .ant-table-body {
+  flex: 1;
+  overflow-y: auto !important;
+}
+
+[class*="tableCard"] .ant-table-thead > tr > th {
+  background: inherit; /* Inherit from header */
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-color);
+}
+
+[class*="tableCard"] .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[class*="tableCard"] .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: var(--bg-primary) !important;
+}
+
+[class*="tableCard"] .ant-pagination {
+  margin: 16px 16px 16px 0;
+  flex-shrink: 0;
+  padding: 0 16px;
+}
+
+/* 
+  Remove border-radius from table elements only 
+  IMPORTANT: This is specific to table elements to preserve button border-radius
+  Using attribute selector [class*="tableCard"] to match CSS Modules hashed class names
+*/
+
+/* Target table-related cards and their bodies */
+.ant-card[class*="tableCard"],
+.ant-card[class*="tableCard"] > .ant-card-body {
+  border-radius: 0 !important;
+}
+
+/* Target all table elements - exclude buttons and their children */
+[class*="tableCard"] .ant-table,
+[class*="tableCard"] .ant-table-container,
+[class*="tableCard"] .ant-table-header,
+[class*="tableCard"] .ant-table-thead,
+[class*="tableCard"] .ant-table-thead > tr,
+[class*="tableCard"] .ant-table-thead > tr > th,
+[class*="tableCard"] .ant-table-tbody,
+[class*="tableCard"] .ant-table-tbody > tr,
+[class*="tableCard"] .ant-table-tbody > tr > td,
+[class*="tableCard"] .ant-table-cell,
+[class*="tableCard"] .ant-table-cell-fix-left,
+[class*="tableCard"] .ant-table-cell-fix-right,
+[class*="tableCard"] .ant-table-cell-fix-sticky {
+  border-radius: 0 !important;
+}
+
+/* Explicitly target all table inner elements but exclude buttons */
+[class*="tableCard"]
+  .ant-table
+  *:not(.ant-btn):not(.ant-btn *):not(.ant-input):not(.ant-select) {
+  border-radius: 0 !important;
+}
+
+/* Tags inside table should also have no border-radius (optional - comment out if you want rounded tags) */
+[class*="tableCard"] .ant-table .ant-tag {
+  border-radius: 0 !important;
+}
+
+/* Remove border-radius from pagination elements inside the table card */
+[class*="tableCard"] .ant-pagination-item,
+[class*="tableCard"] .ant-pagination-item a,
+[class*="tableCard"] .ant-pagination-prev,
+[class*="tableCard"] .ant-pagination-next,
+[class*="tableCard"] .ant-pagination-jump-prev .ant-pagination-item-link,
+[class*="tableCard"] .ant-pagination-jump-next .ant-pagination-item-link {
+  border-radius: 0 !important;
+}
+
+/* Quick jumper input */
+[class*="tableCard"] .ant-pagination-options-quick-jumper input {
+  border-radius: 0 !important;
+}
+
+/* Page size selector */
+[class*="tableCard"] .ant-pagination-options-size-changer .ant-select-selector {
+  border-radius: 0 !important;
+}

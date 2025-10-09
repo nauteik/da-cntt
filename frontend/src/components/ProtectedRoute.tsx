@@ -33,7 +33,7 @@ export default function ProtectedRoute({
         <div className="min-h-screen flex flex-col items-center justify-center bg-theme-primary">
           <Spin size="large" />
           <div className="mt-4 font-medium text-lg text-theme-primary">
-            Đang kiểm tra quyền truy cập...
+            Checking access rights...
           </div>
         </div>
       )
@@ -73,17 +73,17 @@ export default function ProtectedRoute({
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">
-                Không có quyền truy cập
+                Access Denied
               </h2>
               <p className="text-theme-secondary mb-6">
-                Bạn không có quyền truy cập vào trang này. Vui lòng liên hệ quản
-                trị viên nếu cần hỗ trợ.
+                You do not have permission to access this page. Please contact
+                an administrator if you need assistance.
               </p>
               <button
                 onClick={() => router.push("/")}
                 className="bg-theme-accent text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
               >
-                Quay về trang chủ
+                Return to Home
               </button>
             </div>
           </div>

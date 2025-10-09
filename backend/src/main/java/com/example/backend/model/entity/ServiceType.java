@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Service type entity for mapping ISP, schedule and billing
+ * Service type entity for mapping patient services, schedule and billing
  */
 @Entity
 @Table(name = "service_type", uniqueConstraints = {
@@ -20,7 +20,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"staffRates", "rateEntries"})
+@ToString(exclude = {"staffRates", "rateEntries", "serviceAuthorizations"})
 public class ServiceType extends BaseEntity {
 
     @Column(name = "code", nullable = false)
@@ -48,6 +48,12 @@ public class ServiceType extends BaseEntity {
 
     @OneToMany(mappedBy = "serviceType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<RateEntry> rateEntries = new HashSet<>();
+
+    @OneToMany(mappedBy = "serviceType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PatientService> patientMappings = new HashSet<>();
+
+    @OneToMany(mappedBy = "serviceType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ServiceAuthorization> serviceAuthorizations = new HashSet<>();
 
     public ServiceType(String code, String name, CareSetting careSetting) {
         this.code = code;

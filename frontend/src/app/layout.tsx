@@ -6,7 +6,8 @@ import { App } from "antd";
 import ThemeProvider from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
-import "./globals.css";
+import "@/styles/globals.css";
+import "@/styles/antd-overrides.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

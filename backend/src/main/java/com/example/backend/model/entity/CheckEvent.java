@@ -22,7 +22,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"staff", "patient", "scheduleShift", "serviceDelivery", "exceptions"})
+@ToString(exclude = {"staff", "patient", "scheduleEvent", "serviceDelivery", "exceptions"})
 public class CheckEvent extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,8 +35,8 @@ public class CheckEvent extends BaseEntity {
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_shift_id")
-    private ScheduleShift scheduleShift;
+    @JoinColumn(name = "schedule_event_id")
+    private ScheduleEvent scheduleEvent;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_delivery_id")

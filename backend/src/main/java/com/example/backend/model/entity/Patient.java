@@ -1,5 +1,6 @@
 package com.example.backend.model.entity;
 
+import com.example.backend.model.enums.PatientStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -21,12 +22,14 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "patient", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"mrn"})
+    @UniqueConstraint(columnNames = {"medicaid_id"}),
+    @UniqueConstraint(columnNames = {"client_id"}),
+    @UniqueConstraint(columnNames = {"ssn"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"office", "address", "contacts", "providers", "residenceStays", "isps"})
+@ToString(exclude = {"office", "supervisor", "patientAddresses", "contacts","residenceStays", "isps"})
 public class Patient extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,8 +37,21 @@ public class Patient extends BaseEntity {
     @JsonIgnore
     private Office office;
 
-    @Column(name = "mrn")
-    private String mrn; // Medical Record Number
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supervisor_id")
+    private Staff supervisor;
+
+    @Column(name = "medicaid_id")
+    private String medicaidId; // Medical Record Number
+
+    @Column(name = "client_id")
+    private String clientId;
+
+    @Column(name = "agency_id")
+    private String agencyId;
+
+    @Column(name = "ssn")
+    private String ssn;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -49,25 +65,19 @@ public class Patient extends BaseEntity {
     @Column(name = "gender")
     private String gender;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "address_id")
-    private Address address;
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PatientAddress> patientAddresses = new HashSet<>();
 
     @Column(name = "primary_language")
     private String primaryLanguage;
-
-    @Column(name = "guardian_name")
-    private String guardianName;
-
-    @Column(name = "guardian_phone")
-    private String guardianPhone;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "medical_profile", columnDefinition = "jsonb")
     private Map<String, Object> medicalProfile = new HashMap<>();
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private PatientStatus status;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -77,9 +87,6 @@ public class Patient extends BaseEntity {
     private Set<PatientContact> contacts = new HashSet<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PatientProvider> providers = new HashSet<>();
-
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ResidenceStay> residenceStays = new HashSet<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -87,6 +94,12 @@ public class Patient extends BaseEntity {
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<MedicationOrder> medicationOrders = new HashSet<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PatientService> serviceMappings = new HashSet<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PatientPayer> patientPayers = new HashSet<>();
 
     public Patient(Office office, String firstName, String lastName) {
         this.office = office;
@@ -101,15 +114,6 @@ public class Patient extends BaseEntity {
 
     public boolean isDeleted() {
         return deletedAt != null;
-    }
-
-    public void markAsDeleted() {
-        this.deletedAt = LocalDateTime.now();
-        this.isActive = false;
-    }
-
-    public boolean isActivePatient() {
-        return Boolean.TRUE.equals(isActive) && !isDeleted();
     }
 
     public int getAge() {

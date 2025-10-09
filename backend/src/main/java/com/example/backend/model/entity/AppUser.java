@@ -21,7 +21,6 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "app_user", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"username"}),
     @UniqueConstraint(columnNames = {"email"})
 })
 @Data
@@ -30,21 +29,12 @@ import java.util.UUID;
 @ToString(exclude = {"passwordHash", "roles", "userOffices"})
 public class AppUser extends BaseEntity {
 
-    @Column(name = "username", nullable = false)
-    private String username;
-
-    @Column(name = "email")
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
     @JsonIgnore
     private String passwordHash;
-
-    @Column(name = "display_name", nullable = false)
-    private String displayName;
-
-    @Column(name = "phone")
-    private String phone;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -78,10 +68,9 @@ public class AppUser extends BaseEntity {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Staff staff;
 
-    public AppUser(String username, String displayName, String passwordHash) {
-        this.username = username;
+    public AppUser(String email, String passwordHash) {
+        this.email = email;
         this.passwordHash = passwordHash;
-        this.displayName = displayName;
     }
 
     // Helper methods
