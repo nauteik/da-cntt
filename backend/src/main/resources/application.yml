@@ -22,6 +22,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate # validate thay vì update giữ data consistency cho production.
+
     show-sql: false
     properties:
       hibernate:
