@@ -1,9 +1,11 @@
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import ClientsClient from "./ClientsClient";
 import AdminLayout from "@/components/AdminLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { apiClient } from "@/lib/apiClient";
 import type { ApiResponse } from "@/types/api";
+import type { OfficeDTO } from "@/types/office";
 import type { PaginatedPatients } from "@/types/patient";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import ErrorFallback from "@/components/common/ErrorFallback";
@@ -64,7 +66,7 @@ async function getInitialClients(
 
     const response: ApiResponse<PaginatedPatients> =
       await apiClient<PaginatedPatients>(endpoint, {
-        revalidate: 60, // Cache for 60 seconds on server-side
+        revalidate: 0, // Don't cache user-specific data
       });
 
     if (!response.success || !response.data) {
@@ -77,26 +79,59 @@ async function getInitialClients(
   }
 }
 
+// Fetch active offices for the create client modal
+async function getActiveOffices(): Promise<OfficeDTO[]> {
+  try {
+    const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>(
+      "/office/active",
+      {
+        revalidate: 300, // Cache for 5 minutes
+      }
+    );
+
+    if (!response.success || !response.data) {
+      console.error("Failed to fetch offices:", response.message);
+      return [];
+    }
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching offices:", error);
+    return [];
+  }
+}
+
 // Server Component (default)
 export default async function ClientsPage({ searchParams }: ClientsPageProps) {
+  // Force dynamic rendering to access request headers (cookies)
+  // This ensures the page can access the user's authentication cookies
+  await headers();
+
   // Await searchParams (Next.js 15+ requirement)
   const resolvedSearchParams = await searchParams;
-  const result = await getInitialClients(resolvedSearchParams);
+
+  // Fetch both clients and offices in parallel
+  const [clientsResult, offices] = await Promise.all([
+    getInitialClients(resolvedSearchParams),
+    getActiveOffices(),
+  ]);
 
   // If backend is down or data fetch failed, show error UI instead of crashing
-  if (!result.data) {
+  if (!clientsResult.data) {
     return (
-      <ErrorFallback title="Unable to Load Clients" message={result.error} />
+      <ErrorFallback
+        title="Unable to Load Clients"
+        message={clientsResult.error}
+      />
     );
   }
 
-  const initialData = result.data;
+  const initialData = clientsResult.data;
 
   return (
     <ProtectedRoute>
       <AdminLayout>
         <Suspense fallback={<LoadingFallback message="Loading clients..." />}>
-          <ClientsClient initialData={initialData} />
+          <ClientsClient initialData={initialData} offices={offices} />
         </Suspense>
       </AdminLayout>
     </ProtectedRoute>

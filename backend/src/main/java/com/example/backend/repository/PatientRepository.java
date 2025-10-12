@@ -84,6 +84,8 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                         WHEN 'eoc_date' THEN pp_latest.eoc_date::text
                         WHEN 'eoc' THEN pp_latest.eoc_date::text
                         WHEN 'clientName' THEN p.first_name
+                        WHEN 'created_at' THEN p.created_at::text
+                        WHEN 'createdAt' THEN p.created_at::text
                     END
                 END ASC NULLS LAST,
                 CASE WHEN COALESCE(:sortColumn, '') != '' AND :sortDirection = 'desc' THEN
@@ -99,10 +101,13 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                         WHEN 'eoc_date' THEN pp_latest.eoc_date::text
                         WHEN 'eoc' THEN pp_latest.eoc_date::text
                         WHEN 'clientName' THEN p.first_name
+                        WHEN 'created_at' THEN p.created_at::text
+                        WHEN 'createdAt' THEN p.created_at::text
                     END
                 END DESC NULLS LAST,
                 CASE WHEN :sortColumn = 'clientName' AND :sortDirection = 'asc' THEN p.last_name END ASC NULLS LAST,
                 CASE WHEN :sortColumn = 'clientName' AND :sortDirection = 'desc' THEN p.last_name END DESC NULLS LAST,
+                p.created_at DESC,
                 p.id ASC
             LIMIT :limit OFFSET :offset
             """,
@@ -185,4 +190,10 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
           AND p.deletedAt IS NULL
         """)
     Patient findPatientPersonalById(@Param("patientId") UUID patientId);
+
+    boolean existsByMedicaidId(String medicaidId);
+    
+    java.util.Optional<Patient> findByClientId(String clientId);
+    
+    java.util.Optional<Patient> findBySsn(String ssn);
 }

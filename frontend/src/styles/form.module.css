@@ -1,0 +1,135 @@
+/* ============================================
+   Global Form Styles - Ant Design Overrides
+   ============================================ */
+
+/* ============================================
+   Ant Design Modal Overrides
+   ============================================ */
+
+/* Add border radius to modal - overflow: hidden ensures full-width dividers */
+.formModal :global(.ant-modal-content) {
+  border-radius: 12px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.formModal :global(.ant-modal-header) {
+  border-radius: 0 !important; /* Keep header corners square, parent will clip */
+}
+
+.formModal :global(.ant-modal-body) {
+  border-radius: 0 !important; /* Keep body corners square, parent will clip */
+  padding: 0 !important;
+}
+
+/* ============================================
+   Ant Design Input Overrides
+   ============================================ */
+
+/* Standard input and password input wrapper */
+.formInput,
+.formInput:global(.ant-input-affix-wrapper) {
+  border-radius: 0 !important;
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  transition: all 0.2s ease;
+}
+
+.formInput:hover,
+.formInput:global(.ant-input-affix-wrapper):hover {
+  border-color: var(--accent) !important;
+}
+
+.formInput:focus,
+.formInput:focus-within,
+.formInput:global(.ant-input-affix-wrapper):focus,
+.formInput:global(.ant-input-affix-wrapper-focused) {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.1) !important;
+}
+
+/* Inner input element */
+.formInput input,
+.formInput:global(.ant-input-affix-wrapper) input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+/* Password visibility toggle */
+.formInput :global(.ant-input-suffix) {
+  border-radius: 0 !important;
+}
+
+/* ============================================
+   Ant Design DatePicker Overrides
+   ============================================ */
+
+.formDatePicker {
+  border-radius: 0 !important;
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  transition: all 0.2s ease;
+}
+
+.formDatePicker:hover {
+  border-color: var(--accent) !important;
+}
+
+.formDatePicker:global(.ant-picker-focused) {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.1) !important;
+}
+
+.formDatePicker :global(.ant-picker-input) input {
+  color: var(--text-primary) !important;
+}
+
+/* Remove border radius from date picker dropdown */
+:global(.ant-picker-dropdown) {
+  border-radius: 0 !important;
+}
+
+:global(.ant-picker-panel-container) {
+  border-radius: 0 !important;
+}
+
+:global(.ant-picker-panel) {
+  border-radius: 0 !important;
+}
+
+/* ============================================
+   Ant Design Select Overrides
+   ============================================ */
+
+.formSelect {
+  border-radius: 0 !important;
+}
+
+.formSelect :global(.ant-select-selector) {
+  border-radius: 0 !important;
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  transition: all 0.2s ease;
+}
+
+.formSelect:hover :global(.ant-select-selector) {
+  border-color: var(--accent) !important;
+}
+
+.formSelect:global(.ant-select-focused) :global(.ant-select-selector) {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.1) !important;
+}
+
+.formSelect :global(.ant-select-selection-item),
+.formSelect :global(.ant-select-selection-placeholder) {
+  color: var(--text-primary) !important;
+}
+
+/* Remove border radius from select dropdown */
+:global(.ant-select-dropdown) {
+  border-radius: 0 !important;
+}

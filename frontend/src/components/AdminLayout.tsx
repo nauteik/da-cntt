@@ -39,7 +39,7 @@ interface AdminLayoutProps {
 
 function AdminLayoutComponent({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]); // State for open keys
+  const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]);
   const { isDarkMode } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -60,14 +60,17 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
 
   // Derive open keys based on active menu item and user-controlled state
   const openKeys = useMemo(() => {
-    const keys: string[] = [...menuOpenKeys]; // Start with user-controlled keys
+    // When sidebar is collapsed, don't show any open submenus
+    if (collapsed) return [];
+    
+    const keys: string[] = [...menuOpenKeys];
 
     if (activeMenuItem === "client-management" && !keys.includes("clients")) {
-      keys.push("clients"); // Always open "Clients" when a child is active
+      keys.push("clients");
     }
 
     return keys;
-  }, [activeMenuItem, menuOpenKeys]);
+  }, [activeMenuItem, menuOpenKeys, collapsed]); // Add collapsed dependency
 
   // Memoize navigation handler to prevent recreation on every render
   const handleNavigate = useCallback(
@@ -172,7 +175,10 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
   );
 
   const onOpenChange = (keys: string[]) => {
-    setMenuOpenKeys(keys);
+    // Only update openKeys when sidebar is not collapsed
+    if (!collapsed) {
+      setMenuOpenKeys(keys);
+    }
   };
 
   return (

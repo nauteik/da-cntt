@@ -8,7 +8,7 @@ import React, {
   ReactNode,
   useTransition,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   User,
   LoginCredentials,
@@ -71,11 +71,24 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const router = useRouter();
+  const pathname = usePathname();
   const [isNavigating, startTransition] = useTransition();
 
   // Initialize auth state by fetching user info from backend (cookie-based auth)
   useEffect(() => {
     const initializeAuth = async () => {
+      // If auth is already initialized and user is not authenticated, do nothing.
+      // This prevents re-fetching when redirecting to the login page.
+      if (state.isInitialized && !state.isAuthenticated) {
+        return;
+      }
+
+      // Skip session check on login page to avoid 401 errors in console
+      if (pathname === "/login") {
+        dispatch({ type: "SET_INITIALIZED", payload: true });
+        return;
+      }
+
       try {
         // Try to fetch user info - the cookie will be sent automatically
         const response = await apiClient<UserInfoResponse>("/user/me");
@@ -104,7 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initializeAuth();
-  }, []);
+  }, [pathname, state.isInitialized, state.isAuthenticated]);
 
   const loginMutation = useApiMutation<UserInfoResponse, LoginCredentials>(
     "/auth/login",

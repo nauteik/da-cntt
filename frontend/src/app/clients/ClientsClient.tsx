@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   Table,
@@ -29,15 +30,21 @@ import type {
 import styles from "./clients.module.css";
 import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
-import CreateClientModal from "@/components/clients/CreateClientModal";
+import CreateClientModal from "@/components/clients/CreateClientForm";
+import type { OfficeDTO } from "@/types/office";
 
 interface ClientsClientProps {
   initialData: PaginatedPatients;
+  offices: OfficeDTO[];
 }
 
-export default function ClientsClient({ initialData }: ClientsClientProps) {
+export default function ClientsClient({
+  initialData,
+  offices,
+}: ClientsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   // Derive all state from URL - single source of truth
   // URL uses 1-based pagination (page=1 is first page, matching UI)
@@ -304,6 +311,20 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
     }
   };
 
+  const handleCreateSuccess = () => {
+    // Invalidate all queries related to clients to force fresh data fetch
+    // This ensures the new patient appears in the list
+    queryClient.invalidateQueries({ queryKey: ["clients"] });
+
+    // Navigate to default /clients URL with no query parameters
+    // This ensures the new patient appears at the top with default sorting
+    router.push("/clients");
+
+    // Force a refresh to fetch fresh data from the server
+    // This ensures we bypass any stale cache
+    router.refresh();
+  };
+
   return (
     <div className={layoutStyles.pageContainer}>
       <Card className={layoutStyles.controlBar} variant="borderless">
@@ -311,7 +332,7 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            className={buttonStyles.createButton}
+            className={buttonStyles.btnPrimary}
             onClick={() => setIsCreateModalOpen(true)}
           >
             CREATE CLIENT
@@ -329,14 +350,14 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
             <Button
               icon={<FilterOutlined />}
               type="default"
-              className={buttonStyles.actionButton}
+              className={buttonStyles.btnSecondary}
             >
               FILTERS
             </Button>
             <Button
               type="default"
               icon={<ExportOutlined />}
-              className={buttonStyles.actionButton}
+              className={buttonStyles.btnSecondary}
             >
               EXPORT DATA
             </Button>
@@ -414,6 +435,8 @@ export default function ClientsClient({ initialData }: ClientsClientProps) {
       <CreateClientModal
         open={isCreateModalOpen}
         onCancel={() => setIsCreateModalOpen(false)}
+        offices={offices}
+        onCreateSuccess={handleCreateSuccess}
       />
     </div>
   );

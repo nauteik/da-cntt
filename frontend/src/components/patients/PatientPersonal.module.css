@@ -15,7 +15,7 @@
 
 /* Card Styles */
 .card {
-  border-radius: 8px;
+  border-radius: 0 !important; /* Remove border-radius */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
 }
@@ -226,9 +226,18 @@
 }
 
 /* 
-  Remove border-bottom from Ant Design Card header 
-  This removes the default bottom border line from card headers
+  Remove border-radius and border-bottom from Ant Design Card
+  Target both the card and its header
 */
-.ant-card .ant-card-head {
+.card :global(.ant-card) {
+  border-radius: 0 !important;
+}
+
+.card :global(.ant-card-head) {
   border-bottom: none !important;
+  border-radius: 0 !important;
+}
+
+.card :global(.ant-card-body) {
+  border-radius: 0 !important;
 }

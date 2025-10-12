@@ -8,14 +8,11 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -63,9 +60,8 @@ public class GlobalExceptionHandler {
         
         List<String> errors = new ArrayList<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
-            errors.add(String.format("%s: %s", fieldName, errorMessage));
+            errors.add(errorMessage);
         });
 
         ApiResponse<Void> response = ApiResponse.error(
@@ -231,22 +227,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMessageNotReadableException(
-            HttpMessageNotReadableException ex, HttpServletRequest request) {
-        
-        logger.warn("Malformed JSON at {}: {}", request.getRequestURI(), ex.getMessage());
-        
-        ApiResponse<Void> response = ApiResponse.error(
-            "Malformed JSON request body",
-            HttpStatus.BAD_REQUEST.value(),
-            request.getRequestURI(),
-            ErrorType.SYSTEM_ERROR
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoHandlerFoundException(
             NoHandlerFoundException ex, HttpServletRequest request) {
@@ -261,32 +241,6 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolationException(
-            DataIntegrityViolationException ex, HttpServletRequest request) {
-        
-        logger.error("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
-        
-        String message = "Data integrity violation";
-        if (ex.getCause() != null && ex.getCause().getMessage() != null) {
-            String causeMessage = ex.getCause().getMessage();
-            if (causeMessage.contains("unique constraint") || causeMessage.contains("duplicate")) {
-                message = "A record with this information already exists";
-            } else if (causeMessage.contains("foreign key constraint")) {
-                message = "Referenced record does not exist or is being used by other records";
-            }
-        }
-
-        ApiResponse<Void> response = ApiResponse.error(
-            message,
-            HttpStatus.CONFLICT.value(),
-            request.getRequestURI(),
-            ErrorType.CONFLICT
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(Exception.class)
