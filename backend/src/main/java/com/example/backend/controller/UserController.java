@@ -5,6 +5,7 @@ import com.example.backend.model.dto.UserInfoResponse;
 import com.example.backend.model.entity.AppUser;
 import com.example.backend.model.entity.Staff;
 import com.example.backend.repository.AppUserRepository;
+import com.example.backend.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 
 /**
  * User REST Controller
@@ -38,9 +41,8 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserInfoResponse>> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401)
-                    .body(ApiResponse.error("Not authenticated", 401, "/api/user/me", null));
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+             throw new AuthenticationCredentialsNotFoundException("User is not authenticated");
         }
 
         String email = authentication.getName(); // The email is stored as the principal
@@ -48,7 +50,7 @@ public class UserController {
 
         // Find user by email
         AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
         // Get display name and office from the associated Staff entity
         String displayName = Optional.ofNullable(user.getStaff())

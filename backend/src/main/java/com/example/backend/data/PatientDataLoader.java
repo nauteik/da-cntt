@@ -70,7 +70,7 @@ public class PatientDataLoader {
             patient.setGender(faker.options().option("Male", "Female"));
             patient.setSsn(faker.idNumber().ssnValid());
             patient.setClientId(faker.numerify("C-######"));
-            patient.setAgencyId(faker.numerify("A-#####"));
+            patient.setAgencyId(faker.numerify("#####"));
             patient.setMedicaidId(faker.numerify("#########"));
             patient.setPrimaryLanguage("English");
             // Vary status: 80% Active, 15% Inactive, 5% Pending

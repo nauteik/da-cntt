@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -41,12 +42,15 @@ public class Patient extends BaseEntity {
     @JoinColumn(name = "supervisor_id")
     private Staff supervisor;
 
+    @Pattern(regexp = "^\\d+$", message = "Medicaid ID must contain only numbers")
     @Column(name = "medicaid_id")
     private String medicaidId; // Medical Record Number
+
 
     @Column(name = "client_id")
     private String clientId;
 
+    @Pattern(regexp = "^\\d+$", message = "Agency ID must contain only numbers")
     @Column(name = "agency_id")
     private String agencyId;
 

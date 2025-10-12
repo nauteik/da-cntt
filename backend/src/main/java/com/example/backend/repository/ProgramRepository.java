@@ -5,8 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
+import java.util.Optional;
 
 @Repository
 public interface ProgramRepository extends JpaRepository<Program, UUID> {
     boolean existsByProgramIdentifier(String programIdentifier);
+    Optional<Program> findByProgramIdentifier(String programIdentifier);
 }
