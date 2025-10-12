@@ -643,7 +643,7 @@ CREATE INDEX idx_service_delivery_staff ON service_delivery (staff_id, start_at)
 
 CREATE TABLE daily_note (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    -- service_delivery_id uuid NOT NULL REFERENCES service_delivery(id) ON DELETE CASCADE,
+    service_delivery_id uuid NOT NULL REFERENCES service_delivery(id) ON DELETE CASCADE,
     author_staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE RESTRICT,
     content text NOT NULL,
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
