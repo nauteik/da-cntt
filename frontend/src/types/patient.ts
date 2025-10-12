@@ -25,14 +25,12 @@ export interface PatientSummary {
 
 export interface PaginatedPatients {
   content: PatientSummary[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number; // Current page number (0-indexed)
-  numberOfElements: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+  page: {
+    size: number;
+    number: number; // Current page number (0-indexed)
+    totalElements: number;
+    totalPages: number;
+  };
 }
 
 export interface PatientFilters {
