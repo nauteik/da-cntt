@@ -643,19 +643,45 @@ CREATE INDEX idx_service_delivery_staff ON service_delivery (staff_id, start_at)
 
 CREATE TABLE daily_note (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_delivery_id uuid NOT NULL REFERENCES service_delivery(id) ON DELETE CASCADE,
-    author_staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE SET NULL,
+    -- service_delivery_id uuid NOT NULL REFERENCES service_delivery(id) ON DELETE CASCADE,
+    author_staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE RESTRICT,
     content text NOT NULL,
+    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     checklist jsonb NOT NULL DEFAULT '[]'::jsonb,
+
+    -- check-in / check-out timestamps and optional locations
+    check_in_time timestamptz,
+    check_out_time timestamptz,
+    check_in_location text,
+    check_out_location text,
+
     patient_signed boolean NOT NULL DEFAULT false,
     patient_signer_name text,
     patient_signed_at timestamptz,
     staff_signed boolean NOT NULL DEFAULT false,
     staff_signed_at timestamptz,
+
     attachment_file_id uuid REFERENCES file_object(id) ON DELETE SET NULL,
+
+    meal_info jsonb NOT NULL DEFAULT '[]'::jsonb,
+
+    patient_signature text,
+    staff_signature text,
+
+    cancelled boolean NOT NULL DEFAULT false,
+    cancel_reason text,
+
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+
+    CHECK (check_in_time IS NULL OR check_out_time IS NULL OR check_out_time > check_in_time)
 );
+
+-- Useful indexes for lookups
+CREATE INDEX IF NOT EXISTS idx_daily_note_patient ON daily_note (patient_id);
+CREATE INDEX IF NOT EXISTS idx_daily_note_staff ON daily_note (staff_id);
+CREATE INDEX IF NOT EXISTS idx_daily_note_service_delivery ON daily_note (service_delivery_id);
 
 CREATE TABLE medication_order (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

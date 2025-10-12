@@ -1,17 +1,24 @@
 package com.example.backend.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Daily note entity for post-shift reports with eSign support
@@ -37,9 +44,31 @@ public class DailyNote extends BaseEntity {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    // Link to patient and staff responsible for the note (explicit IDs via relation)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_id", nullable = false)
+    private Patient patient;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_id")
+    private Staff staff; // the caregiver related to this note (could be same as authorStaff)
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "checklist", columnDefinition = "jsonb")
     private List<Object> checklist = new ArrayList<>();
+
+    // Check-in / Check-out times and locations
+    @Column(name = "check_in_time")
+    private LocalDateTime checkInTime;
+
+    @Column(name = "check_out_time")
+    private LocalDateTime checkOutTime;
+
+    @Column(name = "check_in_location")
+    private String checkInLocation;
+
+    @Column(name = "check_out_location")
+    private String checkOutLocation;
 
     @Column(name = "patient_signed", nullable = false)
     private Boolean patientSigned = false;
@@ -60,9 +89,34 @@ public class DailyNote extends BaseEntity {
     @JoinColumn(name = "attachment_file_id")
     private FileObject attachmentFile;
 
+    // Meal information stored as JSONB. Suggested structure:
+    // { "morning": {"time":"08:30","ate":"eggs","offered":"cereal"}, "lunch": {...}, "afternoon": {...} }
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "meal_info", columnDefinition = "jsonb")
+    private List<Object> mealInfo = new ArrayList<>();
+
+    @Column(name = "patient_signature")
+    private String patientSignature; // could store signer name or base64 signature reference
+
+    @Column(name = "staff_signature")
+    private String staffSignature; // staff signature (name or reference)
+
+    @Column(name = "cancelled", nullable = false)
+    private Boolean cancelled = false;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
     public DailyNote(ServiceDelivery serviceDelivery, Staff authorStaff, String content) {
         this.serviceDelivery = serviceDelivery;
         this.authorStaff = authorStaff;
+        this.content = content;
+    }
+
+    public DailyNote(ServiceDelivery serviceDelivery, Staff authorStaff, Patient patient, String content) {
+        this.serviceDelivery = serviceDelivery;
+        this.authorStaff = authorStaff;
+        this.patient = patient;
         this.content = content;
     }
 
