@@ -59,8 +59,17 @@ export interface ContactDTO {
   isPrimary: boolean;
 }
 
+export enum AddressType {
+  HOME = "HOME",
+  COMMUNITY = "COMMUNITY",
+  SENIOR = "SENIOR",
+  BUSINESS = "BUSINESS",
+}
+
 export interface AddressDTO {
   id: string;
+  label?: string;
+  type?: AddressType;
   line1: string;
   line2?: string;
   city: string;
@@ -68,6 +77,7 @@ export interface AddressDTO {
   postalCode: string;
   county: string;
   phone: string;
+  email?: string;
   isMain: boolean;
 }
 

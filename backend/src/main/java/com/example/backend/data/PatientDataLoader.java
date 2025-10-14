@@ -3,6 +3,7 @@ package com.example.backend.data;
 import com.example.backend.model.entity.*;
 import com.example.backend.model.enums.Gender;
 import com.example.backend.model.enums.PatientStatus;
+import com.example.backend.model.enums.AddressType;
 import com.example.backend.repository.*;
 import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
@@ -107,6 +108,10 @@ public class PatientDataLoader {
             address.setState(faker.address().stateAbbr());
             address.setPostalCode(faker.address().zipCode());
             address.setCounty("Pennsylvania");
+            AddressType type = faker.options().option(AddressType.HOME, AddressType.BUSINESS, AddressType.COMMUNITY);
+            address.setType(type);
+            address.setLabel(type.getLabel() + " Address");
+            
             addresses.add(address);
             
             if ((i + 1) % 100 == 0) {

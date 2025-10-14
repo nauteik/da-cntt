@@ -231,6 +231,8 @@ public class PatientServiceImpl implements PatientService {
                 AddressDTO addressDTO = new AddressDTO();
                 addressDTO.setId(patientAddress.getId());
                 if (patientAddress.getAddress() != null) {
+                    addressDTO.setLabel(patientAddress.getAddress().getLabel());
+                    addressDTO.setType(patientAddress.getAddress().getType());
                     addressDTO.setLine1(patientAddress.getAddress().getLine1());
                     addressDTO.setLine2(patientAddress.getAddress().getLine2());
                     addressDTO.setCity(patientAddress.getAddress().getCity());
@@ -239,6 +241,7 @@ public class PatientServiceImpl implements PatientService {
                     addressDTO.setCounty(patientAddress.getAddress().getCounty());
                 }
                 addressDTO.setPhone(patientAddress.getPhone());
+                addressDTO.setEmail(patientAddress.getEmail());
                 addressDTO.setMain(patientAddress.getIsMain());
                 return addressDTO;
             })

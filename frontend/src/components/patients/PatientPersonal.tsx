@@ -16,6 +16,8 @@ import type {
 } from "@/types/patient";
 import EditIdentifiersForm from "./EditIdentifiersForm";
 import EditPersonalInfoForm from "./EditPersonalInfoForm";
+import EditAddressForm from "./EditAddressForm";
+import EditContactForm from "./EditContactForm";
 
 interface PatientPersonalProps {
   patient: PatientPersonalDTO;
@@ -24,6 +26,14 @@ interface PatientPersonalProps {
 export default function PatientPersonal({ patient }: PatientPersonalProps) {
   const [showIdentifiersForm, setShowIdentifiersForm] = useState(false);
   const [showPersonalInfoForm, setShowPersonalInfoForm] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<AddressDTO | null>(
+    null
+  );
+  const [selectedContact, setSelectedContact] = useState<ContactDTO | null>(
+    null
+  );
   const queryClient = useQueryClient();
 
   // Format date for display
@@ -35,6 +45,28 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Handlers for Address actions
+  const handleAddAddress = () => {
+    setSelectedAddress(null);
+    setShowAddressForm(true);
+  };
+
+  const handleEditAddress = (address: AddressDTO) => {
+    setSelectedAddress(address);
+    setShowAddressForm(true);
+  };
+
+  // Handlers for Contact actions
+  const handleAddContact = () => {
+    setSelectedContact(null);
+    setShowContactForm(true);
+  };
+
+  const handleEditContact = (contact: ContactDTO) => {
+    setSelectedContact(contact);
+    setShowContactForm(true);
   };
   return (
     <>
@@ -49,7 +81,7 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                   Identifiers
                 </span>
                 <EditOutlined
-                  className="text-sm cursor-pointer"
+                  className="text-sm text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
                   onClick={() => setShowIdentifiersForm(true)}
                 />
               </div>
@@ -57,35 +89,35 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
             className="rounded-none shadow-sm border border-theme"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-x-6">
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   Client ID
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.clientId || "—"}
                 </span>
               </div>
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   Medicaid ID
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.medicaidId || "—"}
                 </span>
               </div>
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   SSN
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.ssn || "—"}
                 </span>
               </div>
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   Agency ID
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.agencyId || "—"}
                 </span>
               </div>
@@ -100,7 +132,7 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                   Personal Information
                 </span>
                 <EditOutlined
-                  className="text-sm cursor-pointer"
+                  className="text-sm text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
                   onClick={() => setShowPersonalInfoForm(true)}
                 />
               </div>
@@ -108,35 +140,35 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
             className="rounded-none shadow-sm border border-theme"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-x-6">
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   Client Name
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.firstName} {patient.lastName}
                 </span>
               </div>
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   Date of Birth
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {formatDate(patient.dob)}
                 </span>
               </div>
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   Gender
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.gender || "—"}
                 </span>
               </div>
-              <div className="grid grid-cols-[100px_1fr] gap-4 items-center">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
                 <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
                   Language
                 </span>
-                <span className="text-sm text-theme-primary">
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.primaryLanguage || "—"}
                 </span>
               </div>
@@ -150,8 +182,11 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                 <span className="text-base font-bold text-theme-primary">
                   Addresses | Phone Numbers
                 </span>
-                <button className="bg-transparent border-none [color:var(--primary)] text-xs font-bold cursor-pointer px-2 py-1 hover:opacity-90 transition-opacity uppercase">
-                  + Add Address
+                <button
+                  onClick={handleAddAddress}
+                  className="bg-transparent border-none text-[var(--primary)] text-[13px] font-bold cursor-pointer px-2 py-1 hover:opacity-90 transition-opacity"
+                >
+                  + ADD ADDRESS
                 </button>
               </div>
             }
@@ -162,22 +197,25 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                 {patient.addresses.map((address: AddressDTO) => (
                   <div
                     key={address.id}
-                    className="flex justify-between items-center p-3 px-4 border border-theme rounded-md bg-theme-primary hover:[border-color:var(--primary)] hover:shadow-md transition-all"
+                    className="flex justify-between items-center py-3 px-4 border border-theme rounded-md bg-[var(--bg-primary)] hover:border-[var(--primary)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all"
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <PhoneOutlined className="text-base text-theme-secondary" />
                       <div className="flex items-center gap-2 flex-1">
-                        <span className="text-sm text-theme-primary">
+                        <span className="text-[13px] text-theme-primary">
                           {address.line1 || "—"} | {address.phone || "—"}
                         </span>
                         {address.isMain && (
-                          <span className="[background-color:var(--primary)] text-white text-xs font-medium px-2.5 py-0.5 tracking-wide">
+                          <span className="bg-[var(--primary)] text-white text-xs font-medium px-2.5 py-0.5 tracking-[0.3px]">
                             Main Address
                           </span>
                         )}
                       </div>
                     </div>
-                    <MoreOutlined className="text-base text-theme-secondary cursor-pointer hover:[color:var(--primary)] transition-colors" />
+                    <MoreOutlined
+                      className="text-base text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
+                      onClick={() => handleEditAddress(address)}
+                    />
                   </div>
                 ))}
               </div>
@@ -196,8 +234,11 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                 <span className="text-base font-bold text-theme-primary">
                   Contacts
                 </span>
-                <button className="bg-transparent border-none [color:var(--primary)] text-xs font-bold cursor-pointer px-2 py-1 hover:opacity-90 transition-opacity uppercase">
-                  + Add Contact
+                <button
+                  onClick={handleAddContact}
+                  className="bg-transparent border-none text-[var(--primary)] text-[13px] font-bold cursor-pointer px-2 py-1 hover:opacity-90 transition-opacity"
+                >
+                  + ADD CONTACT
                 </button>
               </div>
             }
@@ -208,7 +249,7 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                 {patient.contacts.map((contact: ContactDTO) => (
                   <div
                     key={contact.id}
-                    className="flex justify-between items-start p-4 border border-theme rounded-md bg-theme-primary hover:[border-color:var(--primary)] hover:shadow-md transition-all"
+                    className="flex justify-between items-start p-4 border border-theme rounded-md bg-[var(--bg-primary)] hover:border-[var(--primary)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all"
                   >
                     <div className="flex flex-col gap-2 flex-1">
                       <div className="flex items-center gap-2.5">
@@ -216,7 +257,7 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                           {contact.name}
                         </div>
                         {contact.isPrimary && (
-                          <span className="[background-color:var(--primary)] text-white text-xs font-medium px-2.5 py-0.5 tracking-wide">
+                          <span className="bg-[var(--primary)] text-white text-xs font-medium px-2.5 py-0.5 tracking-[0.3px]">
                             Primary Contact
                           </span>
                         )}
@@ -239,7 +280,10 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                         )}
                       </div>
                     </div>
-                    <MoreOutlined className="text-base text-theme-secondary cursor-pointer hover:[color:var(--primary)] transition-colors" />
+                    <MoreOutlined
+                      className="text-base text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
+                      onClick={() => handleEditContact(contact)}
+                    />
                   </div>
                 ))}
               </div>
@@ -285,6 +329,42 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
         }}
         onUpdateSuccess={() => {
           // Invalidate both header and personal queries to refresh data
+          queryClient.invalidateQueries({
+            queryKey: ["patient-header", patient.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["patient-personal", patient.id],
+          });
+        }}
+      />
+
+      <EditAddressForm
+        open={showAddressForm}
+        onClose={() => {
+          setShowAddressForm(false);
+          setSelectedAddress(null);
+        }}
+        patientId={patient.id}
+        initialData={selectedAddress}
+        onUpdateSuccess={() => {
+          queryClient.invalidateQueries({
+            queryKey: ["patient-header", patient.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["patient-personal", patient.id],
+          });
+        }}
+      />
+
+      <EditContactForm
+        open={showContactForm}
+        onClose={() => {
+          setShowContactForm(false);
+          setSelectedContact(null);
+        }}
+        patientId={patient.id}
+        initialData={selectedContact}
+        onUpdateSuccess={() => {
           queryClient.invalidateQueries({
             queryKey: ["patient-header", patient.id],
           });

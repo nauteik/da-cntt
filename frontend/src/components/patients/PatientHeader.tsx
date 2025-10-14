@@ -5,8 +5,6 @@ import { LeftOutlined, DownOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import type { PatientHeaderDTO } from "@/types/patient";
 import { PatientStatus } from "@/types/patient";
-import styles from "./PatientHeader.module.css";
-import utilStyles from "@/styles/utilities.module.css";
 
 interface PatientHeaderProps {
   patient: PatientHeaderDTO;
@@ -34,68 +32,82 @@ export default function PatientHeader({ patient }: PatientHeaderProps) {
   };
 
   return (
-    <div className={styles.header}>
+    <div className="bg-[var(--bg-surface)] rounded-none pt-2.5 px-4 mb-0">
       {/* Row 1: Back button, Name/Status, Program dropdown */}
-      <div className={styles.row1}>
+      <div className="flex items-center gap-4 mb-3">
         <div
           onClick={handleBack}
-          className={`${styles.backButton} ${utilStyles.clickableText}`}
+          className="flex items-center gap-1 font-semibold text-base cursor-pointer text-[var(--primary)] hover:opacity-80 transition-opacity"
         >
           <LeftOutlined /> BACK
         </div>
 
-        <div className={styles.nameStatusGroup}>
-          <h1 className={styles.patientName}>{patient.clientName}</h1>
+        <div className="flex items-center gap-3 flex-1">
+          <h1 className="text-xl font-bold text-theme-primary m-0">
+            {patient.clientName}
+          </h1>
 
-          <div className={styles.programStatusDisplay}>
-            <span className={styles.programText}>
+          <div className="flex items-center gap-1 py-1.5 px-3 border border-theme rounded bg-[var(--bg-surface)] text-[13px] min-w-[200px]">
+            <span className="text-theme-primary font-normal">
               {patient.programName || "—"}
             </span>
-            <span className={styles.separator}> | </span>
+            <span className="text-black font-bold"> | </span>
             <span
-              className={styles.statusText}
+              className="font-bold"
               style={{ color: getStatusColor(patient.status) }}
             >
               {patient.status}
             </span>
-            <DownOutlined className={styles.dropdownIcon} />
+            <DownOutlined className="ml-auto text-theme-secondary text-[10px]" />
           </div>
         </div>
       </div>
 
       {/* Row 2: Client info - all in one line */}
-      <div className={styles.row2}>
-        <span className={styles.infoText}>
-          <span className={styles.label}>Client ID:</span>{" "}
-          <span className={styles.value}>{patient.clientId || "—"}</span>
+      <div className="flex items-center gap-3 flex-wrap text-xs leading-[1.5] max-xl:text-[11px] max-md:flex-col max-md:items-start max-md:gap-2">
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Client ID:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {patient.clientId || "—"}
+          </span>
         </span>
 
-        <span className={styles.separator}>|</span>
+        <span className="text-theme-border font-light max-md:hidden">|</span>
 
-        <span className={styles.infoText}>
-          <span className={styles.label}>Medicaid ID:</span>{" "}
-          <span className={styles.value}>{patient.medicaidId || "—"}</span>
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Medicaid ID:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {patient.medicaidId || "—"}
+          </span>
         </span>
 
-        <span className={styles.separator}>|</span>
+        <span className="text-theme-border font-light max-md:hidden">|</span>
 
-        <span className={styles.infoText}>
-          <span className={styles.label}>Main Address:</span>{" "}
-          <span className={styles.value}>{patient.mainAddress || "—"}</span>
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">
+            Main Address:
+          </span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {patient.mainAddress || "—"}
+          </span>
         </span>
 
-        <span className={styles.separator}>|</span>
+        <span className="text-theme-border font-light max-md:hidden">|</span>
 
-        <span className={styles.infoText}>
-          <span className={styles.label}>Phone No:</span>{" "}
-          <span className={styles.value}>{patient.phoneNo || "—"}</span>
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Phone No:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {patient.phoneNo || "—"}
+          </span>
         </span>
 
-        <span className={styles.separator}>|</span>
+        <span className="text-theme-border font-light max-md:hidden">|</span>
 
-        <span className={styles.infoText}>
-          <span className={styles.label}>Main Emergency Contact:</span>{" "}
-          <span className={styles.value}>
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">
+            Main Emergency Contact:
+          </span>{" "}
+          <span className="text-theme-primary font-semibold">
             {patient.mainEmergencyContact || "—"}
           </span>
         </span>
