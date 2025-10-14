@@ -1,5 +1,6 @@
 package com.example.backend.service.impl;
 
+import com.example.backend.exception.ConflictException;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.dto.AddressDTO;
 import com.example.backend.model.dto.ContactDTO;
@@ -11,11 +12,13 @@ import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
 import com.example.backend.model.entity.Patient;
+import com.example.backend.model.enums.Gender;
 import com.example.backend.repository.PatientRepository;
 import com.example.backend.repository.AppUserRepository;
 import com.example.backend.repository.OfficeRepository;
 import com.example.backend.repository.PayerRepository;
 import com.example.backend.repository.ProgramRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.example.backend.repository.PatientProgramRepository;
 import com.example.backend.repository.PatientPayerRepository;
 import com.example.backend.repository.PatientAddressRepository;
@@ -29,7 +32,6 @@ import com.example.backend.model.entity.PatientProgram;
 import com.example.backend.model.entity.PatientPayer;
 import com.example.backend.model.enums.PatientStatus;
 import com.example.backend.service.PatientService;
-import com.example.backend.exception.ConflictException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -234,7 +236,7 @@ public class PatientServiceImpl implements PatientService {
                     addressDTO.setCity(patientAddress.getAddress().getCity());
                     addressDTO.setState(patientAddress.getAddress().getState());
                     addressDTO.setPostalCode(patientAddress.getAddress().getPostalCode());
-                    addressDTO.setCountry(patientAddress.getAddress().getCountry());
+                    addressDTO.setCounty(patientAddress.getAddress().getCounty());
                 }
                 addressDTO.setPhone(patientAddress.getPhone());
                 addressDTO.setMain(patientAddress.getIsMain());
@@ -367,45 +369,67 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
         
-        // 2. Check if medicaid ID already exists for another patient
-        if (!patient.getMedicaidId().equals(updateDTO.getMedicaidId()) && 
-            patientRepository.existsByMedicaidId(updateDTO.getMedicaidId())) {
-            log.warn("Attempt to update patient with duplicate medicaid ID: {}", updateDTO.getMedicaidId());
-            throw new ConflictException("Medicaid ID '" + updateDTO.getMedicaidId() + "' already exists");
-        }
+        // 2. Update only provided fields (true PATCH semantics)
         
-        // 3. Check if client ID already exists for another patient
-        patientRepository.findByClientId(updateDTO.getClientId())
-                .ifPresent(existingPatient -> {
-                    if (!existingPatient.getId().equals(patientId)) {
-                        log.warn("Attempt to update patient with duplicate client ID: {}", updateDTO.getClientId());
-                        throw new ConflictException("Client ID '" + updateDTO.getClientId() + "' already exists");
-                    }
-                });
-        
-        // 4. Check if SSN already exists for another patient (if SSN is provided)
-        if (updateDTO.getSsn() != null && !updateDTO.getSsn().trim().isEmpty()) {
-            patientRepository.findBySsn(updateDTO.getSsn())
+        // Update Client ID if provided
+        if (updateDTO.getClientId() != null) {
+            String clientId = updateDTO.getClientId().trim();
+            // Check if client ID already exists for another patient
+            patientRepository.findByClientId(clientId)
                     .ifPresent(existingPatient -> {
                         if (!existingPatient.getId().equals(patientId)) {
-                            log.warn("Attempt to update patient with duplicate SSN");
-                            throw new ConflictException("SSN already exists for another patient");
+                            log.warn("Attempt to update patient with duplicate client ID: {}", clientId);
+                            throw new ConflictException("Client ID '" + clientId + "' already exists");
                         }
                     });
+            patient.setClientId(clientId);
         }
         
-        // 5. Update patient identifiers
-        patient.setClientId(updateDTO.getClientId());
-        patient.setMedicaidId(updateDTO.getMedicaidId());
-        patient.setSsn(updateDTO.getSsn());
-        patient.setAgencyId(updateDTO.getAgencyId());
+        // Update Medicaid ID if provided
+        if (updateDTO.getMedicaidId() != null) {
+            String medicaidId = updateDTO.getMedicaidId().trim();
+            // Check if medicaid ID already exists for another patient
+            if (!java.util.Objects.equals(patient.getMedicaidId(), medicaidId) && 
+                patientRepository.existsByMedicaidId(medicaidId)) {
+                log.warn("Attempt to update patient with duplicate medicaid ID: {}", medicaidId);
+                throw new ConflictException("Medicaid ID '" + medicaidId + "' already exists");
+            }
+            patient.setMedicaidId(medicaidId);
+        }
         
-        // 6. Save patient
-        patientRepository.save(patient);
+        // Update SSN if provided
+        if (updateDTO.getSsn() != null) {
+            String ssn = updateDTO.getSsn().trim();
+            if (!ssn.isEmpty()) {
+                // Check if SSN already exists for another patient
+                patientRepository.findBySsn(ssn)
+                        .ifPresent(existingPatient -> {
+                            if (!existingPatient.getId().equals(patientId)) {
+                                log.warn("Attempt to update patient with duplicate SSN");
+                                throw new ConflictException("SSN already exists for another patient");
+                            }
+                        });
+            }
+            patient.setSsn(ssn);
+        }
         
-        log.info("Successfully updated identifiers for patient ID: {}", patientId);
+        // Update Agency ID if provided
+        if (updateDTO.getAgencyId() != null) {
+            patient.setAgencyId(updateDTO.getAgencyId().trim());
+        }
         
-        // 7. Return updated patient header
+        // 3. Save patient with database-level uniqueness protection
+        try {
+            patientRepository.save(patient);
+            log.info("Successfully updated identifiers for patient ID: {}", patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while updating identifiers for patient {}: {}", 
+                    patientId, ex.getMessage());
+            throw new ConflictException("Update failed due to unique constraint violation. " +
+                "Another patient may have been assigned the same identifier concurrently.");
+        }
+        
+        // 4. Return updated patient header
         return getPatientHeader(patientId);
     }
 
@@ -414,10 +438,6 @@ public class PatientServiceImpl implements PatientService {
     public PatientPersonalDTO updatePatientPersonal(UUID patientId, UpdatePatientPersonalDTO updateDTO) {
         log.info("Updating personal information for patient ID: {}", patientId);
 
-        if (!(updateDTO.getGender().equals("Male") || updateDTO.getGender().equals("Female"))) {
-            throw new IllegalArgumentException("Gender must be either 'Male' or 'Female'");
-        }
-
         // 1. Find patient with all necessary relationships
         Patient patient = patientRepository.findPatientPersonalById(patientId);
         
@@ -425,17 +445,53 @@ public class PatientServiceImpl implements PatientService {
             throw new ResourceNotFoundException("Patient", patientId);
         }
         
-        // 2. Update personal information
-        patient.setFirstName(updateDTO.getFirstName());
-        patient.setLastName(updateDTO.getLastName());
-        patient.setDob(updateDTO.getDob());
-        patient.setGender(updateDTO.getGender());
-        patient.setPrimaryLanguage(updateDTO.getPrimaryLanguage());
+        // 2. Update only provided fields (true PATCH semantics)
         
-        // 3. Save patient
-        patientRepository.save(patient);
+        // Update First Name if provided
+        if (updateDTO.getFirstName() != null) {
+            patient.setFirstName(updateDTO.getFirstName().trim());
+        }
         
-        log.info("Successfully updated personal information for patient ID: {}", patientId);
+        // Update Last Name if provided
+        if (updateDTO.getLastName() != null) {
+            patient.setLastName(updateDTO.getLastName().trim());
+        }
+        
+        // Update Date of Birth if provided
+        if (updateDTO.getDob() != null) {
+            patient.setDob(updateDTO.getDob());
+        }
+        
+        // Update Gender if provided
+        if (updateDTO.getGender() != null) {
+            String genderInput = updateDTO.getGender().trim();
+            if (!genderInput.isEmpty()) {
+                try {
+                    // Use the enum for validation but store the label
+                    Gender gender = Gender.fromLabel(genderInput);
+                    patient.setGender(gender.getLabel()); // Always stores "Male" or "Female" with proper case
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Gender must be either 'Male' or 'Female'");
+                }
+            } else {
+                patient.setGender(null); // Allow clearing gender
+            }
+        }
+        
+        // Update Primary Language if provided
+        if (updateDTO.getPrimaryLanguage() != null) {
+            patient.setPrimaryLanguage(updateDTO.getPrimaryLanguage().trim());
+        }
+        
+        // 3. Save patient with database-level protection
+        try {
+            patientRepository.save(patient);
+            log.info("Successfully updated personal information for patient ID: {}", patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while updating personal info for patient {}: {}", 
+                     patientId, ex.getMessage());
+            throw new ConflictException("Update failed due to constraint violation.");
+        }
         
         // 4. Return updated patient personal information
         return getPatientPersonal(patientId);

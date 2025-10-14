@@ -66,7 +66,7 @@ export interface AddressDTO {
   city: string;
   state: string;
   postalCode: string;
-  country: string;
+  county: string;
   phone: string;
   isMain: boolean;
 }

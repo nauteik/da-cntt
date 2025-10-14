@@ -166,7 +166,7 @@ public class PatientController {
      *   "agencyId": "AG-001"
      * }
      */
-    @PutMapping("/{id}/identifiers")
+    @PatchMapping("/{id}/identifiers")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<PatientHeaderDTO>> updatePatientIdentifiers(
             @PathVariable UUID id,
@@ -190,7 +190,7 @@ public class PatientController {
      * @param updateDTO patient personal information update data
      * @return updated patient personal information
      * 
-     * Example: PUT /api/patients/123e4567-e89b-12d3-a456-426614174000/personal
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/personal
      * Body: {
      *   "firstName": "John",
      *   "lastName": "Doe",
@@ -199,7 +199,7 @@ public class PatientController {
      *   "primaryLanguage": "English"
      * }
      */
-    @PutMapping("/{id}/personal")
+    @PatchMapping("/{id}/personal")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<PatientPersonalDTO>> updatePatientPersonal(
             @PathVariable UUID id,

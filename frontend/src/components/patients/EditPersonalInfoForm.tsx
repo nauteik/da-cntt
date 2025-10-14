@@ -11,11 +11,11 @@ import { useApiMutation } from "@/hooks/useApi";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 
-// Validation schema
+// Validation schema - all fields optional for PATCH
 const personalInfoSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  dob: z.string().min(1, "Date of birth is required"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  dob: z.string().optional(),
   gender: z.string().optional(),
   primaryLanguage: z.string().optional(),
 });
@@ -58,7 +58,7 @@ export default function EditPersonalInfoForm({
 
   const updatePersonalMutation = useApiMutation<unknown, PersonalInfoFormData>(
     `/patients/${patientId}/personal`,
-    "PUT"
+    "PATCH"
   );
 
   // Reset form when modal opens (but not on subsequent re-renders while open)
@@ -135,7 +135,7 @@ export default function EditPersonalInfoForm({
             {/* First Name */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                First Name <span className="text-red-500 ml-1">*</span>
+                First Name
               </label>
               <Controller
                 name="firstName"
@@ -159,7 +159,7 @@ export default function EditPersonalInfoForm({
             {/* Last Name */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Last Name <span className="text-red-500 ml-1">*</span>
+                Last Name
               </label>
               <Controller
                 name="lastName"
@@ -183,7 +183,7 @@ export default function EditPersonalInfoForm({
             {/* Date of Birth */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Date of Birth <span className="text-red-500 ml-1">*</span>
+                Date of Birth
               </label>
               <Controller
                 name="dob"
@@ -192,7 +192,7 @@ export default function EditPersonalInfoForm({
                   <DatePicker
                     value={field.value ? dayjs(field.value) : null}
                     onChange={(date: Dayjs | null) => {
-                      field.onChange(date ? date.toISOString() : "");
+                      field.onChange(date ? date.format("YYYY-MM-DD") : "");
                     }}
                     format="MM/DD/YYYY"
                     placeholder="Select date of birth"

@@ -10,10 +10,10 @@ import { useApiMutation } from "@/hooks/useApi";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 
-// Validation schema
+// Validation schema - all fields optional for PATCH
 const identifiersSchema = z.object({
-  clientId: z.string().min(1, "Client ID is required"),
-  medicaidId: z.string().min(1, "Medicaid ID is required"),
+  clientId: z.string().optional(),
+  medicaidId: z.string().optional(),
   ssn: z
     .string()
     .regex(/^\d{3}-?\d{2}-?\d{4}$/, "SSN must be in format XXX-XX-XXXX")
@@ -61,7 +61,7 @@ export default function EditIdentifiersForm({
   const updateIdentifiersMutation = useApiMutation<
     unknown,
     IdentifiersFormData
-  >(`/patients/${patientId}/identifiers`, "PUT");
+  >(`/patients/${patientId}/identifiers`, "PATCH");
 
   // Reset form when modal opens (but not on subsequent re-renders while open)
   React.useEffect(() => {
@@ -138,7 +138,7 @@ export default function EditIdentifiersForm({
             {/* Client ID */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Client ID <span className="text-red-500 ml-1">*</span>
+                Client ID
               </label>
               <Controller
                 name="clientId"
@@ -162,7 +162,7 @@ export default function EditIdentifiersForm({
             {/* Medicaid ID */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Medicaid ID <span className="text-red-500 ml-1">*</span>
+                Medicaid ID
               </label>
               <Controller
                 name="medicaidId"

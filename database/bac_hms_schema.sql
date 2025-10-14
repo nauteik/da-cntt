@@ -1,7 +1,3 @@
--- BAC-HMS Schema Definition (PostgreSQL)
--- Generated based on SRS requirements for Blue Angels Care Health Management System
--- Simplified for single-organization, multi-office deployment
-
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE address (
@@ -12,7 +8,7 @@ CREATE TABLE address (
     city text NOT NULL,
     state text NOT NULL,
     postal_code text NOT NULL,
-    country text NOT NULL DEFAULT 'USA',
+    county text NOT NULL DEFAULT 'USA',
     type text CHECK (type IN ('HOME', 'COMMUNITY', 'SENIOR', 'BUSINESS')),
     latitude numeric(9,6),
     longitude numeric(9,6),
@@ -347,6 +343,7 @@ CREATE TABLE patient_address (
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     address_id uuid REFERENCES address(id) ON DELETE CASCADE,
     phone text,
+    email text,
     is_main boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),

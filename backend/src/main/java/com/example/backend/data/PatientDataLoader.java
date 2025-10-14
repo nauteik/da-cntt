@@ -1,6 +1,7 @@
 package com.example.backend.data;
 
 import com.example.backend.model.entity.*;
+import com.example.backend.model.enums.Gender;
 import com.example.backend.model.enums.PatientStatus;
 import com.example.backend.repository.*;
 import com.github.javafaker.Faker;
@@ -67,9 +68,11 @@ public class PatientDataLoader {
             patient.setFirstName(faker.name().firstName());
             patient.setLastName(faker.name().lastName());
             patient.setDob(faker.date().birthday().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-            patient.setGender(faker.options().option("Male", "Female"));
+            // Use Gender enum while maintaining "Male"/"Female" in the database
+            Gender gender = faker.options().option(Gender.MALE, Gender.FEMALE);
+            patient.setGender(gender.getLabel());
             patient.setSsn(faker.idNumber().ssnValid());
-            patient.setClientId(faker.numerify("C-######"));
+            patient.setClientId(faker.numerify("######"));
             patient.setAgencyId(faker.numerify("#####"));
             patient.setMedicaidId(faker.numerify("#########"));
             patient.setPrimaryLanguage("English");
@@ -103,7 +106,7 @@ public class PatientDataLoader {
             address.setCity(faker.address().city());
             address.setState(faker.address().stateAbbr());
             address.setPostalCode(faker.address().zipCode());
-            address.setCountry("USA");
+            address.setCounty("Pennsylvania");
             addresses.add(address);
             
             if ((i + 1) % 100 == 0) {

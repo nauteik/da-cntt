@@ -97,11 +97,14 @@ export default async function PatientDetailPage({ params }: PageProps) {
     getPatientPersonal(id),
   ]);
 
-  // Handle header fetch errors
   if (!headerResult.data) {
-    return <ErrorFallback title={headerResult.error} />;
+    return (
+      <ErrorFallback
+        title="Unable to Load Clients"
+        message={headerResult.error}
+      />
+    );
   }
-
   // If personal data fetch failed, show error UI
   if (!personalResult.data) {
     return <ErrorFallback title={personalResult.error} />;

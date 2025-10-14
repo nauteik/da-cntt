@@ -44,8 +44,8 @@ public class Address extends BaseEntity {
     @Column(name = "postal_code", nullable = false)
     private String postalCode;
 
-    @Column(name = "country", nullable = false)
-    private String country = "USA";
+    @Column(name = "county", nullable = false)
+    private String county = "USA";
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type")

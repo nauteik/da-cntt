@@ -1,6 +1,5 @@
 package com.example.backend.model.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -8,18 +7,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO for updating patient identifiers.
+ * DTO for partially updating patient identifiers.
+ * All fields are optional - only provided fields will be updated.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdatePatientIdentifiersDTO {
 
-    @NotBlank(message = "Client ID is required")
+    @Pattern(regexp = "^\\d+$", message = "Client ID must contain only numbers")
     @Size(max = 50, message = "Client ID must not exceed 50 characters")
     private String clientId;
 
-    @NotBlank(message = "Medicaid ID is required")
     @Pattern(regexp = "^\\d+$", message = "Medicaid ID must contain only numbers")
     @Size(max = 50, message = "Medicaid ID must not exceed 50 characters")
     private String medicaidId;
