@@ -11,16 +11,29 @@ import com.example.backend.model.dto.PatientSummaryDTO;
 import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
+import com.example.backend.model.dto.UpdatePatientAddressDTO;
+import com.example.backend.model.dto.UpdatePatientContactDTO;
+import com.example.backend.model.dto.PatientProgramDTO;
+import com.example.backend.model.dto.ProgramDetailDTO;
+import com.example.backend.model.dto.PayerDetailDTO;
+import com.example.backend.model.dto.ServiceDetailDTO;
+import com.example.backend.model.dto.AuthorizationDTO;
 import com.example.backend.model.entity.Patient;
+import com.example.backend.model.entity.Address;
+import com.example.backend.model.entity.PatientContact;
 import com.example.backend.model.enums.Gender;
 import com.example.backend.repository.PatientRepository;
+import com.example.backend.repository.PatientContactRepository;
+import com.example.backend.repository.AddressRepository;
 import com.example.backend.repository.AppUserRepository;
 import com.example.backend.repository.OfficeRepository;
 import com.example.backend.repository.PayerRepository;
 import com.example.backend.repository.ProgramRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import com.example.backend.repository.PatientProgramRepository;
 import com.example.backend.repository.PatientPayerRepository;
+import com.example.backend.repository.PatientServiceRepository;
+import com.example.backend.repository.AuthorizationRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.example.backend.repository.PatientAddressRepository;
 import com.example.backend.model.entity.AppUser;
 import com.example.backend.model.entity.PatientAddress;
@@ -32,6 +45,7 @@ import com.example.backend.model.entity.PatientProgram;
 import com.example.backend.model.entity.PatientPayer;
 import com.example.backend.model.enums.PatientStatus;
 import com.example.backend.service.PatientService;
+import java.lang.Boolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -62,7 +76,11 @@ public class PatientServiceImpl implements PatientService {
     private final AppUserRepository appUserRepository;
     private final PatientProgramRepository patientProgramRepository;
     private final PatientPayerRepository patientPayerRepository;
+    private final PatientServiceRepository patientServiceRepository;
+    private final AuthorizationRepository authorizationRepository;
     private final PatientAddressRepository patientAddressRepository;
+    private final PatientContactRepository patientContactRepository;
+    private final AddressRepository addressRepository;
     
     // Whitelist of allowed sort fields to prevent SQL injection via sort parameter
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
@@ -210,8 +228,11 @@ public class PatientServiceImpl implements PatientService {
         dto.setPrimaryLanguage(patient.getPrimaryLanguage());
         dto.setMedicalProfile(patient.getMedicalProfile());
         
-        // Map contacts
+        // Map contacts (primary first)
         List<ContactDTO> contacts = patient.getContacts().stream()
+            .sorted(java.util.Comparator
+                .comparing((PatientContact c) -> Boolean.TRUE.equals(c.getIsPrimary()))
+                .reversed())
             .map(contact -> {
                 ContactDTO contactDTO = new ContactDTO();
                 contactDTO.setId(contact.getId());
@@ -225,8 +246,11 @@ public class PatientServiceImpl implements PatientService {
             .collect(Collectors.toList());
         dto.setContacts(contacts);
         
-        // Map addresses
+        // Map addresses (main first)
         List<AddressDTO> addresses = patient.getPatientAddresses().stream()
+            .sorted(java.util.Comparator
+                .comparing((PatientAddress pa) -> Boolean.TRUE.equals(pa.getIsMain()))
+                .reversed())
             .map(patientAddress -> {
                 AddressDTO addressDTO = new AddressDTO();
                 addressDTO.setId(patientAddress.getId());
@@ -499,4 +523,462 @@ public class PatientServiceImpl implements PatientService {
         // 4. Return updated patient personal information
         return getPatientPersonal(patientId);
     }
-}
+
+    @Override
+    @Transactional
+    public PatientPersonalDTO createPatientAddress(UUID patientId, UpdatePatientAddressDTO updateDTO) {
+        log.info("Creating address for patient ID: {}", patientId);
+        
+        // 1. Validate required fields for creation
+        if (updateDTO.getLine1() == null || updateDTO.getLine1().trim().isEmpty()) {
+            throw new IllegalArgumentException("Address line 1 is required");
+        }
+        if (updateDTO.getCity() == null || updateDTO.getCity().trim().isEmpty()) {
+            throw new IllegalArgumentException("City is required");
+        }
+        if (updateDTO.getState() == null || updateDTO.getState().trim().isEmpty()) {
+            throw new IllegalArgumentException("State is required");
+        }
+        if (updateDTO.getPostalCode() == null || updateDTO.getPostalCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("Postal code is required");
+        }
+        if (updateDTO.getCounty() == null || updateDTO.getCounty().trim().isEmpty()) {
+            throw new IllegalArgumentException("County is required");
+        }
+        if (updateDTO.getPhone() == null || updateDTO.getPhone().trim().isEmpty()) {
+            throw new IllegalArgumentException("Phone is required");
+        }
+        
+        // 2. Verify patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+        
+        // 3. Create new Address entity (always create new, no sharing)
+        Address address = new Address();
+        address.setLine1(updateDTO.getLine1().trim());
+        address.setLine2(updateDTO.getLine2() != null ? updateDTO.getLine2().trim() : null);
+        address.setLabel(updateDTO.getLabel() != null ? updateDTO.getLabel().trim() : null);
+        address.setCity(updateDTO.getCity().trim());
+        address.setState(updateDTO.getState().trim());
+        address.setPostalCode(updateDTO.getPostalCode().trim());
+        address.setCounty(updateDTO.getCounty().trim());
+        address.setType(updateDTO.getType());
+        
+        // 4. Save Address
+        Address savedAddress = addressRepository.save(address);
+        
+        // 5. If isMain is true, unset other main addresses for this patient BEFORE creating new one
+        if (Boolean.TRUE.equals(updateDTO.getIsMain())) {
+            // Query directly from repository to get current main addresses from database
+            List<PatientAddress> mainAddresses = patientAddressRepository.findMainAddressesByPatientId(patientId);
+            if (!mainAddresses.isEmpty()) {
+                mainAddresses.forEach(pa -> pa.setIsMain(false));
+                patientAddressRepository.saveAll(mainAddresses); // Batch update
+                patientAddressRepository.flush(); // Force immediate execution to database
+            }
+        }
+        
+        // 6. Create PatientAddress join entity
+        PatientAddress patientAddress = new PatientAddress();
+        patientAddress.setPatient(patientRepository.getReferenceById(patientId)); // Use reference instead of loading entire entity
+        patientAddress.setAddress(savedAddress);
+        patientAddress.setPhone(updateDTO.getPhone().trim());
+        patientAddress.setEmail(updateDTO.getEmail() != null && !updateDTO.getEmail().trim().isEmpty() 
+                ? updateDTO.getEmail().trim() : null);
+        patientAddress.setIsMain(updateDTO.getIsMain() != null ? updateDTO.getIsMain() : false);
+        
+        // 7. Save PatientAddress
+        try {
+            patientAddressRepository.save(patientAddress);
+            log.info("Successfully created address for patient ID: {}", patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while creating address for patient {}: {}", 
+                    patientId, ex.getMessage());
+            throw new ConflictException("Failed to create address due to constraint violation.");
+        }
+        
+        // 8. Return updated patient personal information
+        return getPatientPersonal(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientPersonalDTO updatePatientAddress(UUID patientId, UUID addressId, UpdatePatientAddressDTO updateDTO) {
+        log.info("Updating address ID: {} for patient ID: {}", addressId, patientId);
+        
+        // 1. Find PatientAddress
+        PatientAddress patientAddress = patientAddressRepository.findById(addressId)
+                .orElseThrow(() -> new ResourceNotFoundException("PatientAddress", addressId));
+        
+        // 2. Verify that this address belongs to this patient
+        if (!patientAddress.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Address does not belong to this patient");
+        }
+        
+        // 4. Update Address entity fields (safe since not shared)
+        if (patientAddress.getAddress() != null) {
+            Address address = patientAddress.getAddress();
+            
+            if (updateDTO.getLine1() != null) {
+                address.setLine1(updateDTO.getLine1().trim());
+            }
+            if (updateDTO.getLine2() != null) {
+                address.setLine2(updateDTO.getLine2().trim());
+            }
+            if (updateDTO.getLabel() != null) {
+                address.setLabel(updateDTO.getLabel().trim());
+            }
+            if (updateDTO.getCity() != null) {
+                address.setCity(updateDTO.getCity().trim());
+            }
+            if (updateDTO.getState() != null) {
+                address.setState(updateDTO.getState().trim());
+            }
+            if (updateDTO.getPostalCode() != null) {
+                address.setPostalCode(updateDTO.getPostalCode().trim());
+            }
+            if (updateDTO.getCounty() != null) {
+                address.setCounty(updateDTO.getCounty().trim());
+            }
+            if (updateDTO.getType() != null) {
+                address.setType(updateDTO.getType());
+            }
+            
+            addressRepository.save(address);
+        }
+        
+        // 5. Update PatientAddress fields
+        if (updateDTO.getPhone() != null) {
+            patientAddress.setPhone(updateDTO.getPhone().trim());
+        }
+        if (updateDTO.getEmail() != null) {
+            patientAddress.setEmail(updateDTO.getEmail().trim().isEmpty() ? null : updateDTO.getEmail().trim());
+        }
+        if (updateDTO.getIsMain() != null) {
+            // If setting as main, unset other main addresses BEFORE updating this one
+            if (Boolean.TRUE.equals(updateDTO.getIsMain())) {
+                // Query directly from repository to get current main addresses from database
+                List<PatientAddress> mainAddresses = patientAddressRepository.findMainAddressesByPatientId(patientId);
+                List<PatientAddress> addressesToUpdate = mainAddresses.stream()
+                        .filter(pa -> !pa.getId().equals(addressId))
+                        .peek(pa -> pa.setIsMain(false))
+                        .collect(Collectors.toList());
+                if (!addressesToUpdate.isEmpty()) {
+                    patientAddressRepository.saveAll(addressesToUpdate); // Batch update
+                    patientAddressRepository.flush(); // Force immediate execution to database
+                }
+            }
+            patientAddress.setIsMain(updateDTO.getIsMain());
+        }
+        
+        // 6. Save PatientAddress
+        try {
+            patientAddressRepository.save(patientAddress);
+            log.info("Successfully updated address ID: {} for patient ID: {}", addressId, patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while updating address for patient {}: {}", 
+                    patientId, ex.getMessage());
+            throw new ConflictException("Failed to update address due to constraint violation.");
+        }
+        
+        // 7. Return updated patient personal information
+        return getPatientPersonal(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientPersonalDTO createPatientContact(UUID patientId, UpdatePatientContactDTO updateDTO) {
+        log.info("Creating contact for patient ID: {}", patientId);
+        
+        // 1. Validate required fields for creation
+        if (updateDTO.getRelation() == null || updateDTO.getRelation().trim().isEmpty()) {
+            throw new IllegalArgumentException("Relation is required");
+        }
+        if (updateDTO.getName() == null || updateDTO.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Name is required");
+        }
+        if (updateDTO.getPhone() == null || updateDTO.getPhone().trim().isEmpty()) {
+            throw new IllegalArgumentException("Phone is required");
+        }
+        
+        // 2. Verify patient exists and create reference
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+        
+        // 3. If isPrimary is true, unset other primary contacts for this patient BEFORE creating new one
+        if (Boolean.TRUE.equals(updateDTO.getIsPrimary())) {
+            // Query directly from repository to get current primary contacts from database
+            List<PatientContact> primaryContacts = patientContactRepository.findPrimaryContactsByPatientId(patientId);
+            if (!primaryContacts.isEmpty()) {
+                primaryContacts.forEach(c -> c.setIsPrimary(false));
+                patientContactRepository.saveAll(primaryContacts); // Batch update
+                patientContactRepository.flush(); // Force immediate execution to database
+            }
+        }
+        
+        // 4. Create PatientContact entity
+        PatientContact contact = new PatientContact();
+        contact.setPatient(patientRepository.getReferenceById(patientId)); // Use reference instead of loading entire entity
+        contact.setRelation(updateDTO.getRelation().trim());
+        contact.setName(updateDTO.getName().trim());
+        contact.setPhone(updateDTO.getPhone().trim());
+        contact.setEmail(updateDTO.getEmail() != null && !updateDTO.getEmail().trim().isEmpty() 
+                ? updateDTO.getEmail().trim() : null);
+        contact.setIsPrimary(updateDTO.getIsPrimary() != null ? updateDTO.getIsPrimary() : false);
+        
+        // 5. Save PatientContact
+        try {
+            patientContactRepository.save(contact);
+            log.info("Successfully created contact for patient ID: {}", patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while creating contact for patient {}: {}", 
+                    patientId, ex.getMessage());
+            throw new ConflictException("Failed to create contact due to constraint violation.");
+        }
+        
+        // 6. Return updated patient personal information
+        return getPatientPersonal(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientPersonalDTO updatePatientContact(UUID patientId, UUID contactId, UpdatePatientContactDTO updateDTO) {
+        log.info("Updating contact ID: {} for patient ID: {}", contactId, patientId);
+        
+        // 1. Find PatientContact
+        PatientContact contact = patientContactRepository.findById(contactId)
+                .orElseThrow(() -> new ResourceNotFoundException("PatientContact", contactId));
+        
+        // 2. Verify that this contact belongs to this patient
+        if (!contact.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Contact does not belong to this patient");
+        }
+        
+        // 4. Update contact fields
+        if (updateDTO.getRelation() != null) {
+            contact.setRelation(updateDTO.getRelation().trim());
+        }
+        if (updateDTO.getName() != null) {
+            contact.setName(updateDTO.getName().trim());
+        }
+        if (updateDTO.getPhone() != null) {
+            contact.setPhone(updateDTO.getPhone().trim());
+        }
+        if (updateDTO.getEmail() != null) {
+            contact.setEmail(updateDTO.getEmail().trim().isEmpty() ? null : updateDTO.getEmail().trim());
+        }
+        if (updateDTO.getIsPrimary() != null) {
+            // If setting as primary, unset other primary contacts BEFORE updating this one
+            if (Boolean.TRUE.equals(updateDTO.getIsPrimary())) {
+                // Query directly from repository to get current primary contacts from database
+                List<PatientContact> primaryContacts = patientContactRepository.findPrimaryContactsByPatientId(patientId);
+                List<PatientContact> contactsToUpdate = primaryContacts.stream()
+                        .filter(c -> !c.getId().equals(contactId))
+                        .peek(c -> c.setIsPrimary(false))
+                        .collect(Collectors.toList());
+                if (!contactsToUpdate.isEmpty()) {
+                    patientContactRepository.saveAll(contactsToUpdate); // Batch update
+                    patientContactRepository.flush(); // Force immediate execution to database
+                }
+            }
+            contact.setIsPrimary(updateDTO.getIsPrimary());
+        }
+        
+        // 5. Save PatientContact
+        try {
+            patientContactRepository.save(contact);
+            log.info("Successfully updated contact ID: {} for patient ID: {}", contactId, patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while updating contact for patient {}: {}", 
+                    patientId, ex.getMessage());
+            throw new ConflictException("Failed to update contact due to constraint violation.");
+        }
+        
+        // 6. Return updated patient personal information
+        return getPatientPersonal(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientPersonalDTO deletePatientAddress(UUID patientId, UUID addressId) {
+        log.info("Deleting address ID: {} for patient ID: {}", addressId, patientId);
+        
+        // 1. Find PatientAddress
+        PatientAddress patientAddress = patientAddressRepository.findById(addressId)
+                .orElseThrow(() -> new ResourceNotFoundException("PatientAddress", addressId));
+        
+        // 2. Verify that this address belongs to this patient
+        if (!patientAddress.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Address does not belong to this patient");
+        }
+        
+        // 3. Save isMain flag before deletion for auto-promotion logic
+        Boolean wasMain = patientAddress.getIsMain();
+        Address addressToDelete = patientAddress.getAddress();
+        
+        // 4. Delete PatientAddress (cascade will not delete Address since no cascade is configured)
+        patientAddressRepository.delete(patientAddress);
+        
+        // 5. Delete Address entity (hard delete)
+        if (addressToDelete != null) {
+            addressRepository.delete(addressToDelete);
+            log.debug("Deleted Address entity with ID: {}", addressToDelete.getId());
+        }
+        
+        // 6. Auto-promote first remaining address as main if deleted address was main
+        if (Boolean.TRUE.equals(wasMain)) {
+            List<PatientAddress> remainingAddresses = patientAddressRepository.findAllByPatientIdOrderByCreatedAtAsc(patientId);
+            if (!remainingAddresses.isEmpty()) {
+                PatientAddress firstAddress = remainingAddresses.get(0);
+                firstAddress.setIsMain(true);
+                patientAddressRepository.save(firstAddress);
+                log.info("Auto-promoted address ID: {} as main for patient ID: {}", firstAddress.getId(), patientId);
+            }
+        }
+        
+        log.info("Successfully deleted address ID: {} for patient ID: {}", addressId, patientId);
+        
+        // 7. Return updated patient personal information
+        return getPatientPersonal(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientPersonalDTO deletePatientContact(UUID patientId, UUID contactId) {
+        log.info("Deleting contact ID: {} for patient ID: {}", contactId, patientId);
+        
+        // 1. Find PatientContact
+        PatientContact contact = patientContactRepository.findById(contactId)
+                .orElseThrow(() -> new ResourceNotFoundException("PatientContact", contactId));
+        
+        // 2. Verify that this contact belongs to this patient
+        if (!contact.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Contact does not belong to this patient");
+        }
+        
+        // 3. Save isPrimary flag before deletion for auto-promotion logic
+        Boolean wasPrimary = contact.getIsPrimary();
+        
+        // 4. Delete PatientContact
+        patientContactRepository.delete(contact);
+        
+        // 5. Auto-promote first remaining contact as primary if deleted contact was primary
+        if (Boolean.TRUE.equals(wasPrimary)) {
+            List<PatientContact> remainingContacts = patientContactRepository.findAllByPatientIdOrderByCreatedAtAsc(patientId);
+            if (!remainingContacts.isEmpty()) {
+                PatientContact firstContact = remainingContacts.get(0);
+                firstContact.setIsPrimary(true);
+                patientContactRepository.save(firstContact);
+                log.info("Auto-promoted contact ID: {} as primary for patient ID: {}", firstContact.getId(), patientId);
+            }
+        }
+        
+        log.info("Successfully deleted contact ID: {} for patient ID: {}", contactId, patientId);
+        
+        // 6. Return updated patient personal information
+        return getPatientPersonal(patientId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientProgramDTO getPatientProgram(UUID patientId) {
+        // Ensure patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+
+        PatientProgramDTO dto = new PatientProgramDTO();
+
+        // Program (single record per patient)
+        List<ProgramDetailDTO> programDetails = patientProgramRepository
+            .findByPatientId(patientId)
+            .map(pp -> {
+                ProgramDetailDTO p = new ProgramDetailDTO();
+                p.setProgramIdentifier(pp.getProgram() != null ? pp.getProgram().getProgramIdentifier() : null);
+                p.setSupervisorName(pp.getSupervisor() != null
+                        ? (pp.getSupervisor().getStaff() != null
+                            ? pp.getSupervisor().getStaff().getFullName()
+                            : pp.getSupervisor().getEmail())
+                        : null);
+                p.setEnrollmentDate(pp.getEnrollmentDate());
+                p.setEocDate(pp.getEocDate());
+                p.setCreatedAt(pp.getCreatedAt());
+                p.setStatusEffectiveDate(pp.getStatusEffectiveDate());
+                p.setSocDate(pp.getSocDate());
+                p.setEligibilityBeginDate(pp.getEligibilityBeginDate());
+                p.setEligibilityEndDate(pp.getEligibilityEndDate());
+                p.setReasonForChange(pp.getReasonForChange());
+                return p;
+            })
+            .map(java.util.Collections::singletonList)
+            .orElse(java.util.Collections.emptyList());
+        dto.setProgram(programDetails);
+
+        // Payers
+        List<PayerDetailDTO> payerDetails = patientPayerRepository
+            .findAllByPatientIdOrderByStartDateDesc(patientId)
+            .stream()
+            .map(pp -> {
+                PayerDetailDTO p = new PayerDetailDTO();
+                p.setPayerName(pp.getPayer() != null ? pp.getPayer().getPayerName() : null);
+                p.setPayerIdentifier(pp.getPayer() != null ? pp.getPayer().getPayerIdentifier() : null);
+                p.setRank(pp.getRank());
+                p.setClientPayerId(pp.getClientPayerId());
+                p.setStartDate(pp.getStartDate());
+                p.setGroupNo(pp.getGroupNo());
+                p.setEndDate(pp.getEndDate());
+                p.setMedicaidId(pp.getMedicaidId());
+                return p;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        dto.setPayer(payerDetails);
+
+        // Services
+        List<ServiceDetailDTO> serviceDetails = patientServiceRepository
+            .findAllByPatientIdOrderByStartDateDesc(patientId)
+            .stream()
+            .map(ps -> {
+                ServiceDetailDTO s = new ServiceDetailDTO();
+                s.setServiceName(ps.getServiceType() != null ? ps.getServiceType().getName() : null);
+                s.setServiceCode(ps.getServiceType() != null ? ps.getServiceType().getCode() : null);
+                s.setStartDate(ps.getStartDate());
+                s.setEndDate(ps.getEndDate());
+                return s;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        dto.setServices(serviceDetails);
+
+        // Authorizations
+        List<AuthorizationDTO> authorizationDetails = authorizationRepository
+            .findAllByPatientIdOrderByStartDateDesc(patientId)
+            .stream()
+            .map(a -> {
+                AuthorizationDTO ad = new AuthorizationDTO();
+                ad.setPayerIdentifier(a.getPatientPayer() != null && a.getPatientPayer().getPayer() != null
+                        ? a.getPatientPayer().getPayer().getPayerIdentifier()
+                        : null);
+                ad.setServiceCode(a.getPatientService() != null && a.getPatientService().getServiceType() != null
+                        ? a.getPatientService().getServiceType().getCode()
+                        : null);
+                ad.setAuthorizationNo(a.getAuthorizationNo());
+                ad.setEventCode(a.getEventCode());
+                ad.setModifiers(a.getModifiers());
+                ad.setFormat(a.getFormat());
+                ad.setStartDate(a.getStartDate());
+                ad.setEndDate(a.getEndDate());
+                ad.setComments(a.getComments());
+                ad.setMaxUnits(a.getMaxUnits());
+                ad.setTotalUsed(a.getTotalUsed());
+                ad.setTotalMissed(a.getTotalMissed());
+                ad.setTotalRemaining(a.getTotalRemaining());
+                ad.setMeta(a.getMeta());
+                return ad;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        dto.setAuthorizations(authorizationDetails);
+
+        return dto;
+    }
+ }

@@ -5,22 +5,12 @@ import { Modal, Button, Input, Select, DatePicker } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import dayjs, { Dayjs } from "dayjs";
 import { useApiMutation } from "@/hooks/useApi";
+import { personalInfoSchema, type PersonalInfoFormData } from "@/lib/validation/patientSchemas";
+import { GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/validation/validation";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
-
-// Validation schema - all fields optional for PATCH
-const personalInfoSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  dob: z.string().optional(),
-  gender: z.string().optional(),
-  primaryLanguage: z.string().optional(),
-});
-
-type PersonalInfoFormData = z.infer<typeof personalInfoSchema>;
 
 interface EditPersonalInfoFormProps {
   open: boolean;
@@ -223,10 +213,7 @@ export default function EditPersonalInfoForm({
                     placeholder="Select gender"
                     status={errors.gender ? "error" : ""}
                     className={formStyles.formSelect}
-                    options={[
-                      { value: "Male", label: "Male" },
-                      { value: "Female", label: "Female" },
-                    ]}
+                    options={GENDER_OPTIONS}
                   />
                 )}
               />
@@ -252,17 +239,7 @@ export default function EditPersonalInfoForm({
                     status={errors.primaryLanguage ? "error" : ""}
                     className={formStyles.formSelect}
                     showSearch
-                    options={[
-                      { value: "English", label: "English" },
-                      { value: "Spanish", label: "Spanish" },
-                      { value: "French", label: "French" },
-                      { value: "German", label: "German" },
-                      { value: "Chinese", label: "Chinese" },
-                      { value: "Japanese", label: "Japanese" },
-                      { value: "Korean", label: "Korean" },
-                      { value: "Vietnamese", label: "Vietnamese" },
-                      { value: "Other", label: "Other" },
-                    ]}
+                    options={LANGUAGE_OPTIONS}
                   />
                 )}
               />

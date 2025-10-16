@@ -18,6 +18,7 @@ import EditIdentifiersForm from "./EditIdentifiersForm";
 import EditPersonalInfoForm from "./EditPersonalInfoForm";
 import EditAddressForm from "./EditAddressForm";
 import EditContactForm from "./EditContactForm";
+import { formatDateLong } from "@/lib/dateUtils";
 
 interface PatientPersonalProps {
   patient: PatientPersonalDTO;
@@ -35,17 +36,6 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
     null
   );
   const queryClient = useQueryClient();
-
-  // Format date for display
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return "—";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   // Handlers for Address actions
   const handleAddAddress = () => {
@@ -70,7 +60,7 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
   };
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 min-h-[600px]">
         {/* Left Column */}
         <div className="flex flex-col gap-6">
           {/* Identifiers Card */}
@@ -153,7 +143,7 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                   Date of Birth
                 </span>
                 <span className="text-[13px] font-normal text-theme-primary">
-                  {formatDate(patient.dob)}
+                  {formatDateLong(patient.dob)}
                 </span>
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">

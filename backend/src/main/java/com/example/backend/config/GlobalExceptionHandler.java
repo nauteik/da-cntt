@@ -202,7 +202,7 @@ public class GlobalExceptionHandler {
         logger.warn("Type mismatch at {}: {}", request.getRequestURI(), ex.getMessage());
         
         ApiResponse<Void> response = ApiResponse.error(
-            String.format("Invalid value for parameter '%s'. Expected type: %s", 
+            String.format("Invalid value for parameter '%s', expected type: %s", 
                 ex.getName(), ex.getRequiredType().getSimpleName()),
             HttpStatus.BAD_REQUEST.value(),
             request.getRequestURI(),

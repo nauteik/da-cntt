@@ -18,17 +18,13 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"isp", "serviceAuthorization", "tasks"})
+@ToString(exclude = {"isp", "tasks"})
 public class ISPGoal extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "isp_id", nullable = false)
     @JsonIgnore
     private ISP isp;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_authorization_id")
-    private ServiceAuthorization serviceAuthorization;
 
     @Column(name = "title", nullable = false)
     private String title;

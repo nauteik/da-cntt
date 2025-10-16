@@ -20,7 +20,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"staffRates", "rateEntries", "serviceAuthorizations"})
+@ToString(exclude = {"staffRates", "rateEntries"})
 public class ServiceType extends BaseEntity {
 
     @Column(name = "code", nullable = false)
@@ -51,9 +51,6 @@ public class ServiceType extends BaseEntity {
 
     @OneToMany(mappedBy = "serviceType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PatientService> patientMappings = new HashSet<>();
-
-    @OneToMany(mappedBy = "serviceType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ServiceAuthorization> serviceAuthorizations = new HashSet<>();
 
     public ServiceType(String code, String name, CareSetting careSetting) {
         this.code = code;

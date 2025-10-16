@@ -370,6 +370,7 @@ CREATE TABLE patient_contact (
 );
 
 CREATE INDEX idx_patient_contact_patient ON patient_contact (patient_id);
+CREATE UNIQUE INDEX idx_patient_contact_unique_primary ON patient_contact (patient_id) WHERE is_primary;
 
 CREATE TABLE patient_payer (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -419,11 +420,26 @@ CREATE TABLE isp (
 
 CREATE INDEX idx_isp_patient ON isp (patient_id);
 
-CREATE TABLE service_authorization (
+CREATE TABLE patient_service (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_id uuid REFERENCES isp(id) ON DELETE CASCADE,
+    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    service_type_id uuid NOT NULL REFERENCES service_type(id) ON DELETE CASCADE,
+    start_date date,
+    end_date date,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT patient_service_unique UNIQUE (patient_id, service_type_id)
+);
+
+CREATE INDEX idx_patient_service_patient ON patient_service (patient_id);
+CREATE INDEX idx_patient_service_service ON patient_service (service_type_id);
+CREATE INDEX idx_patient_service_lookup ON patient_service(patient_id, service_type_id);
+
+CREATE TABLE authorizations (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id uuid REFERENCES patient(id) ON DELETE CASCADE,
     patient_payer_id uuid NOT NULL REFERENCES patient_payer(id) ON DELETE CASCADE,
-    service_type_id uuid NOT NULL REFERENCES service_type(id) ON DELETE RESTRICT,
+    patient_service_id uuid NOT NULL REFERENCES patient_service(id) ON DELETE RESTRICT,
     authorization_no text NOT NULL UNIQUE,
     format text DEFAULT 'units',
     event_code text,
@@ -440,13 +456,12 @@ CREATE TABLE service_authorization (
     updated_at timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_service_auth_patient_payer ON service_authorization (patient_payer_id, start_date);
+CREATE INDEX idx_auth_patient_payer ON authorizations (patient_payer_id, start_date);
 
 
 CREATE TABLE isp_goal (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     isp_id uuid NOT NULL REFERENCES isp(id) ON DELETE CASCADE,
-    service_authorization_id uuid REFERENCES service_authorization(id) ON DELETE SET NULL,
     title text NOT NULL,
     description text,
     measure text,
@@ -470,24 +485,10 @@ CREATE TABLE isp_task (
 
 CREATE INDEX idx_isp_task_goal ON isp_task (isp_goal_id);
 
-CREATE TABLE patient_service (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    service_type_id uuid NOT NULL REFERENCES service_type(id) ON DELETE CASCADE,
-    start_date date,
-    end_date date,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT patient_service_unique UNIQUE (patient_id, service_type_id)
-);
-
-CREATE INDEX idx_patient_service_patient ON patient_service (patient_id);
-CREATE INDEX idx_patient_service_service ON patient_service (service_type_id);
-CREATE INDEX idx_patient_service_lookup ON patient_service(patient_id, service_type_id);
 
 CREATE TABLE unit_consumption (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_authorization_id uuid NOT NULL REFERENCES service_authorization(id) ON DELETE CASCADE,
+    authorization_id uuid NOT NULL REFERENCES authorizations(id) ON DELETE CASCADE,
     source_type text NOT NULL,
     source_id uuid,
     service_date date NOT NULL,
@@ -497,21 +498,7 @@ CREATE TABLE unit_consumption (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_unit_consumption_auth_date ON unit_consumption (service_authorization_id, service_date);
-
-CREATE TABLE progress_report (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_id uuid NOT NULL REFERENCES isp(id) ON DELETE CASCADE,
-    period_start date NOT NULL,
-    period_end date NOT NULL,
-    summary jsonb NOT NULL DEFAULT '{}'::jsonb,
-    file_id uuid REFERENCES file_object(id) ON DELETE SET NULL,
-    generated_at timestamptz NOT NULL DEFAULT now(),
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_progress_report_period ON progress_report (isp_id, period_start);
+CREATE INDEX idx_unit_consumption_auth_date ON unit_consumption (authorization_id, service_date);
 
 -- Bảng Template cho lịch mẫu (Master Weekly)
 CREATE TABLE schedule_template (
@@ -624,7 +611,7 @@ CREATE TABLE service_delivery (
     office_id uuid REFERENCES office(id) ON DELETE SET NULL,
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE SET NULL,
-    service_authorization_id uuid REFERENCES service_authorization(id) ON DELETE SET NULL,
+    authorization_id uuid REFERENCES authorizations(id) ON DELETE SET NULL,
     start_at timestamptz NOT NULL,
     end_at timestamptz NOT NULL,
     units integer NOT NULL CHECK (units >= 0),
@@ -979,6 +966,7 @@ CREATE TABLE patient_program (
     CONSTRAINT patient_program_unique UNIQUE (patient_id, program_id)
 );
 CREATE INDEX idx_patient_program_patient ON patient_program (patient_id);
+CREATE INDEX idx_patient_program_effective_date ON patient_program (patient_id, status_effective_date DESC);
 
 
     

@@ -108,3 +108,71 @@ export interface PatientPersonalDTO {
   contacts: ContactDTO[];
   addresses: AddressDTO[];
 }
+
+// Patient Program Types
+// Backend-aligned Program Tab DTOs
+export interface ProgramDetailDTO {
+  programIdentifier?: string;
+  supervisorName?: string;
+  enrollmentDate?: string;
+  eocDate?: string;
+  createdAt?: string;
+  statusEffectiveDate?: string;
+  socDate?: string;
+  eligibilityBeginDate?: string;
+  eligibilityEndDate?: string;
+  reasonForChange?: Record<string, unknown> | null;
+}
+
+export interface PayerDetailDTO {
+  payerName?: string;
+  payerIdentifier?: string;
+  rank?: number;
+  clientPayerId?: string;
+  startDate?: string;
+  groupNo?: string;
+  endDate?: string;
+  medicaidId?: string;
+}
+
+export interface ServiceDetailDTO {
+  serviceName?: string;
+  serviceCode?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface AuthorizationDTO {
+  payerIdentifier?: string;
+  serviceCode?: string;
+  authorizationNo?: string;
+  eventCode?: string;
+  modifiers?: Record<string, unknown> | null;
+  format?: string;
+  startDate?: string;
+  endDate?: string;
+  comments?: string;
+  maxUnits?: number;
+  totalUsed?: number;
+  totalMissed?: number;
+  totalRemaining?: number;
+  meta?: Record<string, unknown> | null;
+}
+
+export interface PatientProgramDTO {
+  program: ProgramDetailDTO[];
+  payer: PayerDetailDTO[];
+  services: ServiceDetailDTO[];
+  authorizations: AuthorizationDTO[];
+}
+
+// Select DTOs for form dropdowns
+export interface StaffSelectDTO {
+  id: string;
+  displayName: string; // Format: "fullName (employeeCode) - officeName"
+}
+
+export interface ProgramSelectDTO {
+  id: string;
+  programIdentifier: string;
+}

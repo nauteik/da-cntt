@@ -52,5 +52,5 @@ public class PatientPayer extends BaseEntity {
     private Map<String, Object> meta;
 
     @OneToMany(mappedBy = "patientPayer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ServiceAuthorization> serviceAuthorizations = new HashSet<>();
+    private Set<Authorization> authorizations = new HashSet<>();
 }

@@ -5,24 +5,10 @@ import { Modal, Button, Input } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useApiMutation } from "@/hooks/useApi";
+import { identifiersSchema, type IdentifiersFormData } from "@/lib/validation/patientSchemas";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
-
-// Validation schema - all fields optional for PATCH
-const identifiersSchema = z.object({
-  clientId: z.string().optional(),
-  medicaidId: z.string().optional(),
-  ssn: z
-    .string()
-    .regex(/^\d{3}-?\d{2}-?\d{4}$/, "SSN must be in format XXX-XX-XXXX")
-    .optional()
-    .or(z.literal("")),
-  agencyId: z.string().optional(),
-});
-
-type IdentifiersFormData = z.infer<typeof identifiersSchema>;
 
 interface EditIdentifiersFormProps {
   open: boolean;

@@ -1,25 +1,16 @@
 "use client";
 
 import React from "react";
-import { Modal, Input, Select, Checkbox, Button } from "antd";
-import { CloseOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Modal, Input, Select, Checkbox, Button, App } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useApiMutation } from "@/hooks/useApi";
+import { contactSchema, type ContactFormData } from "@/lib/validation/patientSchemas";
+import { RELATIONSHIP_OPTIONS } from "@/lib/validation/validation";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
-import type { ContactDTO } from "@/types/patient";
-
-// Validation schema
-const contactSchema = z.object({
-  relation: z.string().min(1, "Relation is required"),
-  name: z.string().min(1, "Name is required"),
-  phone: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, "Phone must be XXX-XXX-XXXX"),
-  email: z.string().email("Invalid email address").or(z.literal("")),
-  isPrimary: z.boolean(),
-});
-
-type ContactFormData = z.infer<typeof contactSchema>;
+import type { ContactDTO, PatientPersonalDTO } from "@/types/patient";
 
 interface EditContactFormProps {
   open: boolean;
@@ -38,6 +29,7 @@ export default function EditContactForm({
 }: EditContactFormProps) {
   const [showSuccess, setShowSuccess] = React.useState(false);
   const previousOpenRef = React.useRef(open);
+  const { modal } = App.useApp();
 
   const {
     control,
@@ -46,6 +38,8 @@ export default function EditContactForm({
     formState: { errors, isDirty },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: initialData || {
       relation: "",
       name: "",
@@ -73,41 +67,79 @@ export default function EditContactForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const onSubmit = async (data: ContactFormData) => {
-    // TODO: Implement API call
-    console.log("Contact Form Data:", {
-      patientId,
-      contactId: initialData?.id,
-      ...data,
-    });
+  // Determine if creating or updating based on initialData.id
+  const isCreating = !initialData?.id;
+  const endpoint = isCreating
+    ? `/patients/${patientId}/contacts`
+    : `/patients/${patientId}/contacts/${initialData.id}`;
+  const method = isCreating ? "POST" : "PATCH";
 
-    // Simulate success
-    setShowSuccess(true);
-    if (onUpdateSuccess) {
-      onUpdateSuccess();
+  const mutation = useApiMutation<PatientPersonalDTO, ContactFormData>(
+    endpoint,
+    method,
+    {
+      onSuccess: () => {
+        setShowSuccess(true);
+        if (onUpdateSuccess) {
+          onUpdateSuccess();
+        }
+        setTimeout(() => {
+          setShowSuccess(false);
+        }, 3000);
+      },
     }
+  );
 
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 3000);
+  const deleteMutation = useApiMutation<PatientPersonalDTO, void>(
+    `/patients/${patientId}/contacts/${initialData?.id}`,
+    "DELETE",
+    {
+      onSuccess: () => {
+        setShowSuccess(true);
+        if (onUpdateSuccess) {
+          onUpdateSuccess();
+        }
+        setTimeout(() => {
+          setShowSuccess(false);
+          onClose();
+        }, 2000);
+      },
+    }
+  );
+
+  const onSubmit = async (data: ContactFormData) => {
+    await mutation.mutateAsync(data);
   };
 
   const handleCancel = () => {
     reset();
     setShowSuccess(false);
+    mutation.reset();
+    deleteMutation.reset();
     onClose();
   };
 
-  const RELATIONSHIP_OPTIONS = [
-    { value: "Spouse", label: "Spouse" },
-    { value: "Parent", label: "Parent" },
-    { value: "Child", label: "Child" },
-    { value: "Sibling", label: "Sibling" },
-    { value: "Guardian", label: "Guardian" },
-    { value: "Friend", label: "Friend" },
-    { value: "Caregiver", label: "Caregiver" },
-    { value: "Other", label: "Other" },
-  ];
+  const handleDelete = () => {
+    if (!initialData?.id) return;
+
+    modal.confirm({
+      title: "Delete Contact",
+      content: "Are you sure you want to remove this contact? This action cannot be undone.",
+      okText: "REMOVE",
+      okType: "danger",
+      cancelText: "CANCEL",
+      centered: true,
+      okButtonProps: {
+        className: buttonStyles.btnDanger,
+      },
+      cancelButtonProps: {
+        className: buttonStyles.btnCancel,
+      },
+      onOk: () => {
+        deleteMutation.mutate();
+      },
+    });
+  };
 
   return (
     <Modal
@@ -258,29 +290,55 @@ export default function EditContactForm({
             </div>
           </div>
 
+          {/* Error Message */}
+          {(mutation.error || deleteMutation.error) && !showSuccess && (
+            <div className="px-8 py-3 bg-theme-surface">
+              <p className="text-sm text-red-600 m-0">
+                {mutation.error?.message || deleteMutation.error?.message ||
+                  "Failed to update contact. Please try again."}
+              </p>
+            </div>
+          )}
+
           {/* Success Message */}
           {showSuccess && (
             <div className="px-8 py-3 bg-theme-surface flex items-center gap-2">
-              <CheckCircleOutlined className="text-green-500 text-lg" />
-              <span className="text-sm text-green-500 font-medium">
-                Contact updated successfully!
-              </span>
+              <p className="text-sm text-green-600 font-[550] m-0">
+                Contact {deleteMutation.isSuccess ? "removed" : isCreating ? "created" : "updated"} successfully!
+              </p>
             </div>
           )}
 
           {/* Footer */}
           <div className="flex justify-between items-center px-8 py-4 border-t border-theme bg-theme-surface">
-            <Button onClick={handleCancel} className={buttonStyles.btnCancel}>
+            <Button
+              onClick={handleCancel}
+              className={buttonStyles.btnCancel}
+              disabled={mutation.isPending || deleteMutation.isPending}
+            >
               CANCEL
             </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className={buttonStyles.btnPrimary}
-              disabled={!isDirty}
-            >
-              SAVE CHANGES
-            </Button>
+            <div className="flex gap-3">
+              {!isCreating && (
+                <Button
+                  onClick={handleDelete}
+                  className={buttonStyles.btnDanger}
+                  disabled={mutation.isPending || deleteMutation.isPending}
+                  loading={deleteMutation.isPending}
+                >
+                  REMOVE
+                </Button>
+              )}
+              <Button
+                type="primary"
+                htmlType="submit"
+                className={buttonStyles.btnPrimary}
+                disabled={!isDirty || mutation.isPending || deleteMutation.isPending}
+                loading={mutation.isPending}
+              >
+                {isCreating ? "CREATE" : "SAVE CHANGES"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

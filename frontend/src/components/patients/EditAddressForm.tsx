@@ -1,37 +1,16 @@
 "use client";
 
 import React from "react";
-import { Modal, Input, Select, Checkbox, Button } from "antd";
-import { CloseOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Modal, Input, Select, Checkbox, Button, App } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useApiMutation } from "@/hooks/useApi";
+import { addressSchema, type AddressFormData } from "@/lib/validation/patientSchemas";
+import { ADDRESS_TYPES, US_STATES } from "@/lib/validation/validation";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
-import type { AddressDTO } from "@/types/patient";
-import { AddressType } from "@/types/patient";
-
-// Validation schema
-const addressSchema = z.object({
-  label: z.string().optional(),
-  type: z.enum(AddressType).optional(),
-  line1: z.string().min(1, "Address line 1 is required"),
-  line2: z.string().optional(),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  postalCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code format"),
-  county: z.string().min(1, "County is required"),
-  phone: z
-    .string()
-    .regex(
-      /^((\(\d{3}\)\s?)|\d{3}-)\d{3}-\d{4}$/,
-      "Phone must be in format (XXX) XXX-XXXX"
-    ),
-  email: z.email("Invalid email address").optional().or(z.literal("")),
-  isMain: z.boolean(),
-});
-
-type AddressFormData = z.infer<typeof addressSchema>;
+import type { AddressDTO, PatientPersonalDTO } from "@/types/patient";
 
 interface EditAddressFormProps {
   open: boolean;
@@ -50,6 +29,7 @@ export default function EditAddressForm({
 }: EditAddressFormProps) {
   const [showSuccess, setShowSuccess] = React.useState(false);
   const previousOpenRef = React.useRef(open);
+  const { modal } = App.useApp();
 
   const {
     control,
@@ -58,6 +38,8 @@ export default function EditAddressForm({
     formState: { errors, isDirty },
   } = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: initialData || {
       label: "",
       type: undefined,
@@ -73,107 +55,109 @@ export default function EditAddressForm({
     },
   });
 
+  // Determine if creating or updating based on initialData.id
+  const isCreating = !initialData?.id;
+  const endpoint = isCreating
+    ? `/patients/${patientId}/addresses`
+    : `/patients/${patientId}/addresses/${initialData.id}`;
+  const method = isCreating ? "POST" : "PATCH";
+
+  const mutation = useApiMutation<PatientPersonalDTO, AddressFormData>(
+    endpoint,
+    method,
+    {
+      onSuccess: () => {
+        setShowSuccess(true);
+        if (onUpdateSuccess) {
+          onUpdateSuccess();
+        }
+        setTimeout(() => {
+          setShowSuccess(false);
+        }, 3000);
+      },
+    }
+  );
+
+  const deleteMutation = useApiMutation<PatientPersonalDTO, void>(
+    `/patients/${patientId}/addresses/${initialData?.id}`,
+    "DELETE",
+    {
+      onSuccess: () => {
+        setShowSuccess(true);
+        if (onUpdateSuccess) {
+          onUpdateSuccess();
+        }
+        setTimeout(() => {
+          setShowSuccess(false);
+          onClose();
+        }, 2000);
+      },
+    }
+  );
+
   // Reset form when modal opens
   React.useEffect(() => {
     if (open && !previousOpenRef.current) {
-      reset(
-        initialData || {
-          label: "",
-          type: undefined,
-          line1: "",
-          line2: "",
-          city: "",
-          state: "",
-          postalCode: "",
-          county: "",
-          phone: "",
-          email: "",
-          isMain: false,
-        }
-      );
+      // Transform incoming data to match form's expected enum values (uppercase)
+      const formValues = initialData
+        ? {
+            ...initialData,
+            type: initialData.type?.toUpperCase() as "HOME" | "COMMUNITY" | "SENIOR" | "BUSINESS" | undefined,
+          }
+        : {
+            label: "",
+            type: undefined,
+            line1: "",
+            line2: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            county: "",
+            phone: "",
+            email: "",
+            isMain: false,
+          };
+
+      reset(formValues);
       setShowSuccess(false);
+      mutation.reset();
     }
     previousOpenRef.current = open;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, initialData, reset, mutation]);
 
   const onSubmit = async (data: AddressFormData) => {
-    // TODO: Implement API call
-    console.log("Address Form Data:", {
-      patientId,
-      addressId: initialData?.id,
-      ...data,
-    });
-
-    // Simulate success
-    setShowSuccess(true);
-    if (onUpdateSuccess) {
-      onUpdateSuccess();
-    }
-
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 3000);
+    await mutation.mutateAsync(data);
   };
 
   const handleCancel = () => {
     reset();
     setShowSuccess(false);
+    mutation.reset();
+    deleteMutation.reset();
     onClose();
   };
 
-  const US_STATES = [
-    { value: "AL", label: "Alabama" },
-    { value: "AK", label: "Alaska" },
-    { value: "AZ", label: "Arizona" },
-    { value: "AR", label: "Arkansas" },
-    { value: "CA", label: "California" },
-    { value: "CO", label: "Colorado" },
-    { value: "CT", label: "Connecticut" },
-    { value: "DE", label: "Delaware" },
-    { value: "FL", label: "Florida" },
-    { value: "GA", label: "Georgia" },
-    { value: "HI", label: "Hawaii" },
-    { value: "ID", label: "Idaho" },
-    { value: "IL", label: "Illinois" },
-    { value: "IN", label: "Indiana" },
-    { value: "IA", label: "Iowa" },
-    { value: "KS", label: "Kansas" },
-    { value: "KY", label: "Kentucky" },
-    { value: "LA", label: "Louisiana" },
-    { value: "ME", label: "Maine" },
-    { value: "MD", label: "Maryland" },
-    { value: "MA", label: "Massachusetts" },
-    { value: "MI", label: "Michigan" },
-    { value: "MN", label: "Minnesota" },
-    { value: "MS", label: "Mississippi" },
-    { value: "MO", label: "Missouri" },
-    { value: "MT", label: "Montana" },
-    { value: "NE", label: "Nebraska" },
-    { value: "NV", label: "Nevada" },
-    { value: "NH", label: "New Hampshire" },
-    { value: "NJ", label: "New Jersey" },
-    { value: "NM", label: "New Mexico" },
-    { value: "NY", label: "New York" },
-    { value: "NC", label: "North Carolina" },
-    { value: "ND", label: "North Dakota" },
-    { value: "OH", label: "Ohio" },
-    { value: "OK", label: "Oklahoma" },
-    { value: "OR", label: "Oregon" },
-    { value: "PA", label: "Pennsylvania" },
-    { value: "RI", label: "Rhode Island" },
-    { value: "SC", label: "South Carolina" },
-    { value: "SD", label: "South Dakota" },
-    { value: "TN", label: "Tennessee" },
-    { value: "TX", label: "Texas" },
-    { value: "UT", label: "Utah" },
-    { value: "VT", label: "Vermont" },
-    { value: "VA", label: "Virginia" },
-    { value: "WA", label: "Washington" },
-    { value: "WV", label: "West Virginia" },
-    { value: "WI", label: "Wisconsin" },
-    { value: "WY", label: "Wyoming" },
-  ];
+  const handleDelete = () => {
+    if (!initialData?.id) return;
+
+    modal.confirm({
+      title: "Remove Address",
+      content: "Are you sure you want to remove this address? This action cannot be undone.",
+      okText: "REMOVE",
+      okType: "danger",
+      cancelText: "CANCEL",
+      centered: true,
+      okButtonProps: {
+        className: buttonStyles.btnDanger,
+      },
+      cancelButtonProps: {
+        className: buttonStyles.btnCancel,
+      },
+      onOk: () => {
+        deleteMutation.mutate();
+      },
+    });
+  };
 
   return (
     <Modal
@@ -233,15 +217,12 @@ export default function EditAddressForm({
                   control={control}
                   render={({ field }) => (
                     <Select
-                      {...field}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
                       placeholder="Select address type"
                       className={formStyles.formSelect}
-                      options={[
-                        { value: AddressType.HOME, label: "Home" },
-                        { value: AddressType.COMMUNITY, label: "Community" },
-                        { value: AddressType.SENIOR, label: "Senior" },
-                        { value: AddressType.BUSINESS, label: "Business" },
-                      ]}
+                      options={ADDRESS_TYPES}
                     />
                   )}
                 />
@@ -325,7 +306,9 @@ export default function EditAddressForm({
                   control={control}
                   render={({ field }) => (
                     <Select
-                      {...field}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
                       placeholder="Select state"
                       status={errors.state ? "error" : ""}
                       className={formStyles.formSelect}
@@ -465,29 +448,55 @@ export default function EditAddressForm({
             </div>
           </div>
 
+          {/* Error Message */}
+          {(mutation.error || deleteMutation.error) && !showSuccess && (
+            <div className="px-8 py-3 bg-theme-surface">
+              <p className="text-sm text-red-600 m-0">
+                {mutation.error?.message || deleteMutation.error?.message ||
+                  "Failed to update address. Please try again."}
+              </p>
+            </div>
+          )}
+
           {/* Success Message */}
           {showSuccess && (
             <div className="px-8 py-3 bg-theme-surface flex items-center gap-2">
-              <CheckCircleOutlined className="text-green-500 text-lg" />
-              <span className="text-sm text-green-500 font-medium">
-                Address updated successfully!
-              </span>
+              <p className="text-sm text-green-600 font-[550] m-0">
+                Address {deleteMutation.isSuccess ? "removed" : isCreating ? "created" : "updated"} successfully!
+              </p>
             </div>
           )}
 
           {/* Footer */}
           <div className="flex justify-between items-center px-8 py-4 border-t border-theme bg-theme-surface">
-            <Button onClick={handleCancel} className={buttonStyles.btnCancel}>
+            <Button
+              onClick={handleCancel}
+              className={buttonStyles.btnCancel}
+              disabled={mutation.isPending || deleteMutation.isPending}
+            >
               CANCEL
             </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className={buttonStyles.btnPrimary}
-              disabled={!isDirty}
-            >
-              SAVE CHANGES
-            </Button>
+            <div className="flex gap-3">
+              {!isCreating && (
+                <Button
+                  onClick={handleDelete}
+                  className={buttonStyles.btnDanger}
+                  disabled={mutation.isPending || deleteMutation.isPending}
+                  loading={deleteMutation.isPending}
+                >
+                  REMOVE
+                </Button>
+              )}
+              <Button
+                type="primary"
+                htmlType="submit"
+                className={buttonStyles.btnPrimary}
+                disabled={!isDirty || mutation.isPending || deleteMutation.isPending}
+                loading={mutation.isPending}
+              >
+                {isCreating ? "CREATE" : "SAVE CHANGES"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

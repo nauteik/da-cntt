@@ -18,12 +18,12 @@ import java.util.Map;
  * Service authorization entity for managing unit limits and consumption
  */
 @Entity
-@Table(name = "service_authorization")
+@Table(name = "authorizations")
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"patientPayer", "serviceType", "isp"})
-public class ServiceAuthorization extends BaseEntity {
+@ToString(exclude = {"patientPayer", "patientService", "patient"})
+public class Authorization extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_payer_id", nullable = false)
@@ -31,13 +31,14 @@ public class ServiceAuthorization extends BaseEntity {
     private PatientPayer patientPayer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_type_id", nullable = false)
-    private ServiceType serviceType;
+    @JoinColumn(name = "patient_service_id", nullable = false)
+    @JsonIgnore
+    private PatientService patientService;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "isp_id")
+    @JoinColumn(name = "patient_id", nullable = false)
     @JsonIgnore
-    private ISP isp;
+    private Patient patient;
 
     @Column(name = "authorization_no", nullable = false, unique = true)
     private String authorizationNo;

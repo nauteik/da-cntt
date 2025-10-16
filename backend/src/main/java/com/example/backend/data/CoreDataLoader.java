@@ -21,7 +21,6 @@ public class CoreDataLoader {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final ServiceTypeRepository serviceTypeRepository;
-    private final PayerRepository payerRepository;
 
     @Transactional
     public void loadData() {
@@ -38,9 +37,6 @@ public class CoreDataLoader {
 
         // Load service types
         loadServiceTypes();
-
-        // Load payers
-        loadPayers();
 
         log.info("Core system data loaded successfully");
     }
@@ -208,30 +204,6 @@ public class CoreDataLoader {
                 serviceType.setIsBillable(isBillable);
                 serviceTypeRepository.save(serviceType);
                 log.info("Created service type: {} - {}", code, name);
-            }
-        }
-    }
-
-
-    private void loadPayers() {
-        String[][] payers = {
-            {"PAODP", "Pennsylvania ODP"},
-            {"PAOLTL", "Pennsylvania OLTL"},
-            {"PAOMAP", "Pennsylvania OMAP"}
-        };
-
-        for (String[] payerData : payers) {
-            String identifier = payerData[0];
-            String name = payerData[1];
-
-            if (payerRepository.findByPayerIdentifier(identifier).isEmpty()) {
-                Payer payer = new Payer();
-                payer.setPayerIdentifier(identifier);
-                payer.setPayerName(name);
-                payer.setType(com.example.backend.model.enums.PayerType.MEDICAID);
-                payer.setIsActive(true);
-                payerRepository.save(payer);
-                log.info("Created payer: {} - {}", identifier, name);
             }
         }
     }

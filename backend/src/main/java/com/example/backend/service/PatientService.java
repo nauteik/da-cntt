@@ -7,6 +7,9 @@ import com.example.backend.model.dto.PatientCreatedDTO;
 import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
+import com.example.backend.model.dto.UpdatePatientAddressDTO;
+import com.example.backend.model.dto.UpdatePatientContactDTO;
+import com.example.backend.model.dto.PatientProgramDTO;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -96,4 +99,81 @@ public interface PatientService {
      * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
      */
     PatientPersonalDTO updatePatientPersonal(UUID patientId, UpdatePatientPersonalDTO updateDTO);
+
+    /**
+     * Create a new address for a patient.
+     * Always creates a new Address entity (no sharing between patients).
+     * 
+     * @param patientId UUID of the patient
+     * @param updateDTO address data
+     * @return updated patient personal DTO with new address
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
+     * @throws IllegalArgumentException if required fields are missing
+     */
+    PatientPersonalDTO createPatientAddress(UUID patientId, UpdatePatientAddressDTO updateDTO);
+
+    /**
+     * Update an existing patient address.
+     * Updates the Address entity directly (safe since not shared).
+     * 
+     * @param patientId UUID of the patient
+     * @param addressId UUID of the PatientAddress to update
+     * @param updateDTO address data to update
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or address not found
+     */
+    PatientPersonalDTO updatePatientAddress(UUID patientId, UUID addressId, UpdatePatientAddressDTO updateDTO);
+
+    /**
+     * Create a new emergency contact for a patient.
+     * 
+     * @param patientId UUID of the patient
+     * @param updateDTO contact data
+     * @return updated patient personal DTO with new contact
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
+     * @throws IllegalArgumentException if required fields are missing
+     */
+    PatientPersonalDTO createPatientContact(UUID patientId, UpdatePatientContactDTO updateDTO);
+
+    /**
+     * Update an existing patient emergency contact.
+     * 
+     * @param patientId UUID of the patient
+     * @param contactId UUID of the PatientContact to update
+     * @param updateDTO contact data to update
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or contact not found
+     */
+    PatientPersonalDTO updatePatientContact(UUID patientId, UUID contactId, UpdatePatientContactDTO updateDTO);
+
+    /**
+     * Delete a patient address and its associated Address entity.
+     * Auto-promotes first remaining address as main if deleted address was main.
+     * 
+     * @param patientId UUID of the patient
+     * @param addressId UUID of the PatientAddress to delete
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or address not found
+     */
+    PatientPersonalDTO deletePatientAddress(UUID patientId, UUID addressId);
+
+    /**
+     * Delete a patient emergency contact.
+     * Auto-promotes first remaining contact as primary if deleted contact was primary.
+     * 
+     * @param patientId UUID of the patient
+     * @param contactId UUID of the PatientContact to delete
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or contact not found
+     */
+    PatientPersonalDTO deletePatientContact(UUID patientId, UUID contactId);
+
+    /**
+     * Get full historical Program tab data for a patient, including
+     * programs, payers, services, and authorizations.
+     *
+     * @param patientId UUID of the patient
+     * @return aggregated program tab DTO
+     */
+    PatientProgramDTO getPatientProgram(UUID patientId);
 }

@@ -30,7 +30,8 @@ public class PatientDataLoader {
     private final ProgramRepository programRepository;
     private final PatientProgramRepository patientProgramRepository;
     private final ServiceTypeRepository serviceTypeRepository;
-    private final ServiceAuthorizationRepository serviceAuthorizationRepository;
+    private final AuthorizationRepository authorizationRepository;
+    private final PatientServiceRepository patientServiceRepository;
     private final ISPRepository ispRepository;
     private final ISPGoalRepository ispGoalRepository;
     private final ISPTaskRepository ispTaskRepository;
@@ -42,19 +43,35 @@ public class PatientDataLoader {
         if (patientRepository.count() == 0 && officeRepository.count() > 0) {
             Faker faker = new Faker();
             Office office = officeRepository.findAll().get(0);
+            
+            // Load programs first
+            List<Program> programs = loadProgramData();
+            
+            // Load payers matching programs (ODP -> PAODP, etc.)
+            List<Payer> payers = loadPayerData(programs);
+            
+            // Load patient data
             List<Patient> patients = loadPatientData(faker, office);
             List<Address> addresses = loadAddressData(faker);
             loadPatientAddressData(faker, patients, addresses);
             loadPatientContactData(faker, patients, addresses);
-            List<Payer> payers = loadPayerData(faker);
-            List<Program> programs = loadProgramData();
+            
+            // Link patients to programs and payers
             List<PatientPayer> patientPayers = loadPatientPayerData(faker, patients, payers);
-            loadPatientProgramData(faker, patients, programs);
+            loadPatientProgramData(faker, patients, programs, payers);
+            
+            // Load services and authorizations
             List<ServiceType> serviceTypes = serviceTypeRepository.findAll();
-            List<ServiceAuthorization> serviceAuthorizations = loadServiceAuthorizationData(faker, patientPayers, serviceTypes);
+            List<PatientService> patientServices = loadPatientServiceData(faker, patients, serviceTypes);
+            java.util.Map<java.util.UUID, java.util.List<PatientService>> patientIdToServices =
+                patientServices.stream().collect(java.util.stream.Collectors.groupingBy(ps -> ps.getPatient().getId()));
+            loadAuthorizationData(faker, patientPayers, patientIdToServices);
+            
+            // Load ISP data
             List<ISP> isps = loadIspData(faker, patients);
-            List<ISPGoal> ispGoals = loadIspGoalData(faker, isps, serviceAuthorizations);
+            List<ISPGoal> ispGoals = loadIspGoalData(faker, isps);
             loadIspTaskData(faker, ispGoals);
+            
             log.info("Patient data loaded.");
         } else {
             log.info("Patient data already exists or no offices found, skipping patient data loading.");
@@ -129,7 +146,20 @@ public class PatientDataLoader {
             PatientAddress patientAddress = new PatientAddress();
             patientAddress.setPatient(patients.get(i));
             patientAddress.setAddress(addresses.get(i));
-            patientAddress.setPhone(faker.phoneNumber().cellPhone());
+            String rawPhone = faker.phoneNumber().cellPhone();
+            // Remove non-digits
+            String digits = rawPhone.replaceAll("\\D", "");
+            // Ensure at least 10 digits
+            String formattedPhone;
+            if (digits.length() >= 10) {
+                String area = digits.substring(0, 3);
+                String prefix = digits.substring(3, 6);
+                String line = digits.substring(6, 10);
+                formattedPhone = String.format("(%s) %s-%s", area, prefix, line);
+            } else {
+                formattedPhone = "(000) 000-0000";
+            }
+            patientAddress.setPhone(formattedPhone);
             patientAddress.setIsMain(true);
             patientAddresses.add(patientAddress);
         }
@@ -159,15 +189,30 @@ public class PatientDataLoader {
         patientContactRepository.saveAll(patientContacts);
     }
 
-    private List<Payer> loadPayerData(Faker faker) {
+    private List<Payer> loadPayerData(List<Program> programs) {
+        log.info("Creating payers matching programs...");
         List<Payer> payers = new ArrayList<>();
-        log.info("Generating 10 payers for variety...");
-        for (int i = 0; i < 10; i++) {
-            Payer payer = new Payer();
-            payer.setPayerName(faker.company().name());
-            payer.setPayerIdentifier(faker.numerify("PAYER-#####"));
-            payers.add(payer);
+        
+        // Create payers matching each program
+        for (Program program : programs) {
+            String programIdentifier = program.getProgramIdentifier();
+            String payerIdentifier = "PA" + programIdentifier; // ODP -> PAODP, OLTL -> PAOLTL, OMAP -> PAOMAP
+            String payerName = "Pennsylvania " + programIdentifier;
+            
+            if (payerRepository.findByPayerIdentifier(payerIdentifier).isEmpty()) {
+                Payer payer = new Payer();
+                payer.setPayerIdentifier(payerIdentifier);
+                payer.setPayerName(payerName);
+                payer.setType(com.example.backend.model.enums.PayerType.MEDICAID);
+                payer.setIsActive(true);
+                payers.add(payer);
+                log.info("Created payer: {} - {} (matched with program: {})", payerIdentifier, payerName, programIdentifier);
+            } else {
+                payers.add(payerRepository.findByPayerIdentifier(payerIdentifier).get());
+                log.info("Payer {} already exists, using existing payer", payerIdentifier);
+            }
         }
+        
         return payerRepository.saveAll(payers);
     }
 
@@ -209,35 +254,72 @@ public class PatientDataLoader {
         return patientPayerRepository.saveAll(patientPayers);
     }
 
-    private void loadPatientProgramData(Faker faker, List<Patient> patients, List<Program> programs) {
+    private void loadPatientProgramData(Faker faker, List<Patient> patients, List<Program> programs, List<Payer> payers) {
         List<PatientProgram> patientPrograms = new ArrayList<>();
+        
+        // Create a map to easily find payer by program identifier
+        java.util.Map<String, Payer> programToPayerMap = new java.util.HashMap<>();
+        for (int i = 0; i < programs.size() && i < payers.size(); i++) {
+            programToPayerMap.put(programs.get(i).getProgramIdentifier(), payers.get(i));
+        }
+        
         for (Patient patient : patients) {
             PatientProgram patientProgram = new PatientProgram();
             patientProgram.setPatient(patient);
-            patientProgram.setProgram(programs.get(faker.random().nextInt(programs.size())));
+            Program selectedProgram = programs.get(faker.random().nextInt(programs.size()));
+            patientProgram.setProgram(selectedProgram);
             patientProgram.setEnrollmentDate(faker.date().past(365, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             patientProgram.setStatusEffectiveDate(faker.date().past(30, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             patientProgram.setSocDate(faker.date().past(30, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             patientProgram.setEocDate(faker.date().future(335, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             patientPrograms.add(patientProgram);
+            
+            log.debug("Assigned patient {} to program {} with matching payer {}", 
+                patient.getId(), 
+                selectedProgram.getProgramIdentifier(), 
+                programToPayerMap.get(selectedProgram.getProgramIdentifier()).getPayerIdentifier());
         }
         patientProgramRepository.saveAll(patientPrograms);
     }
 
-    private List<ServiceAuthorization> loadServiceAuthorizationData(Faker faker, List<PatientPayer> patientPayers, List<ServiceType> serviceTypes) {
-        List<ServiceAuthorization> serviceAuthorizations = new ArrayList<>();
+    private List<PatientService> loadPatientServiceData(Faker faker, List<Patient> patients, List<ServiceType> serviceTypes) {
+        List<PatientService> mappings = new ArrayList<>();
+        if (serviceTypes.isEmpty()) {
+            return mappings;
+        }
+        for (Patient patient : patients) {
+            ServiceType randomService = serviceTypes.get(faker.random().nextInt(serviceTypes.size()));
+            PatientService ps = new PatientService();
+            ps.setPatient(patient);
+            ps.setServiceType(randomService);
+            ps.setStartDate(faker.date().past(120, java.util.concurrent.TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+            ps.setEndDate(faker.random().nextBoolean() ? null : faker.date().future(240, java.util.concurrent.TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+            mappings.add(ps);
+        }
+        return patientServiceRepository.saveAll(mappings);
+    }
+
+    private void loadAuthorizationData(Faker faker, List<PatientPayer> patientPayers, java.util.Map<java.util.UUID, java.util.List<PatientService>> patientIdToServices) {
+        List<Authorization> authorizations = new ArrayList<>();
         int counter = 0;
         for (PatientPayer patientPayer : patientPayers) {
-            ServiceAuthorization auth = new ServiceAuthorization();
+            Authorization auth = new Authorization();
             auth.setPatientPayer(patientPayer);
-            auth.setServiceType(serviceTypes.get(faker.random().nextInt(serviceTypes.size())));
+            auth.setPatient(patientPayer.getPatient());
+            java.util.List<PatientService> services = patientIdToServices.getOrDefault(patientPayer.getPatient().getId(), java.util.Collections.emptyList());
+            if (!services.isEmpty()) {
+                auth.setPatientService(services.get(0));
+            } else {
+                // Skip creating authorization if no patient_service mapping exists to satisfy NOT NULL constraint
+                continue;
+            }
             auth.setAuthorizationNo(String.format("AUTH-%05d-%d", faker.number().numberBetween(1, 99999), counter++));
             auth.setMaxUnits(BigDecimal.valueOf(faker.number().randomDouble(2, 10, 100)));
             auth.setStartDate(faker.date().past(90, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             auth.setEndDate(faker.date().future(90, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-            serviceAuthorizations.add(auth);
+            authorizations.add(auth);
         }
-        return serviceAuthorizationRepository.saveAll(serviceAuthorizations);
+        authorizationRepository.saveAll(authorizations);
     }
 
     private List<ISP> loadIspData(Faker faker, List<Patient> patients) {
@@ -252,7 +334,7 @@ public class PatientDataLoader {
         return ispRepository.saveAll(isps);
     }
 
-    private List<ISPGoal> loadIspGoalData(Faker faker, List<ISP> isps, List<ServiceAuthorization> serviceAuthorizations) {
+    private List<ISPGoal> loadIspGoalData(Faker faker, List<ISP> isps) {
         List<ISPGoal> ispGoals = new ArrayList<>();
         for (ISP isp : isps) {
             for (int i = 0; i < 3; i++) {
@@ -260,7 +342,6 @@ public class PatientDataLoader {
                 goal.setIsp(isp);
                 goal.setTitle(faker.company().catchPhrase());
                 goal.setDescription(faker.company().bs());
-                goal.setServiceAuthorization(serviceAuthorizations.get(faker.random().nextInt(serviceAuthorizations.size())));
                 ispGoals.add(goal);
             }
         }
