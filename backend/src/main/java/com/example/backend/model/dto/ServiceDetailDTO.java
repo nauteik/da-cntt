@@ -4,10 +4,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 public class ServiceDetailDTO {
+
+    private UUID patientServiceId;
 
     private String serviceName;
 

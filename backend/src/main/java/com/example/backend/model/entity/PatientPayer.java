@@ -32,9 +32,6 @@ public class PatientPayer extends BaseEntity {
     @Column(name = "client_payer_id", nullable = false)
     private String clientPayerId;
 
-    @Column(name = "medicaid_id")
-    private String medicaidId;
-
     @Column(name = "rank")
     private Integer rank;
 

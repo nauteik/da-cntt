@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface PatientPayerRepository extends JpaRepository<PatientPayer, UUID> {
-    List<PatientPayer> findAllByPatientIdOrderByStartDateDesc(UUID patientId);
+    List<PatientPayer> findAllByPatientIdOrderByStartDateAsc(UUID patientId);
 }

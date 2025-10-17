@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Type;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -27,7 +28,7 @@ public class PatientProgram extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
-    private AppUser supervisor;
+    private Staff supervisor;
 
     @Column(name = "enrollment_date")
     private LocalDate enrollmentDate;
@@ -49,7 +50,7 @@ public class PatientProgram extends BaseEntity {
 
     @Type(JsonBinaryType.class)
     @Column(name = "reason_for_change", columnDefinition = "jsonb")
-    private Map<String, Object> reasonForChange;
+    private List<String> reasonForChange;
 
     @Type(JsonBinaryType.class)
     @Column(name = "meta", columnDefinition = "jsonb")

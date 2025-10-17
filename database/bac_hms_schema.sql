@@ -377,7 +377,6 @@ CREATE TABLE patient_payer (
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     payer_id uuid NOT NULL REFERENCES payer(id) ON DELETE RESTRICT,
     client_payer_id text NOT NULL,
-    medicaid_id text,
     rank integer DEFAULT 1,
     group_no text,
     start_date date,
@@ -523,7 +522,7 @@ CREATE TABLE template_event (
     weekday smallint NOT NULL CHECK (weekday BETWEEN 0 AND 6),  -- 0=Sun, 6=Sat
     start_time time NOT NULL,
     end_time time NOT NULL,
-    service_type_id uuid REFERENCES service_type(id) ON DELETE SET NULL,
+    authorization_id uuid REFERENCES authorizations(id) ON DELETE SET NULL,
     event_code text,  -- Ví dụ: W1726, W7060 từ hình ảnh
     planned_units integer NOT NULL CHECK (planned_units >= 0),
     meta jsonb NOT NULL DEFAULT '{}'::jsonb,  -- Lưu thêm (ví dụ: tổng giờ, tổng units theo ngày)
@@ -543,7 +542,7 @@ CREATE TABLE schedule_event (
     event_date date NOT NULL,
     start_at timestamptz NOT NULL,
     end_at timestamptz NOT NULL,
-    service_type_id uuid REFERENCES service_type(id) ON DELETE SET NULL,
+    authorization_id uuid REFERENCES authorizations(id) ON DELETE SET NULL,
     event_code text,
     status text NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'PLANNED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')),
     planned_units integer NOT NULL CHECK (planned_units >= 0),
@@ -952,7 +951,7 @@ CREATE TABLE patient_program (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     program_id uuid NOT NULL REFERENCES program(id) ON DELETE RESTRICT,
-    supervisor_id uuid REFERENCES app_user(id) ON DELETE SET NULL,
+    supervisor_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     enrollment_date date,
     status_effective_date date NOT NULL,
     soc_date date,

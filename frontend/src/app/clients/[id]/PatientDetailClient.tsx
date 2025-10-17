@@ -7,6 +7,7 @@ import { usePatientHeader, usePatientPersonal, usePatientProgram } from "@/hooks
 import PatientHeader from "@/components/patients/PatientHeader";
 import PatientPersonal from "@/components/patients/PatientPersonal";
 import PatientProgram from "@/components/patients/PatientProgram";
+import PatientSchedule from "@/components/patients/PatientSchedule";
 import TabLoading from "@/components/common/TabLoading";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import InlineError from "@/components/common/InlineError";
@@ -99,17 +100,13 @@ export default function PatientDetailClient({
           />
         </div>
       ) : (
-        <PatientProgram patient={programData!} />
+        <PatientProgram patient={programData!} patientId={patientId} />
       ),
     },
     {
       key: "schedule",
       label: "Schedule",
-      children: (
-        <div className="min-h-[600px] flex items-center justify-center p-12 text-center text-theme-secondary text-base">
-          Coming soon...
-        </div>
-      ),
+      children: <PatientSchedule patientId={patientId} />,
     },
     {
       key: "notes",

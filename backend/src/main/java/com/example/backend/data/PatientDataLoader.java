@@ -248,7 +248,7 @@ public class PatientDataLoader {
             PatientPayer patientPayer = new PatientPayer();
             patientPayer.setPatient(patient);
             patientPayer.setPayer(payers.get(faker.random().nextInt(payers.size())));
-            patientPayer.setClientPayerId(faker.numerify("CP-#####"));
+            patientPayer.setClientPayerId(patient.getMedicaidId());
             patientPayers.add(patientPayer);
         }
         return patientPayerRepository.saveAll(patientPayers);

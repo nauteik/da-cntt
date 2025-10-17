@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -29,7 +29,7 @@ public class ProgramDetailDTO {
 
     private LocalDate eligibilityEndDate;
 
-    private Map<String, Object> reasonForChange;
+    private List<String> reasonForChange;
 }
 
 

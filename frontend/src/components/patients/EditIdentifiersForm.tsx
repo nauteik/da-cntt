@@ -105,7 +105,7 @@ export default function EditIdentifiersForm({
     >
       <div className="flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center px-8 py-6 border-b border-theme bg-theme-surface">
+        <div className="flex justify-between items-center px-8 py-4 border-b border-theme bg-theme-surface">
           <h2 className="text-xl font-semibold text-theme-primary m-0">
             Edit Identifiers
           </h2>

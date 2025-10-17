@@ -121,10 +121,11 @@ export interface ProgramDetailDTO {
   socDate?: string;
   eligibilityBeginDate?: string;
   eligibilityEndDate?: string;
-  reasonForChange?: Record<string, unknown> | null;
+  reasonForChange?: string[] | null;
 }
 
 export interface PayerDetailDTO {
+  patientPayerId?: string;
   payerName?: string;
   payerIdentifier?: string;
   rank?: number;
@@ -132,10 +133,10 @@ export interface PayerDetailDTO {
   startDate?: string;
   groupNo?: string;
   endDate?: string;
-  medicaidId?: string;
 }
 
 export interface ServiceDetailDTO {
+  patientServiceId?: string;
   serviceName?: string;
   serviceCode?: string;
   startDate?: string;
@@ -143,6 +144,7 @@ export interface ServiceDetailDTO {
 }
 
 export interface AuthorizationDTO {
+  authorizationId?: string;
   payerIdentifier?: string;
   serviceCode?: string;
   authorizationNo?: string;
@@ -157,6 +159,30 @@ export interface AuthorizationDTO {
   totalMissed?: number;
   totalRemaining?: number;
   meta?: Record<string, unknown> | null;
+}
+
+export interface CreateAuthorizationDTO {
+  patientServiceId: string;
+  patientPayerId: string;
+  authorizationNo: string;
+  eventCode?: string;
+  format?: string;
+  maxUnits: number;
+  startDate: string;
+  endDate?: string;
+  comments?: string;
+}
+
+export interface UpdateAuthorizationDTO {
+  patientServiceId?: string;
+  patientPayerId?: string;
+  authorizationNo?: string;
+  eventCode?: string;
+  format?: string;
+  maxUnits?: number;
+  startDate?: string;
+  endDate?: string;
+  comments?: string;
 }
 
 export interface PatientProgramDTO {
@@ -175,4 +201,25 @@ export interface StaffSelectDTO {
 export interface ProgramSelectDTO {
   id: string;
   programIdentifier: string;
+}
+
+export interface ServiceTypeSelectDTO {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface PayerSelectDTO {
+  id: string;
+  payerIdentifier: string;
+  payerName: string;
+}
+
+export interface PayerAuthorizationDTO {
+  serviceCode?: string;
+  authorizationNo?: string;
+  format?: string;
+  maxUnits?: number;
+  startDate?: string;
+  endDate?: string;
 }

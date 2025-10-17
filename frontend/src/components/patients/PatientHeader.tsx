@@ -51,9 +51,9 @@ export default function PatientHeader({ patient }: PatientHeaderProps) {
             <span className="text-theme-primary font-normal">
               {patient.programName || "—"}
             </span>
-            <span className="text-black font-bold"> | </span>
+            <span className="text-black"> | </span>
             <span
-              className="font-bold"
+              className="font-[550]"
               style={{ color: getStatusColor(patient.status) }}
             >
               {patient.status}

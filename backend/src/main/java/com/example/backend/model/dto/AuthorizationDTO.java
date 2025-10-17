@@ -6,10 +6,13 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 public class AuthorizationDTO {
+
+    private UUID authorizationId;
 
     private String payerIdentifier;
 

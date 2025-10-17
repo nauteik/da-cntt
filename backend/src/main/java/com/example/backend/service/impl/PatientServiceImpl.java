@@ -14,10 +14,18 @@ import com.example.backend.model.dto.UpdatePatientPersonalDTO;
 import com.example.backend.model.dto.UpdatePatientAddressDTO;
 import com.example.backend.model.dto.UpdatePatientContactDTO;
 import com.example.backend.model.dto.PatientProgramDTO;
+import com.example.backend.model.dto.UpdatePatientProgramDTO;
+import com.example.backend.model.dto.CreatePatientServiceDTO;
+import com.example.backend.model.dto.UpdatePatientServiceDTO;
 import com.example.backend.model.dto.ProgramDetailDTO;
 import com.example.backend.model.dto.PayerDetailDTO;
 import com.example.backend.model.dto.ServiceDetailDTO;
 import com.example.backend.model.dto.AuthorizationDTO;
+import com.example.backend.model.dto.PayerAuthorizationDTO;
+import com.example.backend.model.dto.CreatePatientPayerDTO;
+import com.example.backend.model.dto.UpdatePatientPayerDTO;
+import com.example.backend.model.dto.CreateAuthorizationDTO;
+import com.example.backend.model.dto.UpdateAuthorizationDTO;
 import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.Address;
 import com.example.backend.model.entity.PatientContact;
@@ -26,6 +34,7 @@ import com.example.backend.repository.PatientRepository;
 import com.example.backend.repository.PatientContactRepository;
 import com.example.backend.repository.AddressRepository;
 import com.example.backend.repository.AppUserRepository;
+import com.example.backend.repository.StaffRepository;
 import com.example.backend.repository.OfficeRepository;
 import com.example.backend.repository.PayerRepository;
 import com.example.backend.repository.ProgramRepository;
@@ -33,9 +42,11 @@ import com.example.backend.repository.PatientProgramRepository;
 import com.example.backend.repository.PatientPayerRepository;
 import com.example.backend.repository.PatientServiceRepository;
 import com.example.backend.repository.AuthorizationRepository;
+import com.example.backend.repository.ServiceTypeRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.example.backend.repository.PatientAddressRepository;
 import com.example.backend.model.entity.AppUser;
+import com.example.backend.model.entity.Staff;
 import com.example.backend.model.entity.PatientAddress;
 import com.example.backend.model.entity.Office;
 import com.example.backend.model.entity.Payer;
@@ -44,7 +55,6 @@ import com.example.backend.model.entity.UserOffice;
 import com.example.backend.model.entity.PatientProgram;
 import com.example.backend.model.entity.PatientPayer;
 import com.example.backend.model.enums.PatientStatus;
-import com.example.backend.service.PatientService;
 import java.lang.Boolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +65,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -67,13 +79,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class PatientServiceImpl implements PatientService {
+public class PatientServiceImpl implements com.example.backend.service.PatientService {
 
     private final PatientRepository patientRepository;
     private final ProgramRepository programRepository;
     private final PayerRepository payerRepository;
     private final OfficeRepository officeRepository;
     private final AppUserRepository appUserRepository;
+    private final StaffRepository staffRepository;
     private final PatientProgramRepository patientProgramRepository;
     private final PatientPayerRepository patientPayerRepository;
     private final PatientServiceRepository patientServiceRepository;
@@ -81,6 +94,7 @@ public class PatientServiceImpl implements PatientService {
     private final PatientAddressRepository patientAddressRepository;
     private final PatientContactRepository patientContactRepository;
     private final AddressRepository addressRepository;
+    private final ServiceTypeRepository serviceTypeRepository;
     
     // Whitelist of allowed sort fields to prevent SQL injection via sort parameter
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
@@ -352,7 +366,6 @@ public class PatientServiceImpl implements PatientService {
         patientPayer.setPatient(savedPatient);
         patientPayer.setPayer(payer);
         patientPayer.setClientPayerId(createPatientDTO.getMedicaidId()); // Using medicaidId as clientPayerId for now
-        patientPayer.setMedicaidId(createPatientDTO.getMedicaidId());
         patientPayer.setRank(1); // Primary payer
         patientPayer.setStartDate(LocalDate.now());
         patientPayerRepository.save(patientPayer);
@@ -898,9 +911,9 @@ public class PatientServiceImpl implements PatientService {
                 ProgramDetailDTO p = new ProgramDetailDTO();
                 p.setProgramIdentifier(pp.getProgram() != null ? pp.getProgram().getProgramIdentifier() : null);
                 p.setSupervisorName(pp.getSupervisor() != null
-                        ? (pp.getSupervisor().getStaff() != null
-                            ? pp.getSupervisor().getStaff().getFullName()
-                            : pp.getSupervisor().getEmail())
+                        ? (pp.getSupervisor().getFirstName() != null && pp.getSupervisor().getLastName() != null
+                            ? pp.getSupervisor().getFirstName() + " " + pp.getSupervisor().getLastName()
+                            : null)
                         : null);
                 p.setEnrollmentDate(pp.getEnrollmentDate());
                 p.setEocDate(pp.getEocDate());
@@ -918,10 +931,11 @@ public class PatientServiceImpl implements PatientService {
 
         // Payers
         List<PayerDetailDTO> payerDetails = patientPayerRepository
-            .findAllByPatientIdOrderByStartDateDesc(patientId)
+            .findAllByPatientIdOrderByStartDateAsc(patientId)
             .stream()
             .map(pp -> {
                 PayerDetailDTO p = new PayerDetailDTO();
+                p.setPatientPayerId(pp.getId());
                 p.setPayerName(pp.getPayer() != null ? pp.getPayer().getPayerName() : null);
                 p.setPayerIdentifier(pp.getPayer() != null ? pp.getPayer().getPayerIdentifier() : null);
                 p.setRank(pp.getRank());
@@ -929,7 +943,6 @@ public class PatientServiceImpl implements PatientService {
                 p.setStartDate(pp.getStartDate());
                 p.setGroupNo(pp.getGroupNo());
                 p.setEndDate(pp.getEndDate());
-                p.setMedicaidId(pp.getMedicaidId());
                 return p;
             })
             .collect(java.util.stream.Collectors.toList());
@@ -941,6 +954,7 @@ public class PatientServiceImpl implements PatientService {
             .stream()
             .map(ps -> {
                 ServiceDetailDTO s = new ServiceDetailDTO();
+                s.setPatientServiceId(ps.getId());
                 s.setServiceName(ps.getServiceType() != null ? ps.getServiceType().getName() : null);
                 s.setServiceCode(ps.getServiceType() != null ? ps.getServiceType().getCode() : null);
                 s.setStartDate(ps.getStartDate());
@@ -956,6 +970,7 @@ public class PatientServiceImpl implements PatientService {
             .stream()
             .map(a -> {
                 AuthorizationDTO ad = new AuthorizationDTO();
+                ad.setAuthorizationId(a.getId());
                 ad.setPayerIdentifier(a.getPatientPayer() != null && a.getPatientPayer().getPayer() != null
                         ? a.getPatientPayer().getPayer().getPayerIdentifier()
                         : null);
@@ -981,4 +996,524 @@ public class PatientServiceImpl implements PatientService {
 
         return dto;
     }
- }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO updatePatientProgram(UUID patientId, UpdatePatientProgramDTO updateDTO) {
+        log.info("Updating program for patient ID: {}", patientId);
+
+        // Validate patient exists
+        Patient patient = patientRepository.findById(patientId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        // Validate program exists
+        Program program = programRepository.findById(updateDTO.getProgramId())
+            .orElseThrow(() -> new ResourceNotFoundException("Program", updateDTO.getProgramId()));
+
+        // Validate supervisor if provided
+        Staff supervisor = null;
+        if (updateDTO.getSupervisorId() != null) {
+            supervisor = staffRepository.findById(updateDTO.getSupervisorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Supervisor", updateDTO.getSupervisorId()));
+        }
+
+        // Find existing PatientProgram or create new
+        PatientProgram patientProgram = patientProgramRepository.findByPatientId(patientId)
+            .orElseGet(() -> {
+                PatientProgram newPp = new PatientProgram();
+                newPp.setPatient(patient);
+                return newPp;
+            });
+
+        // Update fields
+        patientProgram.setProgram(program);
+        patientProgram.setSupervisor(supervisor);
+        
+        if (updateDTO.getEnrollmentDate() != null) {
+            patientProgram.setEnrollmentDate(updateDTO.getEnrollmentDate());
+        }
+        
+        patientProgram.setStatusEffectiveDate(updateDTO.getStatusEffectiveDate());
+        
+        if (updateDTO.getSocDate() != null) {
+            patientProgram.setSocDate(updateDTO.getSocDate());
+        }
+        
+        if (updateDTO.getEocDate() != null) {
+            patientProgram.setEocDate(updateDTO.getEocDate());
+        }
+        
+        if (updateDTO.getEligibilityBeginDate() != null) {
+            patientProgram.setEligibilityBeginDate(updateDTO.getEligibilityBeginDate());
+        }
+        
+        if (updateDTO.getEligibilityEndDate() != null) {
+            patientProgram.setEligibilityEndDate(updateDTO.getEligibilityEndDate());
+        }
+        
+        if (updateDTO.getReasonForChange() != null && !updateDTO.getReasonForChange().isBlank()) {
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+            String entry = updateDTO.getReasonForChange().trim() + " - " + LocalDate.now().format(fmt);
+        
+            List<String> reasons = patientProgram.getReasonForChange();
+            if (reasons == null) {
+                reasons = new ArrayList<>();
+            }
+            reasons.add(entry);
+            patientProgram.setReasonForChange(reasons);
+        }
+
+        // Save
+        patientProgramRepository.save(patientProgram);
+
+        log.info("Successfully updated program for patient ID: {}", patientId);
+
+        // Return updated program data using existing method
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO createPatientService(UUID patientId, CreatePatientServiceDTO createDTO) {
+        log.info("Creating service for patient ID: {}", patientId);
+
+        // Validate patient exists
+        Patient patient = patientRepository.findById(patientId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        // Validate service type exists
+        com.example.backend.model.entity.ServiceType serviceType = serviceTypeRepository.findById(createDTO.getServiceTypeId())
+            .orElseThrow(() -> new ResourceNotFoundException("Service Type", createDTO.getServiceTypeId()));
+
+        // Validate dates
+        if (createDTO.getEndDate() != null && 
+            createDTO.getStartDate().isAfter(createDTO.getEndDate())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
+        // Create new patient service
+        com.example.backend.model.entity.PatientService patientService = new com.example.backend.model.entity.PatientService();
+        patientService.setPatient(patient);
+        patientService.setServiceType(serviceType);
+        patientService.setStartDate(createDTO.getStartDate());
+        patientService.setEndDate(createDTO.getEndDate());
+
+        // Save
+        patientServiceRepository.save(patientService);
+
+        log.info("Successfully created service for patient ID: {}", patientId);
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO updatePatientService(UUID patientId, UUID patientServiceId, UpdatePatientServiceDTO updateDTO) {
+        log.info("Updating service ID: {} for patient ID: {}", patientServiceId, patientId);
+
+        // Validate patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+
+        // Find patient service and validate it belongs to patient
+        com.example.backend.model.entity.PatientService patientService = patientServiceRepository.findById(patientServiceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient Service", patientServiceId));
+
+        if (!patientService.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Service does not belong to the specified patient");
+        }
+
+        // Update service type if provided
+        if (updateDTO.getServiceTypeId() != null) {
+            com.example.backend.model.entity.ServiceType serviceType = serviceTypeRepository.findById(updateDTO.getServiceTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Service Type", updateDTO.getServiceTypeId()));
+            patientService.setServiceType(serviceType);
+        }
+
+        // Update dates if provided
+        if (updateDTO.getStartDate() != null) {
+            patientService.setStartDate(updateDTO.getStartDate());
+        }
+        
+        if (updateDTO.getEndDate() != null) {
+            patientService.setEndDate(updateDTO.getEndDate());
+        }
+
+        // Validate dates after update
+        if (patientService.getStartDate() != null && patientService.getEndDate() != null &&
+            patientService.getStartDate().isAfter(patientService.getEndDate())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
+        // Save
+        patientServiceRepository.save(patientService);
+
+        log.info("Successfully updated service ID: {} for patient ID: {}", patientServiceId, patientId);
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO deletePatientService(UUID patientId, UUID patientServiceId) {
+        log.info("Deleting service ID: {} for patient ID: {}", patientServiceId, patientId);
+
+        // Validate patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+
+        // Find patient service and validate it belongs to patient
+        com.example.backend.model.entity.PatientService patientService = patientServiceRepository.findById(patientServiceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient Service", patientServiceId));
+
+        if (authorizationRepository.existsByPatientServiceId(patientServiceId)) {
+            throw new ConflictException("Service is associated with an authorization and cannot be deleted");
+        }
+
+        // Delete
+        patientServiceRepository.delete(patientService);
+
+        log.info("Successfully deleted service ID: {} for patient ID: {}", patientServiceId, patientId);
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PayerAuthorizationDTO> getPatientPayerAuthorizations(UUID patientId, UUID patientPayerId) {
+        log.info("Getting authorizations for patient payer ID: {} of patient ID: {}", patientPayerId, patientId);
+
+        // Validate patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+
+        // Find patient payer and validate it belongs to patient
+        PatientPayer patientPayer = patientPayerRepository.findById(patientPayerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient Payer", patientPayerId));
+
+        if (!patientPayer.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Patient payer does not belong to the specified patient");
+        }
+
+        // Fetch authorizations
+        List<com.example.backend.model.entity.Authorization> authorizations = 
+            authorizationRepository.findAllByPatientPayerIdOrderByStartDateDesc(patientPayerId);
+
+        // Map to DTO
+        List<PayerAuthorizationDTO> result = authorizations.stream()
+            .map(auth -> {
+                PayerAuthorizationDTO dto = new PayerAuthorizationDTO();
+                dto.setServiceCode(auth.getPatientService() != null && auth.getPatientService().getServiceType() != null
+                    ? auth.getPatientService().getServiceType().getCode()
+                    : null);
+                dto.setAuthorizationNo(auth.getAuthorizationNo());
+                dto.setFormat(auth.getFormat());
+                dto.setMaxUnits(auth.getMaxUnits());
+                dto.setStartDate(auth.getStartDate());
+                dto.setEndDate(auth.getEndDate());
+                return dto;
+            })
+            .collect(Collectors.toList());
+
+        log.info("Found {} authorizations for patient payer ID: {}", result.size(), patientPayerId);
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO createPatientPayer(UUID patientId, CreatePatientPayerDTO createDTO) {
+        log.info("Creating payer for patient ID: {}", patientId);
+
+        // Validate patient exists
+        Patient patient = patientRepository.findById(patientId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        // Validate payer exists and is active
+        Payer payer = payerRepository.findById(createDTO.getPayerId())
+            .orElseThrow(() -> new ResourceNotFoundException("Payer", createDTO.getPayerId()));
+
+        if (!payer.isActivePayer()) {
+            throw new IllegalArgumentException("Payer '" + payer.getPayerName() + "' is not active");
+        }
+
+        // Validate dates
+        if (createDTO.getEndDate() != null && createDTO.getStartDate() != null &&
+            createDTO.getStartDate().isAfter(createDTO.getEndDate())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
+        // Create new patient payer
+        PatientPayer patientPayer = new PatientPayer();
+        patientPayer.setPatient(patient);
+        patientPayer.setPayer(payer);
+        patientPayer.setClientPayerId(patient.getMedicaidId()); // Set from patient's medicaid ID
+        patientPayer.setRank(createDTO.getRank());
+        patientPayer.setGroupNo(createDTO.getGroupNo());
+        patientPayer.setStartDate(createDTO.getStartDate());
+        patientPayer.setEndDate(createDTO.getEndDate());
+
+        // Save (DB will enforce unique constraint on patient_id + payer_id)
+        try {
+            patientPayerRepository.save(patientPayer);
+            log.info("Successfully created payer for patient ID: {}", patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while creating payer for patient {}: {}", patientId, ex.getMessage());
+            throw new ConflictException("Patient already has this payer assigned");
+        }
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO updatePatientPayer(UUID patientId, UUID patientPayerId, UpdatePatientPayerDTO updateDTO) {
+        log.info("Updating payer ID: {} for patient ID: {}", patientPayerId, patientId);
+
+        // Validate patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+
+        // Find patient payer and validate it belongs to patient
+        PatientPayer patientPayer = patientPayerRepository.findById(patientPayerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient Payer", patientPayerId));
+
+        if (!patientPayer.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Patient payer does not belong to the specified patient");
+        }
+
+        // Update payer if provided
+        if (updateDTO.getPayerId() != null) {
+            Payer payer = payerRepository.findById(updateDTO.getPayerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Payer", updateDTO.getPayerId()));
+            
+            if (!payer.isActivePayer()) {
+                throw new IllegalArgumentException("Payer '" + payer.getPayerName() + "' is not active");
+            }
+            
+            patientPayer.setPayer(payer);
+        }
+
+        // Update other fields if provided
+        if (updateDTO.getRank() != null) {
+            patientPayer.setRank(updateDTO.getRank());
+        }
+        
+        if (updateDTO.getGroupNo() != null) {
+            patientPayer.setGroupNo(updateDTO.getGroupNo());
+        }
+
+        if (updateDTO.getStartDate() != null) {
+            patientPayer.setStartDate(updateDTO.getStartDate());
+        }
+        
+        if (updateDTO.getEndDate() != null) {
+            patientPayer.setEndDate(updateDTO.getEndDate());
+        }
+
+        // Validate dates after update
+        if (patientPayer.getStartDate() != null && patientPayer.getEndDate() != null &&
+            patientPayer.getStartDate().isAfter(patientPayer.getEndDate())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
+        // Save
+        try {
+            patientPayerRepository.save(patientPayer);
+            log.info("Successfully updated payer ID: {} for patient ID: {}", patientPayerId, patientId);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Data integrity violation while updating payer for patient {}: {}", patientId, ex.getMessage());
+            throw new ConflictException("Patient already has this payer assigned");
+        }
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO createAuthorization(UUID patientId, CreateAuthorizationDTO createDTO) {
+        log.info("Creating authorization for patient ID: {}", patientId);
+
+        // Validate patient exists
+        Patient patient = patientRepository.findById(patientId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        // Validate patient service exists and belongs to patient
+        com.example.backend.model.entity.PatientService patientService = patientServiceRepository.findById(createDTO.getPatientServiceId())
+            .orElseThrow(() -> new ResourceNotFoundException("Patient Service", createDTO.getPatientServiceId()));
+
+        if (!patientService.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Patient service does not belong to the specified patient");
+        }
+
+        // Validate patient payer exists and belongs to patient
+        PatientPayer patientPayer = patientPayerRepository.findById(createDTO.getPatientPayerId())
+            .orElseThrow(() -> new ResourceNotFoundException("Patient Payer", createDTO.getPatientPayerId()));
+
+        if (!patientPayer.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Patient payer does not belong to the specified patient");
+        }
+
+        // Check authorization number uniqueness
+        if (authorizationRepository.findByAuthorizationNo(createDTO.getAuthorizationNo()).isPresent()) {
+            throw new ConflictException("Authorization number '" + createDTO.getAuthorizationNo() + "' already exists");
+        }
+
+        // Validate dates
+        if (createDTO.getEndDate() != null && createDTO.getStartDate().isAfter(createDTO.getEndDate())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
+        // Create new authorization
+        com.example.backend.model.entity.Authorization authorization = new com.example.backend.model.entity.Authorization();
+        authorization.setPatient(patient);
+        authorization.setPatientService(patientService);
+        authorization.setPatientPayer(patientPayer);
+        authorization.setAuthorizationNo(createDTO.getAuthorizationNo());
+        authorization.setEventCode(createDTO.getEventCode());
+        authorization.setFormat(createDTO.getFormat() != null ? createDTO.getFormat() : "units");
+        authorization.setMaxUnits(createDTO.getMaxUnits());
+        authorization.setStartDate(createDTO.getStartDate());
+        authorization.setEndDate(createDTO.getEndDate());
+        authorization.setComments(createDTO.getComments());
+
+        // Save
+        authorizationRepository.save(authorization);
+
+        log.info("Successfully created authorization for patient ID: {}", patientId);
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO updateAuthorization(UUID patientId, UUID authorizationId, UpdateAuthorizationDTO updateDTO) {
+        log.info("Updating authorization ID: {} for patient ID: {}", authorizationId, patientId);
+
+        // Validate patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+
+        // Find authorization and validate it belongs to patient
+        com.example.backend.model.entity.Authorization authorization = authorizationRepository.findById(authorizationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Authorization", authorizationId));
+
+        if (!authorization.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Authorization does not belong to the specified patient");
+        }
+
+        // Update patient service if provided
+        if (updateDTO.getPatientServiceId() != null) {
+            com.example.backend.model.entity.PatientService patientService = patientServiceRepository.findById(updateDTO.getPatientServiceId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient Service", updateDTO.getPatientServiceId()));
+
+            if (!patientService.getPatient().getId().equals(patientId)) {
+                throw new IllegalArgumentException("Patient service does not belong to the specified patient");
+            }
+
+            authorization.setPatientService(patientService);
+        }
+
+        // Update patient payer if provided
+        if (updateDTO.getPatientPayerId() != null) {
+            PatientPayer patientPayer = patientPayerRepository.findById(updateDTO.getPatientPayerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient Payer", updateDTO.getPatientPayerId()));
+
+            if (!patientPayer.getPatient().getId().equals(patientId)) {
+                throw new IllegalArgumentException("Patient payer does not belong to the specified patient");
+            }
+
+            authorization.setPatientPayer(patientPayer);
+        }
+
+        // Update authorization number if provided and check uniqueness
+        if (updateDTO.getAuthorizationNo() != null) {
+            if (!authorization.getAuthorizationNo().equals(updateDTO.getAuthorizationNo())) {
+                // Check if new authorization number already exists
+                authorizationRepository.findByAuthorizationNo(updateDTO.getAuthorizationNo())
+                    .ifPresent(existingAuth -> {
+                        if (!existingAuth.getId().equals(authorizationId)) {
+                            throw new ConflictException("Authorization number '" + updateDTO.getAuthorizationNo() + "' already exists");
+                        }
+                    });
+            }
+            authorization.setAuthorizationNo(updateDTO.getAuthorizationNo());
+        }
+
+        // Update other fields if provided
+        if (updateDTO.getEventCode() != null) {
+            authorization.setEventCode(updateDTO.getEventCode());
+        }
+
+        if (updateDTO.getFormat() != null) {
+            authorization.setFormat(updateDTO.getFormat());
+        }
+
+        if (updateDTO.getMaxUnits() != null) {
+            authorization.setMaxUnits(updateDTO.getMaxUnits());
+        }
+
+        if (updateDTO.getStartDate() != null) {
+            authorization.setStartDate(updateDTO.getStartDate());
+        }
+
+        if (updateDTO.getEndDate() != null) {
+            authorization.setEndDate(updateDTO.getEndDate());
+        }
+
+        if (updateDTO.getComments() != null) {
+            authorization.setComments(updateDTO.getComments());
+        }
+
+        // Validate dates after update
+        if (authorization.getStartDate() != null && authorization.getEndDate() != null &&
+            authorization.getStartDate().isAfter(authorization.getEndDate())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
+        // Save
+        authorizationRepository.save(authorization);
+
+        log.info("Successfully updated authorization ID: {} for patient ID: {}", authorizationId, patientId);
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientProgramDTO deleteAuthorization(UUID patientId, UUID authorizationId) {
+        log.info("Deleting authorization ID: {} for patient ID: {}", authorizationId, patientId);
+
+        // Validate patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient", patientId);
+        }
+
+        // Find authorization and validate it belongs to patient
+        com.example.backend.model.entity.Authorization authorization = authorizationRepository.findById(authorizationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Authorization", authorizationId));
+
+        if (!authorization.getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Authorization does not belong to the specified patient");
+        }
+
+        // Delete
+        authorizationRepository.delete(authorization);
+
+        log.info("Successfully deleted authorization ID: {} for patient ID: {}", authorizationId, patientId);
+
+        // Return updated program data
+        return getPatientProgram(patientId);
+    }
+}
