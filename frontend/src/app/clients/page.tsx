@@ -82,15 +82,27 @@ async function getInitialClients(
 // Fetch active offices for the create client modal
 async function getActiveOffices(): Promise<OfficeDTO[]> {
   try {
-    // Use Next.js API route (BFF pattern) instead of calling backend directly
-    // This allows Server Components to make authenticated requests
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/offices/active`, {
-      cache: 'no-store', // Don't cache user-specific data
+    // TEMPORARY: Use direct backend call instead of BFF to test if cookie works
+    // This bypasses the BFF layer to test if the issue is with Next.js cookies()
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!backendUrl) {
+      console.error("Backend URL not configured");
+      return [];
+    }
+
+    console.log("Direct backend call to:", `${backendUrl}/api/office/active`);
+    
+    const response = await fetch(`${backendUrl}/api/office/active`, {
+      method: 'GET',
+      credentials: 'include', // This should send cookies
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
     });
 
     if (!response.ok) {
-      console.error("Failed to fetch offices:", response.statusText);
+      console.error("Failed to fetch offices:", response.status, response.statusText);
       return [];
     }
 
@@ -101,6 +113,7 @@ async function getActiveOffices(): Promise<OfficeDTO[]> {
       return [];
     }
 
+    console.log("Successfully fetched offices:", apiResponse.data.length);
     return apiResponse.data;
   } catch (error) {
     console.error("Error fetching offices:", error);

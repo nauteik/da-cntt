@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 /**
@@ -20,17 +20,22 @@ export async function GET() {
       // Log all available cookies for debugging
       const allCookies = cookieStore.getAll();
       console.log('[BFF] /api/offices/active - All cookies:', allCookies.map(c => c.name));
-    }
-
-    if (!accessToken) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'No authentication token found',
-          status: 401,
-        },
-        { status: 401 }
-      );
+      
+      // Try to get token from Authorization header as fallback
+      const headersList = await headers();
+      const authHeader = headersList.get('authorization');
+      console.log('[BFF] /api/offices/active - Authorization header:', authHeader ? 'Found' : 'Not found');
+      
+      if (!accessToken && !authHeader) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'No authentication token found',
+            status: 401,
+          },
+          { status: 401 }
+        );
+      }
     }
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -48,14 +53,28 @@ export async function GET() {
 
     console.log('[BFF] /api/offices/active - Calling backend:', `${backendUrl}/api/office/active`);
 
-    // Forward request to backend with authentication cookie
+    // Prepare headers for backend request
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Use cookie if available, otherwise try Authorization header
+    if (accessToken) {
+      backendHeaders['Cookie'] = `accessToken=${accessToken.value}`;
+      console.log('[BFF] /api/offices/active - Using cookie authentication');
+    } else {
+      const headersList = await headers();
+      const authHeader = headersList.get('authorization');
+      if (authHeader) {
+        backendHeaders['Authorization'] = authHeader;
+        console.log('[BFF] /api/offices/active - Using Authorization header authentication');
+      }
+    }
+
+    // Forward request to backend with authentication
     const response = await fetch(`${backendUrl}/api/office/active`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Forward the cookie to backend
-        Cookie: `accessToken=${accessToken.value}`,
-      },
+      headers: backendHeaders,
       cache: 'no-store', // Don't cache authenticated requests
     });
 
