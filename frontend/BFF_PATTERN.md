@@ -91,6 +91,19 @@ export async function GET() {
 - Mỗi backend endpoint cần một API route tương ứng
 - Cần sync changes giữa backend và BFF
 
+## Implemented BFF Routes
+
+### 1. GET /api/offices/active
+Fetch active offices for authenticated users.
+
+### 2. POST /api/auth/logout
+Properly clear HttpOnly cookies (cannot be done from client-side JavaScript).
+
+**Why logout needs BFF:**
+- HttpOnly cookies cannot be deleted via JavaScript
+- Only server-side code (Next.js API route) can delete HttpOnly cookies
+- Ensures cookie is completely removed before redirect
+
 ## Khi nào sử dụng
 
 **Nên dùng BFF khi:**
@@ -98,6 +111,7 @@ export async function GET() {
 - Frontend và Backend trên domain khác nhau
 - Cần transform/aggregate data từ backend
 - Cần thêm caching layer
+- Cần xóa HttpOnly cookies (logout)
 
 **Không cần BFF khi:**
 - Frontend và Backend cùng domain (subdomain)

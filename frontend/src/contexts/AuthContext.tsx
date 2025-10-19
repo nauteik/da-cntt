@@ -165,15 +165,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     try {
-      // Call the backend logout endpoint to clear the cookie
-      await apiClient("/auth/logout", { method: "POST" });
+      // Call Next.js BFF logout route to properly clear HttpOnly cookie
+      // This is the only way to delete HttpOnly cookies from the browser
+      const baseUrl = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+      
+      await fetch(`${baseUrl}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      console.log('Logout successful, cookie cleared');
     } catch (error) {
       console.error("Error during logout:", error);
     } finally {
       // Clear user data from state
       dispatch({ type: "SET_USER", payload: null });
-      // Redirect to login page
-      router.push("/login");
+      
+      // Reset initialization state to force re-check on next access
+      dispatch({ type: "SET_INITIALIZED", payload: false });
+      
+      // Use hard redirect to ensure all state is cleared
+      // This prevents any cached authentication state
+      window.location.href = "/login";
     }
   };
 
