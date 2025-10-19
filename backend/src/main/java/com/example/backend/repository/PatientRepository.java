@@ -4,9 +4,11 @@ import com.example.backend.model.dto.PatientHeaderDTO;
 import com.example.backend.model.dto.PatientSummaryDTO;
 import com.example.backend.model.entity.Patient;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -205,4 +207,33 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     java.util.Optional<Patient> findByClientId(String clientId);
     
     java.util.Optional<Patient> findBySsn(String ssn);
+
+    /**
+     * Bulk insert patients using native SQL for better performance
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+        INSERT INTO patient (
+            id, first_name, last_name, dob, gender, ssn, client_id, agency_id, 
+            medicaid_id, primary_language, status, office_id, created_at, updated_at
+        ) VALUES (
+            :id, :firstName, :lastName, :dob, :gender, :ssn, :clientId, :agencyId,
+            :medicaidId, :primaryLanguage, :status, :officeId, NOW(), NOW()
+        )
+        """, nativeQuery = true)
+    void bulkInsertPatient(
+        @Param("id") UUID id,
+        @Param("firstName") String firstName,
+        @Param("lastName") String lastName,
+        @Param("dob") java.time.LocalDate dob,
+        @Param("gender") String gender,
+        @Param("ssn") String ssn,
+        @Param("clientId") String clientId,
+        @Param("agencyId") String agencyId,
+        @Param("medicaidId") String medicaidId,
+        @Param("primaryLanguage") String primaryLanguage,
+        @Param("status") String status,
+        @Param("officeId") UUID officeId
+    );
 }

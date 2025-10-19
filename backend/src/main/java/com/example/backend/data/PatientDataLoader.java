@@ -5,6 +5,7 @@ import com.example.backend.model.enums.Gender;
 import com.example.backend.model.enums.PatientStatus;
 import com.example.backend.model.enums.AddressType;
 import com.example.backend.repository.*;
+import com.example.backend.service.BulkInsertService;
 import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,20 +25,11 @@ import java.util.concurrent.TimeUnit;
 public class PatientDataLoader {
 
     private final PatientRepository patientRepository;
-    private final AddressRepository addressRepository;
-    private final PatientAddressRepository patientAddressRepository;
-    private final PatientContactRepository patientContactRepository;
     private final PayerRepository payerRepository;
-    private final PatientPayerRepository patientPayerRepository;
     private final ProgramRepository programRepository;
-    private final PatientProgramRepository patientProgramRepository;
     private final ServiceTypeRepository serviceTypeRepository;
-    private final AuthorizationRepository authorizationRepository;
-    private final PatientServiceRepository patientServiceRepository;
-    private final ISPRepository ispRepository;
-    private final ISPGoalRepository ispGoalRepository;
-    private final ISPTaskRepository ispTaskRepository;
     private final OfficeRepository officeRepository;
+    private final BulkInsertService bulkInsertService;
 
 
     public void loadData() {
@@ -89,6 +81,8 @@ public class PatientDataLoader {
         log.info("Generating 1000 patients...");
         for (int i = 0; i < 1000; i++) {
             Patient patient = new Patient();
+            // Set UUID manually for bulk insert
+            patient.setId(java.util.UUID.randomUUID());
             patient.setFirstName(faker.name().firstName());
             patient.setLastName(faker.name().lastName());
             patient.setDob(faker.date().birthday().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
@@ -142,32 +136,11 @@ public class PatientDataLoader {
             }
         }
         
-        // Save in batches of 50
-        log.info("Saving 1000 patients to database in batches...");
-        List<Patient> savedPatients = new ArrayList<>();
-        int batchSize = 50;
+        // Bulk insert patients using JDBC batch processing for maximum performance
+        log.info("Bulk inserting 1000 patients to database using JDBC batch processing...");
+        bulkInsertService.bulkInsertPatients(patients);
         
-        for (int i = 0; i < patients.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, patients.size());
-            List<Patient> batch = patients.subList(i, endIndex);
-            
-            log.info("Saving batch {}/{} ({} patients)...", 
-                (i / batchSize) + 1, 
-                (patients.size() + batchSize - 1) / batchSize,
-                batch.size());
-                
-            List<Patient> savedBatch = patientRepository.saveAll(batch);
-            savedPatients.addAll(savedBatch);
-            
-            // Small delay between batches
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        
-        return savedPatients;
+        return patients;
     }
 
     private List<Address> loadAddressData(Faker faker) {
@@ -175,6 +148,8 @@ public class PatientDataLoader {
         log.info("Generating 1000 addresses...");
         for (int i = 0; i < 1000; i++) {
             Address address = new Address();
+            // Set UUID manually for bulk insert
+            address.setId(java.util.UUID.randomUUID());
             address.setLine1(faker.address().streetAddress());
             address.setCity(faker.address().city());
             address.setState(faker.address().stateAbbr());
@@ -191,32 +166,11 @@ public class PatientDataLoader {
             }
         }
         
-        // Save in batches of 50
-        log.info("Saving 1000 addresses to database in batches...");
-        List<Address> savedAddresses = new ArrayList<>();
-        int batchSize = 50;
+        // Bulk insert addresses using JDBC batch processing for maximum performance
+        log.info("Bulk inserting 1000 addresses to database using JDBC batch processing...");
+        bulkInsertService.bulkInsertAddresses(addresses);
         
-        for (int i = 0; i < addresses.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, addresses.size());
-            List<Address> batch = addresses.subList(i, endIndex);
-            
-            log.info("Saving address batch {}/{} ({} addresses)...", 
-                (i / batchSize) + 1, 
-                (addresses.size() + batchSize - 1) / batchSize,
-                batch.size());
-                
-            List<Address> savedBatch = addressRepository.saveAll(batch);
-            savedAddresses.addAll(savedBatch);
-            
-            // Small delay between batches
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        
-        return savedAddresses;
+        return addresses;
     }
 
     private void loadPatientAddressData(Faker faker, List<Patient> patients, List<Address> addresses) {
@@ -224,6 +178,8 @@ public class PatientDataLoader {
         log.info("Linking {} patients to addresses...", patients.size());
         for (int i = 0; i < patients.size(); i++) {
             PatientAddress patientAddress = new PatientAddress();
+            // Set UUID manually for bulk insert
+            patientAddress.setId(java.util.UUID.randomUUID());
             patientAddress.setPatient(patients.get(i));
             patientAddress.setAddress(addresses.get(i));
             String rawPhone = faker.phoneNumber().cellPhone();
@@ -244,28 +200,9 @@ public class PatientDataLoader {
             patientAddresses.add(patientAddress);
         }
         
-        // Save in batches of 50
-        log.info("Saving {} patient-address links to database in batches...", patientAddresses.size());
-        int batchSize = 50;
-        
-        for (int i = 0; i < patientAddresses.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, patientAddresses.size());
-            List<PatientAddress> batch = patientAddresses.subList(i, endIndex);
-            
-            log.info("Saving patient-address batch {}/{} ({} links)...", 
-                (i / batchSize) + 1, 
-                (patientAddresses.size() + batchSize - 1) / batchSize,
-                batch.size());
-                
-            patientAddressRepository.saveAll(batch);
-            
-            // Small delay between batches
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
+        // Bulk insert patient addresses using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} patient-address links to database using JDBC batch processing...", patientAddresses.size());
+        bulkInsertService.bulkInsertPatientAddresses(patientAddresses);
     }
 
     private void loadPatientContactData(Faker faker, List<Patient> patients, List<Address> addresses) {
@@ -273,6 +210,8 @@ public class PatientDataLoader {
         log.info("Generating {} patient contacts...", patients.size());
         for (int i = 0; i < patients.size(); i++) {
             PatientContact contact = new PatientContact();
+            // Set UUID manually for bulk insert
+            contact.setId(java.util.UUID.randomUUID());
             contact.setPatient(patients.get(i));
             contact.setName(faker.name().fullName());
             contact.setRelation(faker.options().option("Parent", "Guardian", "Spouse"));
@@ -287,28 +226,9 @@ public class PatientDataLoader {
             }
         }
         
-        // Save in batches of 50
-        log.info("Saving {} patient contacts to database in batches...", patientContacts.size());
-        int batchSize = 50;
-        
-        for (int i = 0; i < patientContacts.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, patientContacts.size());
-            List<PatientContact> batch = patientContacts.subList(i, endIndex);
-            
-            log.info("Saving patient-contact batch {}/{} ({} contacts)...", 
-                (i / batchSize) + 1, 
-                (patientContacts.size() + batchSize - 1) / batchSize,
-                batch.size());
-                
-            patientContactRepository.saveAll(batch);
-            
-            // Small delay between batches
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
+        // Bulk insert patient contacts using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} patient contacts to database using JDBC batch processing...", patientContacts.size());
+        bulkInsertService.bulkInsertPatientContacts(patientContacts);
     }
 
     private List<Payer> loadPayerData(List<Program> programs) {
@@ -368,12 +288,19 @@ public class PatientDataLoader {
         List<PatientPayer> patientPayers = new ArrayList<>();
         for (Patient patient : patients) {
             PatientPayer patientPayer = new PatientPayer();
+            // Set UUID manually for bulk insert
+            patientPayer.setId(java.util.UUID.randomUUID());
             patientPayer.setPatient(patient);
             patientPayer.setPayer(payers.get(faker.random().nextInt(payers.size())));
             patientPayer.setClientPayerId(patient.getMedicaidId());
             patientPayers.add(patientPayer);
         }
-        return patientPayerRepository.saveAll(patientPayers);
+        
+        // Bulk insert patient payers using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} patient payers using JDBC batch processing...", patientPayers.size());
+        bulkInsertService.bulkInsertPatientPayers(patientPayers);
+        
+        return patientPayers;
     }
 
     private void loadPatientProgramData(Faker faker, List<Patient> patients, List<Program> programs, List<Payer> payers) {
@@ -387,6 +314,8 @@ public class PatientDataLoader {
         
         for (Patient patient : patients) {
             PatientProgram patientProgram = new PatientProgram();
+            // Set UUID manually for bulk insert
+            patientProgram.setId(java.util.UUID.randomUUID());
             patientProgram.setPatient(patient);
             Program selectedProgram = programs.get(faker.random().nextInt(programs.size()));
             patientProgram.setProgram(selectedProgram);
@@ -401,7 +330,10 @@ public class PatientDataLoader {
                 selectedProgram.getProgramIdentifier(), 
                 programToPayerMap.get(selectedProgram.getProgramIdentifier()).getPayerIdentifier());
         }
-        patientProgramRepository.saveAll(patientPrograms);
+        
+        // Bulk insert patient programs using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} patient programs using JDBC batch processing...", patientPrograms.size());
+        bulkInsertService.bulkInsertPatientPrograms(patientPrograms);
     }
 
     private List<PatientService> loadPatientServiceData(Faker faker, List<Patient> patients, List<ServiceType> serviceTypes) {
@@ -412,13 +344,20 @@ public class PatientDataLoader {
         for (Patient patient : patients) {
             ServiceType randomService = serviceTypes.get(faker.random().nextInt(serviceTypes.size()));
             PatientService ps = new PatientService();
+            // Set UUID manually for bulk insert
+            ps.setId(java.util.UUID.randomUUID());
             ps.setPatient(patient);
             ps.setServiceType(randomService);
             ps.setStartDate(faker.date().past(120, java.util.concurrent.TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             ps.setEndDate(faker.random().nextBoolean() ? null : faker.date().future(240, java.util.concurrent.TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             mappings.add(ps);
         }
-        return patientServiceRepository.saveAll(mappings);
+        
+        // Bulk insert patient services using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} patient services using JDBC batch processing...", mappings.size());
+        bulkInsertService.bulkInsertPatientServices(mappings);
+        
+        return mappings;
     }
 
     private void loadAuthorizationData(Faker faker, List<PatientPayer> patientPayers, java.util.Map<java.util.UUID, java.util.List<PatientService>> patientIdToServices) {
@@ -426,6 +365,8 @@ public class PatientDataLoader {
         int counter = 0;
         for (PatientPayer patientPayer : patientPayers) {
             Authorization auth = new Authorization();
+            // Set UUID manually for bulk insert
+            auth.setId(java.util.UUID.randomUUID());
             auth.setPatientPayer(patientPayer);
             auth.setPatient(patientPayer.getPatient());
             java.util.List<PatientService> services = patientIdToServices.getOrDefault(patientPayer.getPatient().getId(), java.util.Collections.emptyList());
@@ -441,19 +382,29 @@ public class PatientDataLoader {
             auth.setEndDate(faker.date().future(90, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             authorizations.add(auth);
         }
-        authorizationRepository.saveAll(authorizations);
+        
+        // Bulk insert authorizations using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} authorizations using JDBC batch processing...", authorizations.size());
+        bulkInsertService.bulkInsertAuthorizations(authorizations);
     }
 
     private List<ISP> loadIspData(Faker faker, List<Patient> patients) {
         List<ISP> isps = new ArrayList<>();
         for (Patient patient : patients) {
             ISP isp = new ISP();
+            // Set UUID manually for bulk insert
+            isp.setId(java.util.UUID.randomUUID());
             isp.setPatient(patient);
             isp.setVersionNo(1);
             isp.setEffectiveAt(faker.date().past(30, TimeUnit.DAYS).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             isps.add(isp);
         }
-        return ispRepository.saveAll(isps);
+        
+        // Bulk insert ISPs using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} ISPs using JDBC batch processing...", isps.size());
+        bulkInsertService.bulkInsertISPs(isps);
+        
+        return isps;
     }
 
     private List<ISPGoal> loadIspGoalData(Faker faker, List<ISP> isps) {
@@ -461,13 +412,20 @@ public class PatientDataLoader {
         for (ISP isp : isps) {
             for (int i = 0; i < 3; i++) {
                 ISPGoal goal = new ISPGoal();
+                // Set UUID manually for bulk insert
+                goal.setId(java.util.UUID.randomUUID());
                 goal.setIsp(isp);
                 goal.setTitle(faker.company().catchPhrase());
                 goal.setDescription(faker.company().bs());
                 ispGoals.add(goal);
             }
         }
-        return ispGoalRepository.saveAll(ispGoals);
+        
+        // Bulk insert ISP goals using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} ISP goals using JDBC batch processing...", ispGoals.size());
+        bulkInsertService.bulkInsertISPGoals(ispGoals);
+        
+        return ispGoals;
     }
 
     private void loadIspTaskData(Faker faker, List<ISPGoal> ispGoals) {
@@ -475,12 +433,17 @@ public class PatientDataLoader {
         for (ISPGoal goal : ispGoals) {
             for (int i = 0; i < 2; i++) {
                 ISPTask task = new ISPTask();
+                // Set UUID manually for bulk insert
+                task.setId(java.util.UUID.randomUUID());
                 task.setIspGoal(goal);
                 task.setTask(faker.company().catchPhrase());
                 task.setFrequency(faker.options().option("Daily", "Weekly", "Monthly"));
                 ispTasks.add(task);
             }
         }
-        ispTaskRepository.saveAll(ispTasks);
+        
+        // Bulk insert ISP tasks using JDBC batch processing for maximum performance
+        log.info("Bulk inserting {} ISP tasks using JDBC batch processing...", ispTasks.size());
+        bulkInsertService.bulkInsertISPTasks(ispTasks);
     }
 }

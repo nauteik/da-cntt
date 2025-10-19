@@ -83,16 +83,14 @@ async function getInitialClients(
 async function getActiveOffices(): Promise<OfficeDTO[]> {
   try {
     const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>(
-      "/office/active",
-      {
-        revalidate: 300, // Cache for 5 minutes
-      }
+      "/office/active"
     );
 
     if (!response.success || !response.data) {
       console.error("Failed to fetch offices:", response.message);
       return [];
     }
+    console.log(response);
     return response.data;
   } catch (error) {
     console.error("Error fetching offices:", error);

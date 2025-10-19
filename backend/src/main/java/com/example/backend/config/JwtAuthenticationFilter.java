@@ -43,9 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("Processing request: {} {}", request.getMethod(), request.getRequestURI());
         
         // Log all cookies for debugging
-        if (request.getCookies() != null) {
-            log.info("Cookies received: {}", Arrays.toString(request.getCookies()));
-        } else {
+        if (request.getCookies() == null) {
             log.warn("No cookies received for request: {} {}", request.getMethod(), request.getRequestURI());
         }
 
