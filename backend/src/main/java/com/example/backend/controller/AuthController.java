@@ -5,6 +5,7 @@ import com.example.backend.model.ApiResponse;
 import com.example.backend.model.dto.LoginRequest;
 import com.example.backend.model.dto.UserInfoResponse;
 import com.example.backend.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserInfoResponse>> login(
             @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletRequest request,
             HttpServletResponse response
     ) {
         log.info("Login request received for email: {}", loginRequest.getEmail());
@@ -37,13 +39,28 @@ public class AuthController {
         AuthService.LoginResult loginResult = authService.login(loginRequest);
 
         // Create HttpOnly cookie with JWT token
-        ResponseCookie cookie = ResponseCookie.from("accessToken", loginResult.token())
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("accessToken", loginResult.token())
                 .httpOnly(true)          // Make the cookie HttpOnly (not accessible via JavaScript)
                 .secure(true)           // Set to true in production (HTTPS only)
                 .path("/")               // Cookie path
                 .maxAge(jwtProperties.getExpiration()) // Expiry time in seconds
-                .sameSite("None")        // Allow cross-origin requests
-                .build();
+                .sameSite("None");       // Use None for cross-domain requests
+        
+        // Set domain based on environment
+        String origin = request.getHeader("Origin");
+        if (origin != null && origin.contains("vercel.app")) {
+            // Production: set domain to frontend
+            cookieBuilder.domain("da-cntt.vercel.app");
+            log.info("Setting cookie domain for production: da-cntt.vercel.app");
+        } else if (origin != null && origin.contains("localhost")) {
+            // Localhost: don't set domain to allow localhost to work
+            log.info("Setting cookie for localhost (no domain)");
+        } else {
+            // Fallback: don't set domain
+            log.info("Setting cookie without domain (fallback)");
+        }
+        
+        ResponseCookie cookie = cookieBuilder.build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
@@ -52,17 +69,32 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request, HttpServletResponse response) {
         log.info("Logout request received");
 
         // Clear the accessToken cookie by setting maxAge to 0
-        ResponseCookie cookie = ResponseCookie.from("accessToken", "")
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("accessToken", "")
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
                 .maxAge(0)               // Delete the cookie
-                .sameSite("None")
-                .build();
+                .sameSite("None");       // Use None for cross-domain requests
+        
+        // Set domain based on environment (same logic as login)
+        String origin = request.getHeader("Origin");
+        if (origin != null && origin.contains("vercel.app")) {
+            // Production: set domain to frontend
+            cookieBuilder.domain("da-cntt.vercel.app");
+            log.info("Clearing cookie domain for production: da-cntt.vercel.app");
+        } else if (origin != null && origin.contains("localhost")) {
+            // Localhost: don't set domain to allow localhost to work
+            log.info("Clearing cookie for localhost (no domain)");
+        } else {
+            // Fallback: don't set domain
+            log.info("Clearing cookie without domain (fallback)");
+        }
+        
+        ResponseCookie cookie = cookieBuilder.build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
