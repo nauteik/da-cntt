@@ -49,22 +49,25 @@ public class AuthController {
         // Set domain based on environment
         String origin = request.getHeader("Origin");
         String referer = request.getHeader("Referer");
-        log.info("Login request - Origin: {}, Referer: {}", origin, referer);
+        String userAgent = request.getHeader("User-Agent");
+        log.info("Login request - Origin: {}, Referer: {}, User-Agent: {}", origin, referer, userAgent);
         
-        if (origin != null && origin.contains("vercel.app")) {
+        // Check if this is a production request (from Vercel)
+        boolean isProduction = (origin != null && origin.contains("vercel.app")) ||
+                              (referer != null && referer.contains("vercel.app")) ||
+                              (userAgent != null && userAgent.contains("vercel"));
+        
+        if (isProduction) {
             // Production: set domain to frontend
             cookieBuilder.domain("da-cntt.vercel.app");
             log.info("Setting cookie domain for production: da-cntt.vercel.app");
         } else if (origin != null && origin.contains("localhost")) {
             // Localhost: don't set domain to allow localhost to work
             log.info("Setting cookie for localhost (no domain)");
-        } else if (referer != null && referer.contains("vercel.app")) {
-            // Fallback: check Referer header for Vercel
-            cookieBuilder.domain("da-cntt.vercel.app");
-            log.info("Setting cookie domain for production (via Referer): da-cntt.vercel.app");
         } else {
-            // Fallback: don't set domain
-            log.info("Setting cookie without domain (fallback)");
+            // Fallback: assume production if we can't determine
+            cookieBuilder.domain("da-cntt.vercel.app");
+            log.info("Setting cookie domain for production (fallback): da-cntt.vercel.app");
         }
         
         ResponseCookie cookie = cookieBuilder.build();
@@ -89,7 +92,16 @@ public class AuthController {
         
         // Set domain based on environment (same logic as login)
         String origin = request.getHeader("Origin");
-        if (origin != null && origin.contains("vercel.app")) {
+        String referer = request.getHeader("Referer");
+        String userAgent = request.getHeader("User-Agent");
+        log.info("Logout request - Origin: {}, Referer: {}, User-Agent: {}", origin, referer, userAgent);
+        
+        // Check if this is a production request (from Vercel)
+        boolean isProduction = (origin != null && origin.contains("vercel.app")) ||
+                              (referer != null && referer.contains("vercel.app")) ||
+                              (userAgent != null && userAgent.contains("vercel"));
+        
+        if (isProduction) {
             // Production: set domain to frontend
             cookieBuilder.domain("da-cntt.vercel.app");
             log.info("Clearing cookie domain for production: da-cntt.vercel.app");
@@ -97,8 +109,9 @@ public class AuthController {
             // Localhost: don't set domain to allow localhost to work
             log.info("Clearing cookie for localhost (no domain)");
         } else {
-            // Fallback: don't set domain
-            log.info("Clearing cookie without domain (fallback)");
+            // Fallback: assume production if we can't determine
+            cookieBuilder.domain("da-cntt.vercel.app");
+            log.info("Clearing cookie domain for production (fallback): da-cntt.vercel.app");
         }
         
         ResponseCookie cookie = cookieBuilder.build();
