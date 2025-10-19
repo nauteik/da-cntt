@@ -1,6 +1,6 @@
 # Multi-stage build for Spring Boot Backend
 # Stage 1: Build the application
-FROM maven:3.9.6-openjdk-21-slim AS build
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -18,16 +18,13 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Stage 2: Create runtime image
-FROM openjdk:21-jre-slim AS runtime
+FROM eclipse-temurin:21-jre-alpine AS runtime
 
 # Install necessary packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
 # Create non-root user for security
-RUN groupadd -r spring && useradd -r -g spring spring
+RUN addgroup -g 1001 spring && adduser -D -u 1001 -G spring spring
 
 # Set working directory
 WORKDIR /app
