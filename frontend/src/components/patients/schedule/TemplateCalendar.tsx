@@ -18,7 +18,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function TemplateCalendar({
   events,
-  weekNumber,
+  // weekNumber,
   onEditEvent,
   onDeleteEvent,
 }: TemplateCalendarProps) {

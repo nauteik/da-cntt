@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Row, Col, Card, Progress, Table, Tag, Timeline, Alert } from "antd";
+import { Row, Col, Card, Progress, Table, Tag, Timeline } from "antd";
 import {
   TeamOutlined,
   MedicineBoxOutlined,

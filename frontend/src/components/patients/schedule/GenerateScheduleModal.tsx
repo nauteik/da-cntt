@@ -39,8 +39,8 @@ export default function GenerateScheduleModal({
       return;
     }
 
-    // Calculate number of weeks
-    const weeksToGenerate = Math.ceil(endDate.diff(today, "week", true));
+    // // Calculate number of weeks
+    // const weeksToGenerate = Math.ceil(endDate.diff(today, "week", true));
 
     onGenerate({
       endDate: endDate.format("YYYY-MM-DD"),

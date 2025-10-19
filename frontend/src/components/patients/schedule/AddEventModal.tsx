@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   Modal,
   Form,
@@ -8,11 +8,9 @@ import {
   Checkbox,
   TimePicker,
   Input,
-  Button,
-  Space,
+  Button
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import type { AddEventFormData, TemplateEventDTO } from "@/types/schedule";
 
