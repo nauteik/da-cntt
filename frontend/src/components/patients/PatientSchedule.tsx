@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Button, Input, Select, Space, Tag, message } from "antd";
+import { Card, Button, Input, Select, Space, message } from "antd";
 import {
   PlusOutlined,
   SearchOutlined,
@@ -10,18 +10,16 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import type {
-  ScheduleTemplateDTO,
   TemplateEventDTO,
   ScheduleEventDTO,
   ScheduleEventStatus,
   AddEventFormData,
   GenerateScheduleFormData,
 } from "@/types/schedule";
-import TemplateCalendar from "./TemplateCalendar";
-import GenerateScheduleModal from "./GenerateScheduleModal";
-import AddEventModal from "./AddEventModal";
-import ScheduleEventsTable from "./ScheduleEventsTable";
-import styles from "@/styles/schedule.module.css";
+import TemplateCalendar from "./schedule/TemplateCalendar";
+import GenerateScheduleModal from "./schedule/GenerateScheduleModal";
+import AddEventModal from "./schedule/AddEventModal";
+import ScheduleEventsTable from "./schedule/ScheduleEventsTable";
 import buttonStyles from "@/styles/buttons.module.css";
 
 interface PatientScheduleProps {
@@ -335,11 +333,14 @@ const MOCK_SCHEDULE_EVENTS: ScheduleEventDTO[] = [
 ];
 
 export default function PatientSchedule({ patientId }: PatientScheduleProps) {
+  // In real implementation, patientId would be used to fetch data from API
+  console.log("Patient ID:", patientId);
+  
   const [templateEvents, setTemplateEvents] = useState<TemplateEventDTO[]>(
     MOCK_TEMPLATE_EVENTS
   );
   const [scheduleEvents] = useState<ScheduleEventDTO[]>(MOCK_SCHEDULE_EVENTS);
-  const [currentWeek, setCurrentWeek] = useState(1);
+  const [currentWeek] = useState(1);
 
   // Modal states
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
@@ -367,6 +368,9 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
   };
 
   const handleSaveEvent = (data: AddEventFormData) => {
+    // In real implementation, this would process the form data
+    console.log("Saving event data:", data);
+    
     if (editingEvent) {
       // Update existing event
       message.success("Event updated successfully");
@@ -384,167 +388,192 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Template Schedule Section */}
-      <Card className="border-none shadow-none" variant="borderless">
-        {/* Header */}
-        <div className={styles.templateHeader}>
-          <div className={styles.generatedInfo}>
-            <span>Generated Through: 07/04/2026</span>
-            <span className={styles.activeStatus}>
-              <CheckCircleOutlined />
-              Active
-            </span>
-            <Button
-              type="primary"
-              className={buttonStyles.btnPrimary}
-              onClick={() => setIsGenerateModalOpen(true)}
-            >
-              GENERATE
+    <>
+      <div className="flex flex-col gap-6">
+        {/* Template Schedule Section */}
+        <Card
+          className="border-none shadow-none"
+          variant="borderless"
+          styles={{ body: { paddingTop: 0 } }}
+        >
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-2 bg-surface-theme border-b border-[var(--border-color)]">
+            <div className="flex flex-col sm:flex-row py-2 items-start sm:items-center gap-3 sm:gap-4 text-sm text-[var(--text-primary)]">
+              <span>Generated Through: 07/04/2026</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f6ffed] text-[#52c41a] border border-[#b7eb8f] rounded font-medium">
+                <CheckCircleOutlined />
+                Active
+              </span>
+              <Button
+                type="primary"
+                className={buttonStyles.btnPrimary}
+                onClick={() => setIsGenerateModalOpen(true)}
+              >
+                GENERATE
+              </Button>
+            </div>
+            <Button danger className={buttonStyles.btnSecondary}>
+              DELETE TEMPLATE
             </Button>
           </div>
-          <Button danger className={buttonStyles.btnSecondary}>
-            DELETE TEMPLATE
-          </Button>
-        </div>
 
-        {/* Week Controls */}
-        <div className={styles.weekControls}>
-          <Button
-            type="link"
-            icon={<PlusOutlined />}
-            onClick={handleAddEvent}
-            className="text-[var(--primary)] font-bold"
-          >
-            ADD EVENT
-          </Button>
-          <span className={styles.weekLabel}>Week {currentWeek}</span>
-          <Button
-            type="link"
-            icon={<PlusOutlined />}
-            className="text-[var(--primary)] font-bold"
-          >
-            ADD WEEK
-          </Button>
-        </div>
-
-        {/* Calendar */}
-        <div className="p-4">
-          <TemplateCalendar
-            events={templateEvents}
-            weekNumber={currentWeek}
-            onEditEvent={handleEditEvent}
-            onDeleteEvent={handleDeleteEvent}
-          />
-        </div>
-      </Card>
-
-      {/* Generated Schedule Section */}
-      <Card className="border-none shadow-none" variant="borderless">
-        {/* Controls */}
-        <div className="p-4 border-b border-[var(--border-color)]">
-          <div className="flex flex-wrap justify-between items-center gap-4">
+          {/* Week Controls */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-4 py-3 bg-primary border-t border-[var(--border-color)]">
             <Button
-              type="primary"
+              type="link"
               icon={<PlusOutlined />}
-              className={buttonStyles.btnPrimary}
+              onClick={handleAddEvent}
+              className="text-[var(--primary)] font-bold"
             >
-              CREATE SCHEDULE
+              ADD EVENT
             </Button>
-
-            <Space size="middle" wrap>
-              <Input
-                placeholder="Type here for a quick search..."
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                style={{ minWidth: 240 }}
-                allowClear
-              />
-              <Select
-                placeholder="DATE RANGE"
-                style={{ width: 150 }}
-                options={[
-                  { value: "today", label: "Today" },
-                  { value: "week", label: "This Week" },
-                  { value: "month", label: "This Month" },
-                ]}
-              />
-              <Select
-                placeholder="EMPLOYEE"
-                style={{ width: 150 }}
-                showSearch
-                options={[
-                  { value: "1", label: "Clemens, Samantha" },
-                  { value: "2", label: "Alverez, Julio" },
-                  { value: "3", label: "Clossin, Bronwen" },
-                ]}
-              />
-              <Select
-                placeholder="STATUS"
-                style={{ width: 130 }}
-                options={[
-                  { value: "CONFIRMED", label: "Confirmed" },
-                  { value: "CANCELLED", label: "Cancelled" },
-                  { value: "PLANNED", label: "Planned" },
-                ]}
-              />
-              <Button
-                icon={<FilterOutlined />}
-                className={buttonStyles.btnSecondary}
-              >
-                FILTERS
-              </Button>
-              <Button
-                icon={<ExportOutlined />}
-                className={buttonStyles.btnSecondary}
-              >
-                EXPORT DATA
-              </Button>
-            </Space>
+            <span className="font-semibold text-sm text-[var(--text-primary)]">Week {currentWeek}</span>
+            <Button
+              type="link"
+              icon={<PlusOutlined />}
+              className="text-[var(--primary)] font-bold"
+            >
+              ADD WEEK
+            </Button>
           </div>
-        </div>
 
-        {/* Start of Care Info */}
-        <div className="px-4 py-3 bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
-          <span className="text-sm text-[var(--text-secondary)]">
-            Start of Care: (05/19/2025)
-          </span>
-        </div>
+          {/* Calendar */}
+          <div className="p-0">
+            <TemplateCalendar
+              events={templateEvents}
+              weekNumber={currentWeek}
+              onEditEvent={handleEditEvent}
+              onDeleteEvent={handleDeleteEvent}
+            />
+          </div>
+        </Card>
 
-        {/* Table */}
-        <div className="p-0">
-          <ScheduleEventsTable
-            data={scheduleEvents}
-            loading={false}
-            onEdit={(event) => {
-              message.info(`Edit event: ${event.id}`);
-            }}
-            onDelete={(eventId) => {
-              message.info(`Delete event: ${eventId}`);
-            }}
-          />
-        </div>
-      </Card>
+        {/* Generated Schedule Section */}
+        <Card className="border-none shadow-none" variant="borderless">
+          {/* Controls */}
+          <div className="p-4 border-b border-[var(--border-color)]">
+            <div className="flex flex-wrap justify-between items-center gap-4">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className={buttonStyles.btnPrimary}
+              >
+                CREATE SCHEDULE
+              </Button>
 
-      {/* Modals */}
-      <GenerateScheduleModal
-        open={isGenerateModalOpen}
-        onCancel={() => setIsGenerateModalOpen(false)}
-        onGenerate={handleGenerate}
-        currentEndDate="2026-07-04"
-      />
+              <Space size="middle" wrap>
+                <Input
+                  placeholder="Type here for a quick search..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ minWidth: 240 }}
+                  allowClear
+                />
+                <Select
+                  placeholder="DATE RANGE"
+                  style={{ width: 150 }}
+                  options={[
+                    { value: "today", label: "Today" },
+                    { value: "week", label: "This Week" },
+                    { value: "month", label: "This Month" },
+                  ]}
+                />
+                <Select
+                  placeholder="EMPLOYEE"
+                  style={{ width: 150 }}
+                  showSearch
+                  options={[
+                    { value: "1", label: "Clemens, Samantha" },
+                    { value: "2", label: "Alverez, Julio" },
+                    { value: "3", label: "Clossin, Bronwen" },
+                  ]}
+                />
+                <Select
+                  placeholder="STATUS"
+                  style={{ width: 130 }}
+                  options={[
+                    { value: "CONFIRMED", label: "Confirmed" },
+                    { value: "CANCELLED", label: "Cancelled" },
+                    { value: "PLANNED", label: "Planned" },
+                  ]}
+                />
+                <Button
+                  icon={<FilterOutlined />}
+                  className={buttonStyles.btnSecondary}
+                >
+                  FILTERS
+                </Button>
+                <Button
+                  icon={<ExportOutlined />}
+                  className={buttonStyles.btnSecondary}
+                >
+                  EXPORT DATA
+                </Button>
+              </Space>
+            </div>
+          </div>
 
-      <AddEventModal
-        open={isAddEventModalOpen}
-        onCancel={() => {
-          setIsAddEventModalOpen(false);
-          setEditingEvent(null);
-        }}
-        onSave={handleSaveEvent}
-        initialData={editingEvent}
-      />
-    </div>
+          {/* Start of Care Info */}
+          <div className="px-4 py-3 bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
+            <span className="text-sm text-[var(--text-secondary)]">
+              Start of Care: (05/19/2025)
+            </span>
+          </div>
+
+          {/* Table */}
+          <div className="p-0">
+            <ScheduleEventsTable
+              data={scheduleEvents}
+              loading={false}
+              onEdit={(event) => {
+                message.info(`Edit event: ${event.id}`);
+              }}
+              onDelete={(eventId) => {
+                message.info(`Delete event: ${eventId}`);
+              }}
+            />
+          </div>
+        </Card>
+
+        {/* Modals */}
+        <GenerateScheduleModal
+          open={isGenerateModalOpen}
+          onCancel={() => setIsGenerateModalOpen(false)}
+          onGenerate={handleGenerate}
+          currentEndDate="2026-07-04"
+        />
+
+        <AddEventModal
+          open={isAddEventModalOpen}
+          onCancel={() => {
+            setIsAddEventModalOpen(false);
+            setEditingEvent(null);
+          }}
+          onSave={handleSaveEvent}
+          initialData={editingEvent}
+        />
+      </div>
+    {/* Apply custom styles to Ant Design Card */}
+    <style jsx global>{`
+        .ant-card .ant-card-body {
+          border-radius: 0 !important;
+          border: 0 !important
+          padding: 0 !important
+        }
+        .ant-card-head {
+          border-bottom: none !important;
+          border-radius: 0 !important;
+          border: 0 !important
+          padding: 0 !important
+        }
+        .ant-card-body {
+          border-radius: 0 !important;
+          border: 0 !important
+          padding: 0 !important
+        }
+      `}</style>
+    </>
   );
 }
 

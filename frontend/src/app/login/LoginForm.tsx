@@ -80,8 +80,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
           name="email"
           label={<span className="text-theme-primary font-medium">Email</span>}
           rules={[
-            { required: true, message: "Vui lòng nhập email" },
-            { type: "email", message: "Email không hợp lệ" },
+            { required: true, message: "Please enter email" },
+            { type: "email", message: "Invalid email" },
           ]}
           validateTrigger={["onBlur"]}
         >
@@ -89,7 +89,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             prefix={
               <MailOutlined className="mr-1 text-theme-secondary opacity-70" />
             }
-            placeholder="Nhập email"
+            placeholder="Enter email"
             autoComplete="email"
             className="rounded-lg"
           />
@@ -98,16 +98,16 @@ const LoginForm: React.FC<LoginFormProps> = ({
         <Form.Item
           name="password"
           label={
-            <span className="text-theme-primary font-medium">Mật khẩu</span>
+            <span className="text-theme-primary font-medium">Password</span>
           }
-          rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
+          rules={[{ required: true, message: "Please enter password" }]}
           validateTrigger={["onBlur"]}
         >
           <Input.Password
             prefix={
               <LockOutlined className="mr-1 text-theme-secondary opacity-70" />
             }
-            placeholder="Nhập mật khẩu"
+            placeholder="Enter password"
             iconRender={(visible) =>
               visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
             }
@@ -118,15 +118,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
         <div className="flex justify-between items-center mb-6">
           <Form.Item name="rememberMe" valuePropName="checked" noStyle>
-            <Checkbox>Ghi nhớ đăng nhập</Checkbox>
+            <Checkbox>Remember me</Checkbox>
           </Form.Item>
-          <Button
-            type="link"
-            className="text-theme-accent hover:text-blue-500 transition-colors duration-200 p-0"
-            onClick={() => {}}
-          >
-            Quên mật khẩu?
-          </Button>
         </div>
 
         {error && (
@@ -150,7 +143,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             loading={isPending}
             disabled={isPending}
           >
-            Đăng nhập
+            Login
           </Button>
         </Form.Item>
       </Form>

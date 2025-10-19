@@ -149,8 +149,8 @@
 }
 
 /* Dark mode support */
-:global(.dark) .formInputDisabled,
-:global(.dark) .formInputDisabled:global(.ant-input-affix-wrapper) {
+.darkMode .formInputDisabled,
+.darkMode .formInputDisabled:global(.ant-input-affix-wrapper) {
   background: var(--bg-disabled, rgba(255, 255, 255, 0.08)) !important;
   color: var(--text-disabled, #666) !important;
 }
@@ -164,8 +164,8 @@
 }
 
 /* Dark mode inner input */
-:global(.dark) .formInputDisabled input,
-:global(.dark) .formInputDisabled:global(.ant-input-affix-wrapper) input {
+.darkMode .formInputDisabled input,
+.darkMode .formInputDisabled:global(.ant-input-affix-wrapper) input {
   color: var(--text-disabled, #666) !important;
 }
 

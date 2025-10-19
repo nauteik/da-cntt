@@ -6,7 +6,6 @@ import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { ScheduleEventDTO, ScheduleEventStatus } from "@/types/schedule";
 import { formatDate } from "@/lib/dateUtils";
-import styles from "@/styles/schedule.module.css";
 
 interface ScheduleEventsTableProps {
   data: ScheduleEventDTO[];
@@ -191,22 +190,24 @@ export default function ScheduleEventsTable({
   ];
 
   return (
-    <Table
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      loading={loading}
-      pagination={{
-        pageSize: 25,
-        showSizeChanger: true,
-        showQuickJumper: true,
-        showTotal: (total, range) =>
-          `${range[0]}-${range[1]} of ${total} entries`,
-        pageSizeOptions: ["10", "25", "50", "100"],
-      }}
-      scroll={{ x: 1400 }}
-      size="small"
-    />
+    <div className="tableCard">
+      <Table
+        columns={columns}
+        dataSource={data}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          pageSize: 25,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} entries`,
+          pageSizeOptions: ["10", "25", "50", "100"],
+        }}
+        scroll={{ x: 1400 }}
+        size="small"
+      />
+    </div>
   );
 }
 
