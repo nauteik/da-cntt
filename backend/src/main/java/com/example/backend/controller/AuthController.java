@@ -48,6 +48,9 @@ public class AuthController {
         
         // Set domain based on environment
         String origin = request.getHeader("Origin");
+        String referer = request.getHeader("Referer");
+        log.info("Login request - Origin: {}, Referer: {}", origin, referer);
+        
         if (origin != null && origin.contains("vercel.app")) {
             // Production: set domain to frontend
             cookieBuilder.domain("da-cntt.vercel.app");
@@ -55,6 +58,10 @@ public class AuthController {
         } else if (origin != null && origin.contains("localhost")) {
             // Localhost: don't set domain to allow localhost to work
             log.info("Setting cookie for localhost (no domain)");
+        } else if (referer != null && referer.contains("vercel.app")) {
+            // Fallback: check Referer header for Vercel
+            cookieBuilder.domain("da-cntt.vercel.app");
+            log.info("Setting cookie domain for production (via Referer): da-cntt.vercel.app");
         } else {
             // Fallback: don't set domain
             log.info("Setting cookie without domain (fallback)");
