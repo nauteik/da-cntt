@@ -13,7 +13,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -80,6 +82,10 @@ public class PatientDataLoader {
 
     private List<Patient> loadPatientData(Faker faker, Office office) {
         List<Patient> patients = new ArrayList<>();
+        Set<String> usedClientIds = new HashSet<>();
+        Set<String> usedMedicaidIds = new HashSet<>();
+        Set<String> usedSsns = new HashSet<>();
+        
         log.info("Generating 1000 patients...");
         for (int i = 0; i < 1000; i++) {
             Patient patient = new Patient();
@@ -89,10 +95,34 @@ public class PatientDataLoader {
             // Use Gender enum while maintaining "Male"/"Female" in the database
             Gender gender = faker.options().option(Gender.MALE, Gender.FEMALE);
             patient.setGender(gender.getLabel());
-            patient.setSsn(faker.idNumber().ssnValid());
-            patient.setClientId(faker.numerify("######"));
+            
+            // Generate unique SSN
+            String ssn;
+            do {
+                ssn = faker.idNumber().ssnValid();
+            } while (usedSsns.contains(ssn));
+            usedSsns.add(ssn);
+            patient.setSsn(ssn);
+            
+            // Generate unique client_id
+            String clientId;
+            do {
+                clientId = faker.numerify("######");
+            } while (usedClientIds.contains(clientId));
+            usedClientIds.add(clientId);
+            patient.setClientId(clientId);
+            
+            // Generate unique agency_id
             patient.setAgencyId(faker.numerify("#####"));
-            patient.setMedicaidId(faker.numerify("#########"));
+            
+            // Generate unique medicaid_id
+            String medicaidId;
+            do {
+                medicaidId = faker.numerify("#########");
+            } while (usedMedicaidIds.contains(medicaidId));
+            usedMedicaidIds.add(medicaidId);
+            patient.setMedicaidId(medicaidId);
+            
             patient.setPrimaryLanguage("English");
             // Vary status: 80% Active, 15% Inactive, 5% Pending
             int statusRandom = faker.random().nextInt(100);
@@ -111,8 +141,33 @@ public class PatientDataLoader {
                 log.info("Generated {} patients...", i + 1);
             }
         }
-        log.info("Saving 1000 patients to database...");
-        return patientRepository.saveAll(patients);
+        
+        // Save in batches of 50
+        log.info("Saving 1000 patients to database in batches...");
+        List<Patient> savedPatients = new ArrayList<>();
+        int batchSize = 50;
+        
+        for (int i = 0; i < patients.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, patients.size());
+            List<Patient> batch = patients.subList(i, endIndex);
+            
+            log.info("Saving batch {}/{} ({} patients)...", 
+                (i / batchSize) + 1, 
+                (patients.size() + batchSize - 1) / batchSize,
+                batch.size());
+                
+            List<Patient> savedBatch = patientRepository.saveAll(batch);
+            savedPatients.addAll(savedBatch);
+            
+            // Small delay between batches
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        return savedPatients;
     }
 
     private List<Address> loadAddressData(Faker faker) {
@@ -135,8 +190,33 @@ public class PatientDataLoader {
                 log.info("Generated {} addresses...", i + 1);
             }
         }
-        log.info("Saving 1000 addresses to database...");
-        return addressRepository.saveAll(addresses);
+        
+        // Save in batches of 50
+        log.info("Saving 1000 addresses to database in batches...");
+        List<Address> savedAddresses = new ArrayList<>();
+        int batchSize = 50;
+        
+        for (int i = 0; i < addresses.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, addresses.size());
+            List<Address> batch = addresses.subList(i, endIndex);
+            
+            log.info("Saving address batch {}/{} ({} addresses)...", 
+                (i / batchSize) + 1, 
+                (addresses.size() + batchSize - 1) / batchSize,
+                batch.size());
+                
+            List<Address> savedBatch = addressRepository.saveAll(batch);
+            savedAddresses.addAll(savedBatch);
+            
+            // Small delay between batches
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        return savedAddresses;
     }
 
     private void loadPatientAddressData(Faker faker, List<Patient> patients, List<Address> addresses) {
@@ -163,8 +243,29 @@ public class PatientDataLoader {
             patientAddress.setIsMain(true);
             patientAddresses.add(patientAddress);
         }
-        log.info("Saving {} patient-address links to database...", patientAddresses.size());
-        patientAddressRepository.saveAll(patientAddresses);
+        
+        // Save in batches of 50
+        log.info("Saving {} patient-address links to database in batches...", patientAddresses.size());
+        int batchSize = 50;
+        
+        for (int i = 0; i < patientAddresses.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, patientAddresses.size());
+            List<PatientAddress> batch = patientAddresses.subList(i, endIndex);
+            
+            log.info("Saving patient-address batch {}/{} ({} links)...", 
+                (i / batchSize) + 1, 
+                (patientAddresses.size() + batchSize - 1) / batchSize,
+                batch.size());
+                
+            patientAddressRepository.saveAll(batch);
+            
+            // Small delay between batches
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private void loadPatientContactData(Faker faker, List<Patient> patients, List<Address> addresses) {
@@ -185,8 +286,29 @@ public class PatientDataLoader {
                 log.info("Generated {} contacts...", i + 1);
             }
         }
-        log.info("Saving {} patient contacts to database...", patientContacts.size());
-        patientContactRepository.saveAll(patientContacts);
+        
+        // Save in batches of 50
+        log.info("Saving {} patient contacts to database in batches...", patientContacts.size());
+        int batchSize = 50;
+        
+        for (int i = 0; i < patientContacts.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, patientContacts.size());
+            List<PatientContact> batch = patientContacts.subList(i, endIndex);
+            
+            log.info("Saving patient-contact batch {}/{} ({} contacts)...", 
+                (i / batchSize) + 1, 
+                (patientContacts.size() + batchSize - 1) / batchSize,
+                batch.size());
+                
+            patientContactRepository.saveAll(batch);
+            
+            // Small delay between batches
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private List<Payer> loadPayerData(List<Program> programs) {
