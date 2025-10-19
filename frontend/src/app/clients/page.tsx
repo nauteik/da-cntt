@@ -82,16 +82,26 @@ async function getInitialClients(
 // Fetch active offices for the create client modal
 async function getActiveOffices(): Promise<OfficeDTO[]> {
   try {
-    const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>(
-      "/office/active"
-    );
+    // Use Next.js API route (BFF pattern) instead of calling backend directly
+    // This allows Server Components to make authenticated requests
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/offices/active`, {
+      cache: 'no-store', // Don't cache user-specific data
+    });
 
-    if (!response.success || !response.data) {
-      console.error("Failed to fetch offices:", response.message);
+    if (!response.ok) {
+      console.error("Failed to fetch offices:", response.statusText);
       return [];
     }
-    console.log(response);
-    return response.data;
+
+    const apiResponse: ApiResponse<OfficeDTO[]> = await response.json();
+
+    if (!apiResponse.success || !apiResponse.data) {
+      console.error("Failed to fetch offices:", apiResponse.message);
+      return [];
+    }
+
+    return apiResponse.data;
   } catch (error) {
     console.error("Error fetching offices:", error);
     return [];
