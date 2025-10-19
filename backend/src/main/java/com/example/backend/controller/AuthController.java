@@ -39,10 +39,10 @@ public class AuthController {
         // Create HttpOnly cookie with JWT token
         ResponseCookie cookie = ResponseCookie.from("accessToken", loginResult.token())
                 .httpOnly(true)          // Make the cookie HttpOnly (not accessible via JavaScript)
-                .secure(false)           // Set to true in production (HTTPS only)
+                .secure(true)           // Set to true in production (HTTPS only)
                 .path("/")               // Cookie path
                 .maxAge(jwtProperties.getExpiration()) // Expiry time in seconds
-                .sameSite("Strict")      // Protect against CSRF
+                .sameSite("None")        // Allow cross-origin requests
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -61,7 +61,7 @@ public class AuthController {
                 .secure(true)
                 .path("/")
                 .maxAge(0)               // Delete the cookie
-                .sameSite("Strict")
+                .sameSite("None")
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
