@@ -284,3 +284,25 @@ body {
 .ant-menu-dark .ant-menu-submenu-inline > .ant-menu-submenu-title {
   background: var(--bg-surface) !important;
 }
+
+/* ============================================
+   Form Component Global Overrides
+   ============================================ */
+
+/* Remove border radius from date picker dropdown */
+.ant-picker-dropdown {
+  border-radius: 0 !important;
+}
+
+.ant-picker-panel-container {
+  border-radius: 0 !important;
+}
+
+.ant-picker-panel {
+  border-radius: 0 !important;
+}
+
+/* Remove border radius from select dropdown */
+.ant-select-dropdown {
+  border-radius: 0 !important;
+}

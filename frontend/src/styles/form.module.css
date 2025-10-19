@@ -86,18 +86,6 @@
   color: var(--text-primary) !important;
 }
 
-/* Remove border radius from date picker dropdown */
-:global(.ant-picker-dropdown) {
-  border-radius: 0 !important;
-}
-
-:global(.ant-picker-panel-container) {
-  border-radius: 0 !important;
-}
-
-:global(.ant-picker-panel) {
-  border-radius: 0 !important;
-}
 
 /* ============================================
    Ant Design Select Overrides
@@ -129,10 +117,6 @@
   color: var(--text-primary) !important;
 }
 
-/* Remove border radius from select dropdown */
-:global(.ant-select-dropdown) {
-  border-radius: 0 !important;
-}
 
 /* ============================================
    Disabled Input Styles
