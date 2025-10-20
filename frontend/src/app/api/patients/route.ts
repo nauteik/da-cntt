@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL + "/api";
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
 
     if (!backendUrl) {
       throw new Error('Backend URL not configured');
