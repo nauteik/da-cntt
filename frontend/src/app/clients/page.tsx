@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import ClientsClient from "./ClientsClient";
 import AdminLayout from "@/components/AdminLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -90,13 +90,26 @@ async function getActiveOffices(): Promise<OfficeDTO[]> {
       return [];
     }
 
-    console.log("Direct backend call to:", `${backendUrl}/api/office/active`);
+   // Correctly get the cookie store. cookies() is a function call.
+   const cookieStore = await cookies(); 
     
+   // Now you can call .get() on the returned store object
+   const accessTokenCookie = cookieStore.get('accessToken');
+
+    // Check if the cookie exists
+    if (!accessTokenCookie) {
+      console.warn("Authentication cookie not found in server-side request.");
+      return [];
+    }
+
+    console.log("Direct backend call to:", `${backendUrl}/api/office/active`);
+    console.log(accessTokenCookie.value);
     const response = await fetch(`${backendUrl}/api/office/active`, {
       method: 'GET',
       credentials: 'include', // This should send cookies
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': `accessToken=${accessTokenCookie.value}`
       },
       cache: 'no-store',
     });
