@@ -76,7 +76,7 @@ public class AuthServiceImpl implements AuthService {
         long expirationSeconds = jwtProperties.getExpiration();
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationSeconds);
 
-        // Create user info response
+        // Create user info response with token for BFF pattern
         UserInfoResponse userInfo = new UserInfoResponse(
                 user.getId().toString(),
                 displayName,
@@ -84,7 +84,8 @@ public class AuthServiceImpl implements AuthService {
                 roles,
                 expiresAt,
                 user.isMfaEnabled(),
-                officeId
+                officeId,
+                token // Include token for BFF pattern
         );
 
         // Update last login

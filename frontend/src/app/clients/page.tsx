@@ -82,52 +82,18 @@ async function getInitialClients(
 // Fetch active offices for the create client modal
 async function getActiveOffices(): Promise<OfficeDTO[]> {
   try {
-    // TEMPORARY: Use direct backend call instead of BFF to test if cookie works
-    // This bypasses the BFF layer to test if the issue is with Next.js cookies()
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!backendUrl) {
-      console.error("Backend URL not configured");
-      return [];
-    }
-
-   // Correctly get the cookie store. cookies() is a function call.
-   const cookieStore = await cookies(); 
-    
-   // Now you can call .get() on the returned store object
-   const accessTokenCookie = cookieStore.get('accessToken');
-
-    // Check if the cookie exists
-    if (!accessTokenCookie) {
-      console.warn("Authentication cookie not found in server-side request.");
-      return [];
-    }
-
-    console.log("Direct backend call to:", `${backendUrl}/api/office/active`);
-    console.log(accessTokenCookie.value);
-    const response = await fetch(`${backendUrl}/api/office/active`, {
-      method: 'GET',
-      credentials: 'include', // This should send cookies
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': `accessToken=${accessTokenCookie.value}`
-      },
-      cache: 'no-store',
+    // Use BFF endpoint for consistency
+    const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>("/office/active", {
+      revalidate: 0, // Don't cache user-specific data
     });
 
-    if (!response.ok) {
-      console.error("Failed to fetch offices:", response.status, response.statusText);
+    if (!response.success || !response.data) {
+      console.error("Failed to fetch offices:", response.message);
       return [];
     }
 
-    const apiResponse: ApiResponse<OfficeDTO[]> = await response.json();
-
-    if (!apiResponse.success || !apiResponse.data) {
-      console.error("Failed to fetch offices:", apiResponse.message);
-      return [];
-    }
-
-    console.log("Successfully fetched offices:", apiResponse.data.length);
-    return apiResponse.data;
+    console.log("Successfully fetched offices:", response.data.length);
+    return response.data;
   } catch (error) {
     console.error("Error fetching offices:", error);
     return [];

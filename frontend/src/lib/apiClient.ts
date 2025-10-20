@@ -1,6 +1,9 @@
 import type { ApiResponse } from "../types/api";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL + "/api";
+// For BFF pattern, we call Next.js API routes instead of backend directly
+// Only use backend URL for server-side BFF routes
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL + "/api";
+const BASE_URL = "/api"; // Use /api for client-side calls to Next.js API routes
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -85,7 +88,9 @@ export async function apiClient<T>(
   }
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    // Use backend URL for server-side BFF routes, empty for client-side Next.js API routes
+    const baseUrl = isServer ? BACKEND_URL : BASE_URL;
+    const response = await fetch(`${baseUrl}${endpoint}`, config);
 
     // Handle cases where the response is not ok but returns JSON (e.g., validation errors from Spring)
     if (!response.ok) {
