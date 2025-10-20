@@ -14,9 +14,11 @@ import type {
   ContactDTO,
   AddressDTO,
 } from "@/types/patient";
-import styles from "./PatientPersonal.module.css";
 import EditIdentifiersForm from "./EditIdentifiersForm";
 import EditPersonalInfoForm from "./EditPersonalInfoForm";
+import EditAddressForm from "./EditAddressForm";
+import EditContactForm from "./EditContactForm";
+import { formatDateLong } from "@/lib/dateUtils";
 
 interface PatientPersonalProps {
   patient: PatientPersonalDTO;
@@ -25,56 +27,87 @@ interface PatientPersonalProps {
 export default function PatientPersonal({ patient }: PatientPersonalProps) {
   const [showIdentifiersForm, setShowIdentifiersForm] = useState(false);
   const [showPersonalInfoForm, setShowPersonalInfoForm] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<AddressDTO | null>(
+    null
+  );
+  const [selectedContact, setSelectedContact] = useState<ContactDTO | null>(
+    null
+  );
   const queryClient = useQueryClient();
 
-  // Format date for display
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return "—";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  // Handlers for Address actions
+  const handleAddAddress = () => {
+    setSelectedAddress(null);
+    setShowAddressForm(true);
+  };
+
+  const handleEditAddress = (address: AddressDTO) => {
+    setSelectedAddress(address);
+    setShowAddressForm(true);
+  };
+
+  // Handlers for Contact actions
+  const handleAddContact = () => {
+    setSelectedContact(null);
+    setShowContactForm(true);
+  };
+
+  const handleEditContact = (contact: ContactDTO) => {
+    setSelectedContact(contact);
+    setShowContactForm(true);
   };
   return (
     <>
-      <div className={styles.mainLayout}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 min-h-[600px]">
         {/* Left Column */}
-        <div className={styles.leftColumn}>
+        <div className="flex flex-col gap-6">
           {/* Identifiers Card */}
           <Card
             title={
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Identifiers</span>
+              <div className="flex justify-between items-center w-full">
+                <span className="text-base font-bold text-theme-primary">
+                  Identifiers
+                </span>
                 <EditOutlined
-                  className={styles.editIcon}
+                  className="text-sm text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
                   onClick={() => setShowIdentifiersForm(true)}
                 />
               </div>
             }
-            className={styles.card}
+            className="rounded-none shadow-sm border border-theme"
           >
-            <div className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Client ID</span>
-                <span className={styles.infoValue}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-x-6">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  Client ID
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.clientId || "—"}
                 </span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Medicaid ID</span>
-                <span className={styles.infoValue}>
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  Medicaid ID
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.medicaidId || "—"}
                 </span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>SSN</span>
-                <span className={styles.infoValue}>{patient.ssn || "—"}</span>
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  SSN
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
+                  {patient.ssn || "—"}
+                </span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Agency ID</span>
-                <span className={styles.infoValue}>
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  Agency ID
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.agencyId || "—"}
                 </span>
               </div>
@@ -84,38 +117,48 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
           {/* Personal Information Card */}
           <Card
             title={
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Personal Information</span>
+              <div className="flex justify-between items-center w-full">
+                <span className="text-base font-bold text-theme-primary">
+                  Personal Information
+                </span>
                 <EditOutlined
-                  className={styles.editIcon}
+                  className="text-sm text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
                   onClick={() => setShowPersonalInfoForm(true)}
                 />
               </div>
             }
-            className={styles.card}
+            className="rounded-none shadow-sm border border-theme"
           >
-            <div className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Client Name</span>
-                <span className={styles.infoValue}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-x-6">
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  Client Name
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.firstName} {patient.lastName}
                 </span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Date of Birth</span>
-                <span className={styles.infoValue}>
-                  {formatDate(patient.dob)}
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  Date of Birth
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
+                  {formatDateLong(patient.dob)}
                 </span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Gender</span>
-                <span className={styles.infoValue}>
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  Gender
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.gender || "—"}
                 </span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Language</span>
-                <span className={styles.infoValue}>
+              <div className="grid grid-cols-[100px_1fr] gap-4 items-center text-[13px]">
+                <span className="text-xs font-medium text-theme-secondary whitespace-nowrap">
+                  Language
+                </span>
+                <span className="text-[13px] font-normal text-theme-primary">
                   {patient.primaryLanguage || "—"}
                 </span>
               </div>
@@ -125,31 +168,44 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
           {/* Addresses | Phone Numbers Card */}
           <Card
             title={
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>
+              <div className="flex justify-between items-center w-full">
+                <span className="text-base font-bold text-theme-primary">
                   Addresses | Phone Numbers
                 </span>
-                <button className={styles.addButton}>+ ADD ADDRESS</button>
+                <button
+                  onClick={handleAddAddress}
+                  className="bg-transparent border-none text-[var(--primary)] text-[13px] font-bold cursor-pointer px-2 py-1 hover:opacity-90 transition-opacity"
+                >
+                  + ADD ADDRESS
+                </button>
               </div>
             }
-            className={styles.card}
+            className="rounded-none shadow-sm border border-theme"
           >
             {patient.addresses && patient.addresses.length > 0 ? (
-              <div className={styles.listContainer}>
+              <div className="flex flex-col gap-3">
                 {patient.addresses.map((address: AddressDTO) => (
-                  <div key={address.id} className={styles.addressItem}>
-                    <div className={styles.listItemContent}>
-                      <PhoneOutlined className={styles.listIcon} />
-                      <div className={styles.listItemText}>
-                        <span className={styles.listItemPhone}>
+                  <div
+                    key={address.id}
+                    className="flex justify-between items-center py-3 px-4 border border-theme rounded-md bg-[var(--bg-primary)] hover:border-[var(--primary)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <PhoneOutlined className="text-base text-theme-secondary" />
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-[13px] text-theme-primary">
                           {address.line1 || "—"} | {address.phone || "—"}
                         </span>
                         {address.isMain && (
-                          <span className={styles.mainBadge}>Main Address</span>
+                          <span className="bg-[var(--primary)] text-white text-xs font-medium px-2.5 py-0.5 tracking-[0.3px]">
+                            Main Address
+                          </span>
                         )}
                       </div>
                     </div>
-                    <MoreOutlined className={styles.moreIcon} />
+                    <MoreOutlined
+                      className="text-base text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
+                      onClick={() => handleEditAddress(address)}
+                    />
                   </div>
                 ))}
               </div>
@@ -160,51 +216,64 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
         </div>
 
         {/* Right Column */}
-        <div className={styles.rightColumn}>
+        <div className="flex flex-col gap-6">
           {/* Contacts Card */}
           <Card
             title={
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Contacts</span>
-                <button className={styles.addButton}>+ ADD CONTACT</button>
+              <div className="flex justify-between items-center w-full">
+                <span className="text-base font-bold text-theme-primary">
+                  Contacts
+                </span>
+                <button
+                  onClick={handleAddContact}
+                  className="bg-transparent border-none text-[var(--primary)] text-[13px] font-bold cursor-pointer px-2 py-1 hover:opacity-90 transition-opacity"
+                >
+                  + ADD CONTACT
+                </button>
               </div>
             }
-            className={styles.card}
+            className="rounded-none shadow-sm border border-theme"
           >
             {patient.contacts && patient.contacts.length > 0 ? (
-              <div className={styles.listContainer}>
+              <div className="flex flex-col gap-3">
                 {patient.contacts.map((contact: ContactDTO) => (
-                  <div key={contact.id} className={styles.contactItem}>
-                    <div className={styles.contactInfo}>
-                      <div className={styles.contactNameRow}>
-                        <div className={styles.contactName}>{contact.name}</div>
+                  <div
+                    key={contact.id}
+                    className="flex justify-between items-start p-4 border border-theme rounded-md bg-[var(--bg-primary)] hover:border-[var(--primary)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all"
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <div className="flex items-center gap-2.5">
+                        <div className="text-sm font-semibold text-theme-primary">
+                          {contact.name}
+                        </div>
                         {contact.isPrimary && (
-                          <span className={styles.mainBadge}>
+                          <span className="bg-[var(--primary)] text-white text-xs font-medium px-2.5 py-0.5 tracking-[0.3px]">
                             Primary Contact
                           </span>
                         )}
                       </div>
-                      <div className={styles.contactDetails}>
-                        <span className={styles.contactRelation}>
-                          {contact.relation}
-                        </span>
+                      <div className="flex items-center gap-2 text-xs text-theme-secondary">
+                        <span className="font-medium">{contact.relation}</span>
                         {contact.phone && (
                           <>
-                            <span className={styles.contactSeparator}>•</span>
-                            <PhoneOutlined className={styles.contactIcon} />
+                            <span className="text-theme-border">•</span>
+                            <PhoneOutlined className="text-xs text-theme-secondary" />
                             <span>{contact.phone}</span>
                           </>
                         )}
                         {contact.email && (
                           <>
-                            <span className={styles.contactSeparator}>•</span>
-                            <MailOutlined className={styles.contactIcon} />
+                            <span className="text-theme-border">•</span>
+                            <MailOutlined className="text-xs text-theme-secondary" />
                             <span>{contact.email}</span>
                           </>
                         )}
                       </div>
                     </div>
-                    <MoreOutlined className={styles.moreIcon} />
+                    <MoreOutlined
+                      className="text-base text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"
+                      onClick={() => handleEditContact(contact)}
+                    />
                   </div>
                 ))}
               </div>
@@ -258,6 +327,56 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
           });
         }}
       />
+
+      <EditAddressForm
+        open={showAddressForm}
+        onClose={() => {
+          setShowAddressForm(false);
+          setSelectedAddress(null);
+        }}
+        patientId={patient.id}
+        initialData={selectedAddress}
+        onUpdateSuccess={() => {
+          queryClient.invalidateQueries({
+            queryKey: ["patient-header", patient.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["patient-personal", patient.id],
+          });
+        }}
+      />
+
+      <EditContactForm
+        open={showContactForm}
+        onClose={() => {
+          setShowContactForm(false);
+          setSelectedContact(null);
+        }}
+        patientId={patient.id}
+        initialData={selectedContact}
+        onUpdateSuccess={() => {
+          queryClient.invalidateQueries({
+            queryKey: ["patient-header", patient.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["patient-personal", patient.id],
+          });
+        }}
+      />
+
+      {/* Apply custom styles to Ant Design Card */}
+      <style jsx global>{`
+        .ant-card {
+          border-radius: 0 !important;
+        }
+        .ant-card-head {
+          border-bottom: none !important;
+          border-radius: 0 !important;
+        }
+        .ant-card-body {
+          border-radius: 0 !important;
+        }
+      `}</style>
     </>
   );
 }

@@ -41,11 +41,11 @@
 }
 
 /* Dark mode specific overrides for better contrast */
-:global(.dark) .progressLabel {
+.darkMode .progressLabel {
   color: var(--text-secondary); /* #C9D1D9 - WCAG AA compliant */
 }
 
-:global(.dark) .progressValue {
+.darkMode .progressValue {
   color: var(--text-primary); /* #F0F6FC - High contrast */
 }
 
@@ -71,15 +71,15 @@
 }
 
 /* Dark mode table text improvements */
-:global(.dark) .activityTime {
+.darkMode .activityTime {
   color: var(--text-secondary); /* Better contrast */
 }
 
-:global(.dark) .activityDescription {
+.darkMode .activityDescription {
   color: var(--text-primary);
 }
 
-:global(.dark) .activityMeta {
+.darkMode .activityMeta {
   color: var(--text-secondary); /* Improved from tertiary */
 }
 
@@ -101,11 +101,11 @@
 }
 
 /* Dark mode timeline */
-:global(.dark) .timelineTitle {
+.darkMode .timelineTitle {
   color: var(--text-primary);
 }
 
-:global(.dark) .timelineDescription {
+.darkMode .timelineDescription {
   color: var(--text-secondary);
 }
 
@@ -130,7 +130,7 @@
   color: var(--text-primary);
 }
 
-:global(.dark) .alertInfo {
+.darkMode .alertInfo {
   background: rgba(88, 166, 255, 0.15);
   border: 1px solid rgba(88, 166, 255, 0.4);
 }
@@ -160,55 +160,3 @@
   border: 1px solid rgba(88, 166, 255, 0.3);
 }
 
-/* Ant Design overrides for better dark mode contrast */
-:global(.dark .ant-card) {
-  background: var(--bg-surface);
-  border-color: var(--border-color);
-}
-
-:global(.dark .ant-card-head-title) {
-  color: var(--text-primary);
-}
-
-:global(.dark .ant-table-thead > tr > th) {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-:global(.dark .ant-table-tbody > tr > td) {
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-:global(.dark .ant-table-tbody > tr:hover > td) {
-  background: rgba(88, 166, 255, 0.05);
-}
-
-:global(.dark .ant-timeline-item-head) {
-  background: var(--bg-surface);
-  border-color: var(--border-color);
-}
-
-:global(.dark .ant-timeline-item-tail) {
-  border-left-color: var(--border-color);
-}
-
-/* Progress bar improvements */
-:global(.dark .ant-progress-text) {
-  color: var(--text-primary) !important;
-}
-
-:global(.dark .ant-progress-inner) {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* Divider improvements */
-:global(.dark .ant-divider) {
-  border-color: var(--border-color);
-}
-
-:global(.dark .ant-divider-inner-text) {
-  color: var(--text-secondary);
-}

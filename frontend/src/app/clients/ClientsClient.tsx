@@ -375,7 +375,7 @@ export default function ClientsClient({
           pagination={{
             current: currentPage, // Already 1-based from URL
             pageSize: pageSize,
-            total: data?.totalElements || 0,
+            total: data?.page?.totalElements || 0,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useApiQuery } from "./useApi";
-import type { PatientHeaderDTO, PatientPersonalDTO } from "@/types/patient";
+import type { PatientHeaderDTO, PatientPersonalDTO, PatientProgramDTO } from "@/types/patient";
 import type { UseQueryOptions } from "@tanstack/react-query";
 import type { ApiError } from "@/types/api";
 
@@ -31,7 +31,7 @@ export function usePatientHeader(
     ["patient-header", patientId] as const,
     endpoint,
     {
-      staleTime: 60 * 1000, // Data is fresh for 60 seconds (matches server cache)
+      staleTime: 0, // Always refetch when invalidated (no stale time)
       gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
       enabled: !!patientId, // Only fetch if patientId is provided
       ...options,
@@ -64,7 +64,40 @@ export function usePatientPersonal(
     ["patient-personal", patientId] as const,
     endpoint,
     {
-      staleTime: 60 * 1000, // Data is fresh for 60 seconds (matches server cache)
+      staleTime: 0, // Always refetch when invalidated (no stale time)
+      gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+      enabled: !!patientId, // Only fetch if patientId is provided
+      ...options,
+    }
+  );
+}
+
+/**
+ * Custom hook for fetching patient program information
+ * Integrates with the backend /api/patients/{id}/program endpoint
+ *
+ * @param patientId UUID of the patient
+ * @param options React Query options including initialData
+ * @returns React Query result with patient program data
+ */
+export function usePatientProgram(
+  patientId: string,
+  options?: Omit<
+    UseQueryOptions<
+      PatientProgramDTO,
+      ApiError,
+      PatientProgramDTO,
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >
+) {
+  const endpoint = `/patients/${patientId}/program`;
+  return useApiQuery<PatientProgramDTO>(
+    ["patient-program", patientId] as const,
+    endpoint,
+    {
+      staleTime: 0, // Always refetch when invalidated (no stale time)
       gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
       enabled: !!patientId, // Only fetch if patientId is provided
       ...options,

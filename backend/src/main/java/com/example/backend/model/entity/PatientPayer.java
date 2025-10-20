@@ -32,9 +32,6 @@ public class PatientPayer extends BaseEntity {
     @Column(name = "client_payer_id", nullable = false)
     private String clientPayerId;
 
-    @Column(name = "medicaid_id")
-    private String medicaidId;
-
     @Column(name = "rank")
     private Integer rank;
 
@@ -52,5 +49,5 @@ public class PatientPayer extends BaseEntity {
     private Map<String, Object> meta;
 
     @OneToMany(mappedBy = "patientPayer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ServiceAuthorization> serviceAuthorizations = new HashSet<>();
+    private Set<Authorization> authorizations = new HashSet<>();
 }

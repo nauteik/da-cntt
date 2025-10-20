@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * User info response DTO (returned to client after login or for /me endpoint)
- * Does not include the token since it's stored in HttpOnly cookie
+ * Now includes token for BFF pattern - token will be extracted and stored in HttpOnly cookie
  */
 @Data
 @NoArgsConstructor
@@ -23,4 +23,5 @@ public class UserInfoResponse {
     private LocalDateTime expiresAt;
     private boolean mfaEnabled;
     private String officeId; // Multi-office support (UUID as string)
+    private String token; // JWT token for BFF pattern
 }

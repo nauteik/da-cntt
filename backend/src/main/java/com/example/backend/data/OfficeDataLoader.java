@@ -25,6 +25,12 @@ public class OfficeDataLoader {
     public void loadData() {
         log.info("Loading office data...");
 
+        // Check if data already exists and skip if it does
+        if (officeRepository.count() > 0) {
+            log.info("Office data already exists. Skipping.");
+            return;
+        }
+
         loadOffices();
 
         log.info("Office data loaded successfully");

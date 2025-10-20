@@ -97,6 +97,9 @@ public class Patient extends BaseEntity {
     private Set<ISP> isps = new HashSet<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Authorization> authorizations = new HashSet<>();
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<MedicationOrder> medicationOrders = new HashSet<>();
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

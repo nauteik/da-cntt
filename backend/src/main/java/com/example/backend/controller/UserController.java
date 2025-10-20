@@ -74,7 +74,8 @@ public class UserController {
                 roles,
                 LocalDateTime.now().plusHours(1), // Token expiry (you might want to extract this from JWT)
                 user.isMfaEnabled(),
-                officeId
+                officeId,
+                null // No token needed for /me endpoint - token is only for login response
         );
 
         return ResponseEntity.ok(ApiResponse.success(userInfo, "User info retrieved successfully"));

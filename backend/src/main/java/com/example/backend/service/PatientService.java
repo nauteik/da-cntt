@@ -7,6 +7,17 @@ import com.example.backend.model.dto.PatientCreatedDTO;
 import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
+import com.example.backend.model.dto.UpdatePatientAddressDTO;
+import com.example.backend.model.dto.UpdatePatientContactDTO;
+import com.example.backend.model.dto.PatientProgramDTO;
+import com.example.backend.model.dto.UpdatePatientProgramDTO;
+import com.example.backend.model.dto.CreatePatientServiceDTO;
+import com.example.backend.model.dto.UpdatePatientServiceDTO;
+import com.example.backend.model.dto.PayerAuthorizationDTO;
+import com.example.backend.model.dto.CreatePatientPayerDTO;
+import com.example.backend.model.dto.UpdatePatientPayerDTO;
+import com.example.backend.model.dto.CreateAuthorizationDTO;
+import com.example.backend.model.dto.UpdateAuthorizationDTO;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -96,4 +107,202 @@ public interface PatientService {
      * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
      */
     PatientPersonalDTO updatePatientPersonal(UUID patientId, UpdatePatientPersonalDTO updateDTO);
+
+    /**
+     * Create a new address for a patient.
+     * Always creates a new Address entity (no sharing between patients).
+     * 
+     * @param patientId UUID of the patient
+     * @param updateDTO address data
+     * @return updated patient personal DTO with new address
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
+     * @throws IllegalArgumentException if required fields are missing
+     */
+    PatientPersonalDTO createPatientAddress(UUID patientId, UpdatePatientAddressDTO updateDTO);
+
+    /**
+     * Update an existing patient address.
+     * Updates the Address entity directly (safe since not shared).
+     * 
+     * @param patientId UUID of the patient
+     * @param addressId UUID of the PatientAddress to update
+     * @param updateDTO address data to update
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or address not found
+     */
+    PatientPersonalDTO updatePatientAddress(UUID patientId, UUID addressId, UpdatePatientAddressDTO updateDTO);
+
+    /**
+     * Create a new emergency contact for a patient.
+     * 
+     * @param patientId UUID of the patient
+     * @param updateDTO contact data
+     * @return updated patient personal DTO with new contact
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
+     * @throws IllegalArgumentException if required fields are missing
+     */
+    PatientPersonalDTO createPatientContact(UUID patientId, UpdatePatientContactDTO updateDTO);
+
+    /**
+     * Update an existing patient emergency contact.
+     * 
+     * @param patientId UUID of the patient
+     * @param contactId UUID of the PatientContact to update
+     * @param updateDTO contact data to update
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or contact not found
+     */
+    PatientPersonalDTO updatePatientContact(UUID patientId, UUID contactId, UpdatePatientContactDTO updateDTO);
+
+    /**
+     * Delete a patient address and its associated Address entity.
+     * Auto-promotes first remaining address as main if deleted address was main.
+     * 
+     * @param patientId UUID of the patient
+     * @param addressId UUID of the PatientAddress to delete
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or address not found
+     */
+    PatientPersonalDTO deletePatientAddress(UUID patientId, UUID addressId);
+
+    /**
+     * Delete a patient emergency contact.
+     * Auto-promotes first remaining contact as primary if deleted contact was primary.
+     * 
+     * @param patientId UUID of the patient
+     * @param contactId UUID of the PatientContact to delete
+     * @return updated patient personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or contact not found
+     */
+    PatientPersonalDTO deletePatientContact(UUID patientId, UUID contactId);
+
+    /**
+     * Get full historical Program tab data for a patient, including
+     * programs, payers, services, and authorizations.
+     *
+     * @param patientId UUID of the patient
+     * @return aggregated program tab DTO
+     */
+    PatientProgramDTO getPatientProgram(UUID patientId);
+
+    /**
+     * Update patient program information.
+     * Updates the patient's program enrollment details.
+     *
+     * @param patientId UUID of the patient
+     * @param updateDTO program update data
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or program not found
+     */
+    PatientProgramDTO updatePatientProgram(UUID patientId, UpdatePatientProgramDTO updateDTO);
+
+    /**
+     * Create a new patient service assignment.
+     * Assigns a service type to a patient with start/end dates.
+     *
+     * @param patientId UUID of the patient
+     * @param createDTO service creation data
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or service type not found
+     * @throws IllegalArgumentException if start date is after end date
+     */
+    PatientProgramDTO createPatientService(UUID patientId, CreatePatientServiceDTO createDTO);
+
+    /**
+     * Update an existing patient service assignment.
+     * Updates service type, dates, or metadata.
+     *
+     * @param patientId UUID of the patient
+     * @param patientServiceId UUID of the patient service to update
+     * @param updateDTO service update data
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or service not found
+     * @throws IllegalArgumentException if start date is after end date
+     */
+    PatientProgramDTO updatePatientService(UUID patientId, UUID patientServiceId, UpdatePatientServiceDTO updateDTO);
+
+    /**
+     * Delete a patient service assignment.
+     *
+     * @param patientId UUID of the patient
+     * @param patientServiceId UUID of the patient service to delete
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or service not found
+     */
+    PatientProgramDTO deletePatientService(UUID patientId, UUID patientServiceId);
+
+    /**
+     * Get authorizations for a specific patient payer.
+     * Returns list of authorizations associated with the patient payer.
+     *
+     * @param patientId UUID of the patient
+     * @param patientPayerId UUID of the patient payer
+     * @return list of authorization DTOs
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or patient payer not found
+     */
+    List<PayerAuthorizationDTO> getPatientPayerAuthorizations(UUID patientId, UUID patientPayerId);
+
+    /**
+     * Create a new patient payer assignment.
+     * Assigns a payer to a patient with rank, dates, and group number.
+     *
+     * @param patientId UUID of the patient
+     * @param createDTO payer creation data
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or payer not found
+     * @throws IllegalArgumentException if start date is after end date or payer is not active
+     * @throws com.example.backend.exception.ConflictException if patient-payer combination already exists
+     */
+    PatientProgramDTO createPatientPayer(UUID patientId, CreatePatientPayerDTO createDTO);
+
+    /**
+     * Update an existing patient payer assignment.
+     * Updates payer, rank, dates, or group number.
+     *
+     * @param patientId UUID of the patient
+     * @param patientPayerId UUID of the patient payer to update
+     * @param updateDTO payer update data
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or payer not found
+     * @throws IllegalArgumentException if start date is after end date
+     */
+    PatientProgramDTO updatePatientPayer(UUID patientId, UUID patientPayerId, UpdatePatientPayerDTO updateDTO);
+
+    /**
+     * Create a new authorization.
+     * Links a patient service and patient payer with authorization details.
+     *
+     * @param patientId UUID of the patient
+     * @param createDTO authorization creation data
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient, service, or payer not found
+     * @throws IllegalArgumentException if start date is after end date or patient service/payer don't belong to patient
+     * @throws com.example.backend.exception.ConflictException if authorization number already exists
+     */
+    PatientProgramDTO createAuthorization(UUID patientId, CreateAuthorizationDTO createDTO);
+
+    /**
+     * Update an existing authorization.
+     * Updates authorization details including service, payer, dates, and limits.
+     *
+     * @param patientId UUID of the patient
+     * @param authorizationId UUID of the authorization to update
+     * @param updateDTO authorization update data
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or authorization not found
+     * @throws IllegalArgumentException if start date is after end date or authorization doesn't belong to patient
+     * @throws com.example.backend.exception.ConflictException if updated authorization number already exists
+     */
+    PatientProgramDTO updateAuthorization(UUID patientId, UUID authorizationId, UpdateAuthorizationDTO updateDTO);
+
+    /**
+     * Delete an authorization.
+     *
+     * @param patientId UUID of the patient
+     * @param authorizationId UUID of the authorization to delete
+     * @return updated patient program DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient or authorization not found
+     * @throws IllegalArgumentException if authorization doesn't belong to patient
+     */
+    PatientProgramDTO deleteAuthorization(UUID patientId, UUID authorizationId);
 }

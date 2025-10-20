@@ -86,18 +86,6 @@
   color: var(--text-primary) !important;
 }
 
-/* Remove border radius from date picker dropdown */
-:global(.ant-picker-dropdown) {
-  border-radius: 0 !important;
-}
-
-:global(.ant-picker-panel-container) {
-  border-radius: 0 !important;
-}
-
-:global(.ant-picker-panel) {
-  border-radius: 0 !important;
-}
 
 /* ============================================
    Ant Design Select Overrides
@@ -129,7 +117,44 @@
   color: var(--text-primary) !important;
 }
 
-/* Remove border radius from select dropdown */
-:global(.ant-select-dropdown) {
+
+/* ============================================
+   Disabled Input Styles
+   ============================================ */
+
+.formInputDisabled,
+.formInputDisabled:global(.ant-input-affix-wrapper) {
   border-radius: 0 !important;
+  background: var(--bg-disabled, #f5f5f5) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-disabled, #999) !important;
+  cursor: not-allowed !important;
+  transition: all 0.2s ease;
+}
+
+/* Dark mode support */
+.darkMode .formInputDisabled,
+.darkMode .formInputDisabled:global(.ant-input-affix-wrapper) {
+  background: var(--bg-disabled, rgba(255, 255, 255, 0.08)) !important;
+  color: var(--text-disabled, #666) !important;
+}
+
+/* Inner input element for disabled */
+.formInputDisabled input,
+.formInputDisabled:global(.ant-input-affix-wrapper) input {
+  background: transparent !important;
+  color: var(--text-disabled, #999) !important;
+  cursor: not-allowed !important;
+}
+
+/* Dark mode inner input */
+.darkMode .formInputDisabled input,
+.darkMode .formInputDisabled:global(.ant-input-affix-wrapper) input {
+  color: var(--text-disabled, #666) !important;
+}
+
+/* Remove hover effect for disabled */
+.formInputDisabled:hover,
+.formInputDisabled:global(.ant-input-affix-wrapper):hover {
+  border-color: var(--border-color) !important;
 }

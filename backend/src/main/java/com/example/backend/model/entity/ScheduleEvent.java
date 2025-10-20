@@ -43,8 +43,8 @@ public class ScheduleEvent {
     private OffsetDateTime endAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_type_id")
-    private ServiceType serviceType;
+    @JoinColumn(name = "authorization_id")
+    private Authorization authorization;
 
     @OneToMany(mappedBy = "scheduleEvent", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ISPTaskSchedule> ispTaskSchedules = new HashSet<>();

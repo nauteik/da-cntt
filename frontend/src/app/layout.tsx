@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BAC-HMS - Blue Angels Care Health Management System",
-  description: "Healthcare management system for Blue Angels Care",
+  title: "BAC - Blue Angels Care",
+  description: "Management system for Blue Angels Care",
 };
 
 export default function RootLayout({

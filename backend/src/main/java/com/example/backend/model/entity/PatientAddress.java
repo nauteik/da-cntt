@@ -29,12 +29,16 @@ public class PatientAddress extends BaseEntity {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "email")
+    private String email;
+
     @Column(name = "is_main", nullable = false)
     private Boolean isMain = false;
 
-    public PatientAddress(Patient patient, Address address, String phone) {
+    public PatientAddress(Patient patient, Address address, String phone, String email) {
         this.patient = patient;
         this.address = address;
         this.phone = phone;
+        this.email = email;
     }
 }

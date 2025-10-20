@@ -65,9 +65,7 @@ async function getInitialClients(
     const endpoint = `/patients?${queryParams.toString()}`;
 
     const response: ApiResponse<PaginatedPatients> =
-      await apiClient<PaginatedPatients>(endpoint, {
-        revalidate: 0, // Don't cache user-specific data
-      });
+      await apiClient<PaginatedPatients>(endpoint);
 
     if (!response.success || !response.data) {
       return { data: null, error: response.message };
@@ -82,17 +80,15 @@ async function getInitialClients(
 // Fetch active offices for the create client modal
 async function getActiveOffices(): Promise<OfficeDTO[]> {
   try {
-    const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>(
-      "/office/active",
-      {
-        revalidate: 300, // Cache for 5 minutes
-      }
-    );
+    // Use direct backend call since we removed BFF for office/active
+    const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>("/office/active");
 
     if (!response.success || !response.data) {
       console.error("Failed to fetch offices:", response.message);
       return [];
     }
+
+    console.log("Successfully fetched offices:", response.data.length);
     return response.data;
   } catch (error) {
     console.error("Error fetching offices:", error);

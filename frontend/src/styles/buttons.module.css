@@ -40,3 +40,27 @@
   font-weight: 550 !important;
   transition: all 0.2s ease;
 }
+
+.btnDanger {
+  border: none !important;
+  background: transparent !important;
+  color: #dc3545 !important;
+  height: auto !important;
+  font-weight: 550 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.btnDanger:hover:not(:disabled) {
+  color: #b02a37 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.btnDanger:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}

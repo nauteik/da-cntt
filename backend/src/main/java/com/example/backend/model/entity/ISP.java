@@ -26,7 +26,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"patient", "file", "goals", "serviceAuthorizations", "progressReports"})
+@ToString(exclude = {"patient", "file", "goals"})
 public class ISP extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -57,12 +57,6 @@ public class ISP extends BaseEntity {
     // Relationships
     @OneToMany(mappedBy = "isp", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ISPGoal> goals = new HashSet<>();
-
-    @OneToMany(mappedBy = "isp", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ServiceAuthorization> serviceAuthorizations = new HashSet<>();
-
-    @OneToMany(mappedBy = "isp", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ProgressReport> progressReports = new HashSet<>();
 
     public ISP(Patient patient) {
         this.patient = patient;

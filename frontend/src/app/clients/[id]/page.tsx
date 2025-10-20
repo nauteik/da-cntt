@@ -5,7 +5,7 @@ import AdminLayout from "@/components/AdminLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { apiClient } from "@/lib/apiClient";
 import type { ApiResponse } from "@/types/api";
-import type { PatientHeaderDTO, PatientPersonalDTO } from "@/types/patient";
+import type { PatientHeaderDTO, PatientPersonalDTO, PatientProgramDTO } from "@/types/patient";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import ErrorFallback from "@/components/common/ErrorFallback";
 
@@ -21,9 +21,7 @@ export async function generateMetadata({
 
   try {
     const headerResponse: ApiResponse<PatientHeaderDTO> =
-      await apiClient<PatientHeaderDTO>(`/patients/${id}/header`, {
-        revalidate: 60,
-      });
+      await apiClient<PatientHeaderDTO>(`/patients/${id}/header`);
 
     if (!headerResponse.success || !headerResponse.data) {
       return {
@@ -48,9 +46,7 @@ async function getPatientHeader(
 ): Promise<{ data: PatientHeaderDTO | null; error?: string }> {
   try {
     const response: ApiResponse<PatientHeaderDTO> =
-      await apiClient<PatientHeaderDTO>(`/patients/${patientId}/header`, {
-        revalidate: 60, // Revalidate every 60 seconds
-      });
+      await apiClient<PatientHeaderDTO>(`/patients/${patientId}/header`);
 
     if (!response.success || !response.data) {
       return { data: null, error: response.message || "Patient not found" };
@@ -69,9 +65,7 @@ async function getPatientPersonal(
 ): Promise<{ data: PatientPersonalDTO | null; error?: string }> {
   try {
     const response: ApiResponse<PatientPersonalDTO> =
-      await apiClient<PatientPersonalDTO>(`/patients/${patientId}/personal`, {
-        revalidate: 60, // Revalidate every 60 seconds
-      });
+      await apiClient<PatientPersonalDTO>(`/patients/${patientId}/personal`);
 
     if (!response.success || !response.data) {
       return {
@@ -87,25 +81,53 @@ async function getPatientPersonal(
   }
 }
 
+// Fetch Patient Program Details (Server Component)
+async function getPatientProgram(
+  patientId: string
+): Promise<{ data: PatientProgramDTO | null; error?: string }> {
+  try {
+    const response: ApiResponse<PatientProgramDTO> =
+      await apiClient<PatientProgramDTO>(`/patients/${patientId}/program`);
+
+    if (!response.success || !response.data) {
+      return {
+        data: null,
+        error: response.message || "Patient program data not found",
+      };
+    }
+
+    return { data: response.data };
+  } catch (error) {
+    console.error("Error fetching patient program data:", error);
+    return { data: null, error: "An unexpected error occurred" };
+  }
+}
+
 // Patient Detail Page (Server Component - default)
 export default async function PatientDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  // Fetch both header and personal data in parallel for better performance
-  const [headerResult, personalResult] = await Promise.all([
+  // Fetch header, personal, and program data in parallel for better performance
+  const [headerResult, personalResult, programResult] = await Promise.all([
     getPatientHeader(id),
     getPatientPersonal(id),
+    getPatientProgram(id),
   ]);
 
-  // Handle header fetch errors
   if (!headerResult.data) {
-    return <ErrorFallback title={headerResult.error} />;
+    return (
+      <ErrorFallback
+        title="Unable to Load Clients"
+        message={headerResult.error}
+      />
+    );
   }
-
   // If personal data fetch failed, show error UI
   if (!personalResult.data) {
     return <ErrorFallback title={personalResult.error} />;
   }
+  // Program data is optional - if it fails, we still show the page
+  // The error will be displayed only in the Program tab
 
   return (
     <ProtectedRoute>
@@ -117,6 +139,7 @@ export default async function PatientDetailPage({ params }: PageProps) {
             patientId={id}
             initialHeader={headerResult.data}
             initialPersonal={personalResult.data}
+            initialProgram={programResult.data || undefined}
           />
         </Suspense>
       </AdminLayout>

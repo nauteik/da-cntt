@@ -1,0 +1,51 @@
+# Maven
+target/
+!target/*.jar
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Documentation
+README.md
+*.md
+
+# Test files
+src/test/
+
+# Environment files (should be passed as environment variables)
+.env
+.env.local
+.env.production

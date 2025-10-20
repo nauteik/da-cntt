@@ -5,24 +5,10 @@ import { Modal, Button, Input } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useApiMutation } from "@/hooks/useApi";
+import { identifiersSchema, type IdentifiersFormData } from "@/lib/validation/patientSchemas";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
-
-// Validation schema
-const identifiersSchema = z.object({
-  clientId: z.string().min(1, "Client ID is required"),
-  medicaidId: z.string().min(1, "Medicaid ID is required"),
-  ssn: z
-    .string()
-    .regex(/^\d{3}-?\d{2}-?\d{4}$/, "SSN must be in format XXX-XX-XXXX")
-    .optional()
-    .or(z.literal("")),
-  agencyId: z.string().optional(),
-});
-
-type IdentifiersFormData = z.infer<typeof identifiersSchema>;
 
 interface EditIdentifiersFormProps {
   open: boolean;
@@ -61,7 +47,7 @@ export default function EditIdentifiersForm({
   const updateIdentifiersMutation = useApiMutation<
     unknown,
     IdentifiersFormData
-  >(`/patients/${patientId}/identifiers`, "PUT");
+  >(`/patients/${patientId}/identifiers`, "PATCH");
 
   // Reset form when modal opens (but not on subsequent re-renders while open)
   React.useEffect(() => {
@@ -119,7 +105,7 @@ export default function EditIdentifiersForm({
     >
       <div className="flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center px-8 py-6 border-b border-theme bg-theme-surface">
+        <div className="flex justify-between items-center px-8 py-4 border-b border-theme bg-theme-surface">
           <h2 className="text-xl font-semibold text-theme-primary m-0">
             Edit Identifiers
           </h2>
@@ -138,7 +124,7 @@ export default function EditIdentifiersForm({
             {/* Client ID */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Client ID <span className="text-red-500 ml-1">*</span>
+                Client ID
               </label>
               <Controller
                 name="clientId"
@@ -162,7 +148,7 @@ export default function EditIdentifiersForm({
             {/* Medicaid ID */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Medicaid ID <span className="text-red-500 ml-1">*</span>
+                Medicaid ID
               </label>
               <Controller
                 name="medicaidId"

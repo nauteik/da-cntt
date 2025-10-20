@@ -49,7 +49,7 @@ spring:
 
 # Server Configuration - use environment variable
 server:
-  port: ${SERVER_PORT}
+  port: ${PORT:8080}
   error:
     include-stacktrace: never
     include-message: never

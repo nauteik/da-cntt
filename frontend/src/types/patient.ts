@@ -25,14 +25,12 @@ export interface PatientSummary {
 
 export interface PaginatedPatients {
   content: PatientSummary[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number; // Current page number (0-indexed)
-  numberOfElements: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+  page: {
+    size: number;
+    number: number; // Current page number (0-indexed)
+    totalElements: number;
+    totalPages: number;
+  };
 }
 
 export interface PatientFilters {
@@ -61,15 +59,25 @@ export interface ContactDTO {
   isPrimary: boolean;
 }
 
+export enum AddressType {
+  HOME = "HOME",
+  COMMUNITY = "COMMUNITY",
+  SENIOR = "SENIOR",
+  BUSINESS = "BUSINESS",
+}
+
 export interface AddressDTO {
   id: string;
+  label?: string;
+  type?: AddressType;
   line1: string;
   line2?: string;
   city: string;
   state: string;
   postalCode: string;
-  country: string;
+  county: string;
   phone: string;
+  email?: string;
   isMain: boolean;
 }
 
@@ -99,4 +107,119 @@ export interface PatientPersonalDTO {
   medicalProfile: Record<string, unknown>;
   contacts: ContactDTO[];
   addresses: AddressDTO[];
+}
+
+// Patient Program Types
+// Backend-aligned Program Tab DTOs
+export interface ProgramDetailDTO {
+  programIdentifier?: string;
+  supervisorName?: string;
+  enrollmentDate?: string;
+  eocDate?: string;
+  createdAt?: string;
+  statusEffectiveDate?: string;
+  socDate?: string;
+  eligibilityBeginDate?: string;
+  eligibilityEndDate?: string;
+  reasonForChange?: string[] | null;
+}
+
+export interface PayerDetailDTO {
+  patientPayerId?: string;
+  payerName?: string;
+  payerIdentifier?: string;
+  rank?: number;
+  clientPayerId?: string;
+  startDate?: string;
+  groupNo?: string;
+  endDate?: string;
+}
+
+export interface ServiceDetailDTO {
+  patientServiceId?: string;
+  serviceName?: string;
+  serviceCode?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface AuthorizationDTO {
+  authorizationId?: string;
+  payerIdentifier?: string;
+  serviceCode?: string;
+  authorizationNo?: string;
+  eventCode?: string;
+  modifiers?: Record<string, unknown> | null;
+  format?: string;
+  startDate?: string;
+  endDate?: string;
+  comments?: string;
+  maxUnits?: number;
+  totalUsed?: number;
+  totalMissed?: number;
+  totalRemaining?: number;
+  meta?: Record<string, unknown> | null;
+}
+
+export interface CreateAuthorizationDTO {
+  patientServiceId: string;
+  patientPayerId: string;
+  authorizationNo: string;
+  eventCode?: string;
+  format?: string;
+  maxUnits: number;
+  startDate: string;
+  endDate?: string;
+  comments?: string;
+}
+
+export interface UpdateAuthorizationDTO {
+  patientServiceId?: string;
+  patientPayerId?: string;
+  authorizationNo?: string;
+  eventCode?: string;
+  format?: string;
+  maxUnits?: number;
+  startDate?: string;
+  endDate?: string;
+  comments?: string;
+}
+
+export interface PatientProgramDTO {
+  program: ProgramDetailDTO[];
+  payer: PayerDetailDTO[];
+  services: ServiceDetailDTO[];
+  authorizations: AuthorizationDTO[];
+}
+
+// Select DTOs for form dropdowns
+export interface StaffSelectDTO {
+  id: string;
+  displayName: string; // Format: "fullName (employeeCode) - officeName"
+}
+
+export interface ProgramSelectDTO {
+  id: string;
+  programIdentifier: string;
+}
+
+export interface ServiceTypeSelectDTO {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface PayerSelectDTO {
+  id: string;
+  payerIdentifier: string;
+  payerName: string;
+}
+
+export interface PayerAuthorizationDTO {
+  serviceCode?: string;
+  authorizationNo?: string;
+  format?: string;
+  maxUnits?: number;
+  startDate?: string;
+  endDate?: string;
 }

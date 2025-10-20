@@ -8,6 +8,17 @@ import com.example.backend.model.dto.PatientCreatedDTO;
 import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
+import com.example.backend.model.dto.UpdatePatientAddressDTO;
+import com.example.backend.model.dto.UpdatePatientContactDTO;
+import com.example.backend.model.dto.PatientProgramDTO;
+import com.example.backend.model.dto.UpdatePatientProgramDTO;
+import com.example.backend.model.dto.CreatePatientServiceDTO;
+import com.example.backend.model.dto.UpdatePatientServiceDTO;
+import com.example.backend.model.dto.PayerAuthorizationDTO;
+import com.example.backend.model.dto.CreatePatientPayerDTO;
+import com.example.backend.model.dto.UpdatePatientPayerDTO;
+import com.example.backend.model.dto.CreateAuthorizationDTO;
+import com.example.backend.model.dto.UpdateAuthorizationDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -166,7 +177,7 @@ public class PatientController {
      *   "agencyId": "AG-001"
      * }
      */
-    @PutMapping("/{id}/identifiers")
+    @PatchMapping("/{id}/identifiers")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<PatientHeaderDTO>> updatePatientIdentifiers(
             @PathVariable UUID id,
@@ -190,7 +201,7 @@ public class PatientController {
      * @param updateDTO patient personal information update data
      * @return updated patient personal information
      * 
-     * Example: PUT /api/patients/123e4567-e89b-12d3-a456-426614174000/personal
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/personal
      * Body: {
      *   "firstName": "John",
      *   "lastName": "Doe",
@@ -199,7 +210,7 @@ public class PatientController {
      *   "primaryLanguage": "English"
      * }
      */
-    @PutMapping("/{id}/personal")
+    @PatchMapping("/{id}/personal")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<PatientPersonalDTO>> updatePatientPersonal(
             @PathVariable UUID id,
@@ -211,6 +222,515 @@ public class PatientController {
         
         return ResponseEntity.ok(
             ApiResponse.success(updatedPersonal, "Patient personal information updated successfully")
+        );
+    }
+
+    /**
+     * Create a new address for a patient.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param updateDTO address data
+     * @return updated patient personal information
+     * 
+     * Example: POST /api/patients/123e4567-e89b-12d3-a456-426614174000/addresses
+     * Body: {
+     *   "label": "Home",
+     *   "type": "HOME",
+     *   "line1": "123 Main St",
+     *   "line2": "Apt 4B",
+     *   "city": "Philadelphia",
+     *   "state": "PA",
+     *   "postalCode": "19103",
+     *   "county": "Philadelphia",
+     *   "phone": "(215) 555-1234",
+     *   "email": "john@example.com",
+     *   "isMain": true
+     * }
+     */
+    @PostMapping("/{id}/addresses")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientPersonalDTO>> createPatientAddress(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdatePatientAddressDTO updateDTO) {
+        
+        log.info("Creating address for patient ID: {}", id);
+        
+        PatientPersonalDTO updatedPersonal = patientService.createPatientAddress(id, updateDTO);
+        
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(updatedPersonal, "Address created successfully"));
+    }
+
+    /**
+     * Update an existing patient address.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param addressId address UUID (PatientAddress ID)
+     * @param updateDTO address data to update
+     * @return updated patient personal information
+     * 
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/addresses/456e7890-e89b-12d3-a456-426614174001
+     * Body: {
+     *   "line1": "456 New St",
+     *   "city": "Pittsburgh",
+     *   "isMain": false
+     * }
+     */
+    @PatchMapping("/{id}/addresses/{addressId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientPersonalDTO>> updatePatientAddress(
+            @PathVariable UUID id,
+            @PathVariable UUID addressId,
+            @Valid @RequestBody UpdatePatientAddressDTO updateDTO) {
+        
+        log.info("Updating address ID: {} for patient ID: {}", addressId, id);
+        
+        PatientPersonalDTO updatedPersonal = patientService.updatePatientAddress(id, addressId, updateDTO);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedPersonal, "Address updated successfully")
+        );
+    }
+
+    /**
+     * Create a new emergency contact for a patient.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param updateDTO contact data
+     * @return updated patient personal information
+     * 
+     * Example: POST /api/patients/123e4567-e89b-12d3-a456-426614174000/contacts
+     * Body: {
+     *   "relation": "Spouse",
+     *   "name": "Jane Doe",
+     *   "phone": "215-555-5678",
+     *   "email": "jane@example.com",
+     *   "isPrimary": true
+     * }
+     */
+    @PostMapping("/{id}/contacts")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientPersonalDTO>> createPatientContact(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdatePatientContactDTO updateDTO) {
+        
+        log.info("Creating contact for patient ID: {}", id);
+        
+        PatientPersonalDTO updatedPersonal = patientService.createPatientContact(id, updateDTO);
+        
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(updatedPersonal, "Contact created successfully"));
+    }
+
+    /**
+     * Update an existing patient emergency contact.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param contactId contact UUID
+     * @param updateDTO contact data to update
+     * @return updated patient personal information
+     * 
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/contacts/789e0123-e89b-12d3-a456-426614174002
+     * Body: {
+     *   "phone": "215-555-9999",
+     *   "isPrimary": false
+     * }
+     */
+    @PatchMapping("/{id}/contacts/{contactId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientPersonalDTO>> updatePatientContact(
+            @PathVariable UUID id,
+            @PathVariable UUID contactId,
+            @Valid @RequestBody UpdatePatientContactDTO updateDTO) {
+        
+        log.info("Updating contact ID: {} for patient ID: {}", contactId, id);
+        
+        PatientPersonalDTO updatedPersonal = patientService.updatePatientContact(id, contactId, updateDTO);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedPersonal, "Contact updated successfully")
+        );
+    }
+
+    /**
+     * Delete a patient address.
+     * Also deletes the associated Address entity.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param addressId address UUID (PatientAddress ID)
+     * @return updated patient personal information
+     * 
+     * Example: DELETE /api/patients/{id}/addresses/{addressId}
+     */
+    @DeleteMapping("/{id}/addresses/{addressId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientPersonalDTO>> deletePatientAddress(
+            @PathVariable UUID id,
+            @PathVariable UUID addressId) {
+        
+        log.info("Deleting address ID: {} for patient ID: {}", addressId, id);
+        
+        PatientPersonalDTO updatedPersonal = patientService.deletePatientAddress(id, addressId);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedPersonal, "Address deleted successfully")
+        );
+    }
+
+    /**
+     * Delete a patient emergency contact.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param contactId contact UUID
+     * @return updated patient personal information
+     * 
+     * Example: DELETE /api/patients/{id}/contacts/{contactId}
+     */
+    @DeleteMapping("/{id}/contacts/{contactId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientPersonalDTO>> deletePatientContact(
+            @PathVariable UUID id,
+            @PathVariable UUID contactId) {
+        
+        log.info("Deleting contact ID: {} for patient ID: {}", contactId, id);
+        
+        PatientPersonalDTO updatedPersonal = patientService.deletePatientContact(id, contactId);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedPersonal, "Contact deleted successfully")
+        );
+    }
+
+    /**
+     * Get full Program tab data for a patient (historical).
+     *
+     * @param id patient UUID
+     * @return aggregated program tab information
+     *
+     * Example: GET /api/patients/{id}/program
+     */
+    @GetMapping("/{id}/program")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> getPatientProgram(
+            @PathVariable UUID id) {
+
+        log.debug("GET /api/patients/{}/program", id);
+
+        PatientProgramDTO program = patientService.getPatientProgram(id);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(program, "Patient program data retrieved successfully")
+        );
+    }
+
+    /**
+     * Update patient program information.
+     * Updates program enrollment details including supervisor, dates, and reason for change.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param updateDTO program update data
+     * @return updated patient program information
+     *
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/program
+     * Body: {
+     *   "programId": "550e8400-e29b-41d4-a716-446655440000",
+     *   "supervisorId": "660e8400-e29b-41d4-a716-446655440001",
+     *   "enrollmentDate": "2024-01-15",
+     *   "statusEffectiveDate": "2024-01-15",
+     *   "socDate": "2024-01-20",
+     *   "eocDate": "2024-12-31",
+     *   "eligibilityBeginDate": "2024-01-01",
+     *   "eligibilityEndDate": "2024-12-31",
+     *   "reasonForChange": {"reason": "Program transfer"}
+     * }
+     */
+    @PatchMapping("/{id}/program")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> updatePatientProgram(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdatePatientProgramDTO updateDTO) {
+
+        log.info("Updating program for patient ID: {}", id);
+
+        PatientProgramDTO updatedProgram = patientService.updatePatientProgram(id, updateDTO);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedProgram, "Patient program updated successfully")
+        );
+    }
+
+    /**
+     * Create a new patient service assignment.
+     * Assigns a service type to a patient with start/end dates.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param createDTO service creation data
+     * @return updated patient program information
+     *
+     * Example: POST /api/patients/123e4567-e89b-12d3-a456-426614174000/services
+     * Body: {
+     *   "serviceTypeId": "550e8400-e29b-41d4-a716-446655440000",
+     *   "startDate": "2024-01-15",
+     *   "endDate": "2024-12-31"
+     * }
+     */
+    @PostMapping("/{id}/services")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> createPatientService(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreatePatientServiceDTO createDTO) {
+
+        log.info("Creating service for patient ID: {}", id);
+
+        PatientProgramDTO updatedProgram = patientService.createPatientService(id, createDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(updatedProgram, "Patient service created successfully"));
+    }
+
+    /**
+     * Update an existing patient service assignment.
+     * Updates service type, dates, or metadata.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param serviceId patient service UUID
+     * @param updateDTO service update data
+     * @return updated patient program information
+     *
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/services/550e8400-e29b-41d4-a716-446655440000
+     * Body: {
+     *   "startDate": "2024-02-01",
+     *   "endDate": "2024-11-30"
+     * }
+     */
+    @PatchMapping("/{id}/services/{serviceId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> updatePatientService(
+            @PathVariable UUID id,
+            @PathVariable UUID serviceId,
+            @Valid @RequestBody UpdatePatientServiceDTO updateDTO) {
+
+        log.info("Updating service ID: {} for patient ID: {}", serviceId, id);
+
+        PatientProgramDTO updatedProgram = patientService.updatePatientService(id, serviceId, updateDTO);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedProgram, "Patient service updated successfully")
+        );
+    }
+
+    /**
+     * Delete a patient service assignment.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param serviceId patient service UUID
+     * @return updated patient program information
+     *
+     * Example: DELETE /api/patients/123e4567-e89b-12d3-a456-426614174000/services/550e8400-e29b-41d4-a716-446655440000
+     */
+    @DeleteMapping("/{id}/services/{serviceId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> deletePatientService(
+            @PathVariable UUID id,
+            @PathVariable UUID serviceId) {
+
+        log.info("Deleting service ID: {} for patient ID: {}", serviceId, id);
+
+        PatientProgramDTO updatedProgram = patientService.deletePatientService(id, serviceId);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedProgram, "Patient service deleted successfully")
+        );
+    }
+
+    /**
+     * Get authorizations for a specific patient payer.
+     * Returns list of authorizations associated with the patient payer.
+     * 
+     * @param id patient UUID
+     * @param patientPayerId patient payer UUID
+     * @return list of authorization DTOs
+     * 
+     * Example: GET /api/patients/123e4567-e89b-12d3-a456-426614174000/payers/550e8400-e29b-41d4-a716-446655440000/authorizations
+     */
+    @GetMapping("/{id}/payers/{patientPayerId}/authorizations")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    public ResponseEntity<ApiResponse<List<PayerAuthorizationDTO>>> getPatientPayerAuthorizations(
+            @PathVariable UUID id,
+            @PathVariable UUID patientPayerId) {
+
+        log.info("Getting authorizations for patient payer ID: {} of patient ID: {}", patientPayerId, id);
+
+        List<PayerAuthorizationDTO> authorizations = patientService.getPatientPayerAuthorizations(id, patientPayerId);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(authorizations, "Patient payer authorizations retrieved successfully")
+        );
+    }
+
+    /**
+     * Create a new patient payer assignment.
+     * Assigns a payer to a patient with rank, dates, and group number.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param createDTO payer creation data
+     * @return updated patient program information
+     *
+     * Example: POST /api/patients/123e4567-e89b-12d3-a456-426614174000/payers
+     * Body: {
+     *   "payerId": "550e8400-e29b-41d4-a716-446655440000",
+     *   "rank": 1,
+     *   "groupNo": "GRP123",
+     *   "startDate": "2024-01-15",
+     *   "endDate": "2024-12-31"
+     * }
+     */
+    @PostMapping("/{id}/payers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> createPatientPayer(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreatePatientPayerDTO createDTO) {
+
+        log.info("Creating payer for patient ID: {}", id);
+
+        PatientProgramDTO updatedProgram = patientService.createPatientPayer(id, createDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(updatedProgram, "Patient payer created successfully"));
+    }
+
+    /**
+     * Update an existing patient payer assignment.
+     * Updates payer, rank, dates, or group number.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param patientPayerId patient payer UUID
+     * @param updateDTO payer update data
+     * @return updated patient program information
+     *
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/payers/550e8400-e29b-41d4-a716-446655440000
+     * Body: {
+     *   "rank": 2,
+     *   "endDate": "2024-11-30"
+     * }
+     */
+    @PatchMapping("/{id}/payers/{patientPayerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> updatePatientPayer(
+            @PathVariable UUID id,
+            @PathVariable UUID patientPayerId,
+            @Valid @RequestBody UpdatePatientPayerDTO updateDTO) {
+
+        log.info("Updating payer ID: {} for patient ID: {}", patientPayerId, id);
+
+        PatientProgramDTO updatedProgram = patientService.updatePatientPayer(id, patientPayerId, updateDTO);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedProgram, "Patient payer updated successfully")
+        );
+    }
+
+    /**
+     * Create a new authorization.
+     * Links a patient service and patient payer with authorization details.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param createDTO authorization creation data
+     * @return updated patient program information
+     *
+     * Example: POST /api/patients/123e4567-e89b-12d3-a456-426614174000/authorizations
+     * Body: {
+     *   "patientServiceId": "550e8400-e29b-41d4-a716-446655440000",
+     *   "patientPayerId": "660e8400-e29b-41d4-a716-446655440001",
+     *   "authorizationNo": "AUTH123456",
+     *   "eventCode": "U1-ECS",
+     *   "format": "units",
+     *   "maxUnits": 100,
+     *   "startDate": "2024-01-15",
+     *   "endDate": "2024-12-31",
+     *   "comments": "Initial authorization"
+     * }
+     */
+    @PostMapping("/{id}/authorizations")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> createAuthorization(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateAuthorizationDTO createDTO) {
+
+        log.info("Creating authorization for patient ID: {}", id);
+
+        PatientProgramDTO updatedProgram = patientService.createAuthorization(id, createDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(updatedProgram, "Authorization created successfully"));
+    }
+
+    /**
+     * Update an existing authorization.
+     * Updates authorization details including service, payer, dates, and limits.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param authorizationId authorization UUID
+     * @param updateDTO authorization update data
+     * @return updated patient program information
+     *
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/authorizations/550e8400-e29b-41d4-a716-446655440000
+     * Body: {
+     *   "maxUnits": 120,
+     *   "endDate": "2025-06-30"
+     * }
+     */
+    @PatchMapping("/{id}/authorizations/{authorizationId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> updateAuthorization(
+            @PathVariable UUID id,
+            @PathVariable UUID authorizationId,
+            @Valid @RequestBody UpdateAuthorizationDTO updateDTO) {
+
+        log.info("Updating authorization ID: {} for patient ID: {}", authorizationId, id);
+
+        PatientProgramDTO updatedProgram = patientService.updateAuthorization(id, authorizationId, updateDTO);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedProgram, "Authorization updated successfully")
+        );
+    }
+
+    /**
+     * Delete an authorization.
+     * Requires ADMIN or MANAGER role.
+     *
+     * @param id patient UUID
+     * @param authorizationId authorization UUID
+     * @return updated patient program information
+     *
+     * Example: DELETE /api/patients/123e4567-e89b-12d3-a456-426614174000/authorizations/550e8400-e29b-41d4-a716-446655440000
+     */
+    @DeleteMapping("/{id}/authorizations/{authorizationId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientProgramDTO>> deleteAuthorization(
+            @PathVariable UUID id,
+            @PathVariable UUID authorizationId) {
+
+        log.info("Deleting authorization ID: {} for patient ID: {}", authorizationId, id);
+
+        PatientProgramDTO updatedProgram = patientService.deleteAuthorization(id, authorizationId);
+
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedProgram, "Authorization deleted successfully")
         );
     }
 }

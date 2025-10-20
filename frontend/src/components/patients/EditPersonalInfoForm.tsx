@@ -5,22 +5,12 @@ import { Modal, Button, Input, Select, DatePicker } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import dayjs, { Dayjs } from "dayjs";
 import { useApiMutation } from "@/hooks/useApi";
+import { personalInfoSchema, type PersonalInfoFormData } from "@/lib/validation/patientSchemas";
+import { GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/validation/validation";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
-
-// Validation schema
-const personalInfoSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  dob: z.string().min(1, "Date of birth is required"),
-  gender: z.string().optional(),
-  primaryLanguage: z.string().optional(),
-});
-
-type PersonalInfoFormData = z.infer<typeof personalInfoSchema>;
 
 interface EditPersonalInfoFormProps {
   open: boolean;
@@ -58,7 +48,7 @@ export default function EditPersonalInfoForm({
 
   const updatePersonalMutation = useApiMutation<unknown, PersonalInfoFormData>(
     `/patients/${patientId}/personal`,
-    "PUT"
+    "PATCH"
   );
 
   // Reset form when modal opens (but not on subsequent re-renders while open)
@@ -116,7 +106,7 @@ export default function EditPersonalInfoForm({
     >
       <div className="flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center px-8 py-6 border-b border-theme bg-theme-surface">
+        <div className="flex justify-between items-center px-8 py-4 border-b border-theme bg-theme-surface">
           <h2 className="text-xl font-semibold text-theme-primary m-0">
             Edit Personal Information
           </h2>
@@ -135,7 +125,7 @@ export default function EditPersonalInfoForm({
             {/* First Name */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                First Name <span className="text-red-500 ml-1">*</span>
+                First Name
               </label>
               <Controller
                 name="firstName"
@@ -159,7 +149,7 @@ export default function EditPersonalInfoForm({
             {/* Last Name */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Last Name <span className="text-red-500 ml-1">*</span>
+                Last Name
               </label>
               <Controller
                 name="lastName"
@@ -183,7 +173,7 @@ export default function EditPersonalInfoForm({
             {/* Date of Birth */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Date of Birth <span className="text-red-500 ml-1">*</span>
+                Date of Birth
               </label>
               <Controller
                 name="dob"
@@ -192,7 +182,7 @@ export default function EditPersonalInfoForm({
                   <DatePicker
                     value={field.value ? dayjs(field.value) : null}
                     onChange={(date: Dayjs | null) => {
-                      field.onChange(date ? date.toISOString() : "");
+                      field.onChange(date ? date.format("YYYY-MM-DD") : "");
                     }}
                     format="MM/DD/YYYY"
                     placeholder="Select date of birth"
@@ -223,10 +213,7 @@ export default function EditPersonalInfoForm({
                     placeholder="Select gender"
                     status={errors.gender ? "error" : ""}
                     className={formStyles.formSelect}
-                    options={[
-                      { value: "Male", label: "Male" },
-                      { value: "Female", label: "Female" },
-                    ]}
+                    options={GENDER_OPTIONS}
                   />
                 )}
               />
@@ -252,17 +239,7 @@ export default function EditPersonalInfoForm({
                     status={errors.primaryLanguage ? "error" : ""}
                     className={formStyles.formSelect}
                     showSearch
-                    options={[
-                      { value: "English", label: "English" },
-                      { value: "Spanish", label: "Spanish" },
-                      { value: "French", label: "French" },
-                      { value: "German", label: "German" },
-                      { value: "Chinese", label: "Chinese" },
-                      { value: "Japanese", label: "Japanese" },
-                      { value: "Korean", label: "Korean" },
-                      { value: "Vietnamese", label: "Vietnamese" },
-                      { value: "Other", label: "Other" },
-                    ]}
+                    options={LANGUAGE_OPTIONS}
                   />
                 )}
               />

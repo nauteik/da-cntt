@@ -40,16 +40,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+        log.info("Processing request: {} {}", request.getMethod(), request.getRequestURI());
+        
+        // Log all cookies for debugging
+        if (request.getCookies() == null) {
+            log.warn("No cookies received for request: {} {}", request.getMethod(), request.getRequestURI());
+        }
+
         try {
             // Extract JWT from cookie
             Optional<Cookie> jwtCookie = extractJwtCookie(request);
 
             if (jwtCookie.isPresent()) {
+                log.info("JWT cookie found: {}", jwtCookie.get().getName());
                 String token = jwtCookie.get().getValue();
 
                 // Extract user email and office ID from token
                 String userEmail = jwtService.extractUserEmail(token);
                 String officeId = jwtService.extractOfficeId(token);
+
+                log.info("Extracted userEmail: {}, officeId: {}", userEmail, officeId);
 
                 // If token contains email and no authentication is set yet
                 if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -72,11 +82,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                         // Set authentication in security context
                         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                        log.debug("User '{}' authenticated successfully for office '{}'", userEmail, officeId);
+                        log.info("User '{}' authenticated successfully for office '{}'", userEmail, officeId);
                     } else {
                         log.warn("Invalid JWT token for user: {}", userEmail);
                     }
+                } else if (userEmail == null) {
+                    log.warn("Could not extract user email from JWT token");
+                } else {
+                    log.info("User already authenticated: {}", userEmail);
                 }
+            } else {
+                log.warn("No JWT cookie found for request: {} {}", request.getMethod(), request.getRequestURI());
             }
         } catch (JwtException e) {
             log.error("JWT validation error: {}", e.getMessage());

@@ -9,7 +9,7 @@
   --accent: #00b3cc;
   --btn-secondary: #2062ac;
   --btn-secondary-hover: #1a4f8a;
-  --text-primary: #222222;
+  --text-primary: #393939;
   --text-secondary: #555555;
   --border-color: #e0e0e0;
 }
@@ -154,3 +154,155 @@ body {
 /* Utility classes that should remain global */
 
 /* Global Utilities - Keep only truly global styles here */
+
+/* ============================================
+   Ant Design Global Overrides for Dark Mode
+   ============================================ */
+
+/* Ant Design overrides for better dark mode contrast */
+.dark .ant-card {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+.dark .ant-card-head-title {
+  color: var(--text-primary);
+}
+
+.dark .ant-table-thead > tr > th {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dark .ant-table-tbody > tr > td {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dark .ant-table-tbody > tr:hover > td {
+  background: rgba(88, 166, 255, 0.05);
+}
+
+.dark .ant-timeline-item-head {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+.dark .ant-timeline-item-tail {
+  border-left-color: var(--border-color);
+}
+
+/* Progress bar improvements */
+.dark .ant-progress-text {
+  color: var(--text-primary) !important;
+}
+
+.dark .ant-progress-inner {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Divider improvements */
+.dark .ant-divider {
+  border-color: var(--border-color);
+}
+
+.dark .ant-divider-inner-text {
+  color: var(--text-secondary);
+}
+
+/* Light Mode Menu Items */
+.ant-menu-light .ant-menu-item-selected {
+  background-color: #e6f4ff !important;
+  border-right: 3px solid var(--primary) !important;
+  border-radius: 0 !important;
+}
+
+.ant-menu-light .ant-menu-item-selected .ant-menu-item-icon {
+  color: var(--primary) !important;
+}
+
+.ant-menu-light .ant-menu-item-selected span {
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+}
+
+.ant-menu-light .ant-menu-item:hover {
+  background-color: #f0f8ff !important;
+}
+
+.ant-menu-light .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: var(--primary) !important;
+}
+
+/* Dark Mode Menu Items - WCAG AA Compliant */
+.ant-menu-dark .ant-menu-item-selected {
+  background-color: rgba(88, 166, 255, 0.15) !important;
+  border-right: 3px solid var(--primary) !important;
+  border-radius: 0 !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected .ant-menu-item-icon {
+  color: var(--primary) !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected span {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background-color: rgba(88, 166, 255, 0.08) !important;
+}
+
+.ant-menu-dark .ant-menu-item span {
+  color: var(--text-secondary) !important;
+}
+
+.ant-menu-dark .ant-menu-item .ant-menu-item-icon {
+  color: var(--text-secondary) !important;
+}
+
+.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: var(--primary) !important;
+}
+
+.ant-menu-dark .ant-menu-submenu-title {
+  color: var(--text-secondary) !important;
+}
+
+/* Ensure dark menu background consistency */
+.ant-menu-dark {
+  background: var(--bg-surface) !important;
+}
+
+.ant-menu-dark .ant-menu-submenu-title {
+  background: var(--bg-surface) !important;
+}
+
+.ant-menu-dark .ant-menu-submenu-inline > .ant-menu-submenu-title {
+  background: var(--bg-surface) !important;
+}
+
+/* ============================================
+   Form Component Global Overrides
+   ============================================ */
+
+/* Remove border radius from date picker dropdown */
+.ant-picker-dropdown {
+  border-radius: 0 !important;
+}
+
+.ant-picker-panel-container {
+  border-radius: 0 !important;
+}
+
+.ant-picker-panel {
+  border-radius: 0 !important;
+}
+
+/* Remove border radius from select dropdown */
+.ant-select-dropdown {
+  border-radius: 0 !important;
+}

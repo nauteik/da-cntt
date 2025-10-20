@@ -40,8 +40,8 @@ public class TemplateEvent {
     private LocalTime endTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_type_id")
-    private ServiceType serviceType;
+    @JoinColumn(name = "authorization_id", nullable = false)
+    private Authorization authorization;
 
     @OneToMany(mappedBy = "templateEvent", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ISPTaskTemplate> ispTaskTemplates = new HashSet<>();

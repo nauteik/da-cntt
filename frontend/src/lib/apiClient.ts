@@ -1,6 +1,8 @@
 import type { ApiResponse } from "../types/api";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+// Use backend URL for backend calls, empty for BFF routes
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL + "/api";
+const BFF_BASE_URL = ""; // Empty for Next.js API routes
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -85,7 +87,12 @@ export async function apiClient<T>(
   }
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    // Determine if this is a BFF route or backend route
+    const isBffRoute = endpoint.startsWith('api/auth/');
+    const baseUrl = isBffRoute ? BFF_BASE_URL : BACKEND_URL;
+    
+    // Use appropriate URL for the call
+    const response = await fetch(`${baseUrl}${endpoint}`, config);
 
     // Handle cases where the response is not ok but returns JSON (e.g., validation errors from Spring)
     if (!response.ok) {

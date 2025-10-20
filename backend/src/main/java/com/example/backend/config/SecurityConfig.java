@@ -2,6 +2,8 @@ package com.example.backend.config;
 
 import com.example.backend.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,6 +20,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -52,9 +55,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/user/**").permitAll()
                 .requestMatchers("/api/patients/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/api/user/**").authenticated()
                 .anyRequest().authenticated()
             );
 
@@ -64,18 +67,19 @@ public class SecurityConfig {
         return http.build();
     }
 
+    @Value("${APP_CORS_ALLOWED_ORIGINS}")
+    private String allowedOrigins;
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Specify the exact origin of your frontend. Cannot be "*" with credentials.
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        // Split comma-separated origins
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        // This is crucial for allowing cookies and authorization headers
         configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Apply this configuration to all paths
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }

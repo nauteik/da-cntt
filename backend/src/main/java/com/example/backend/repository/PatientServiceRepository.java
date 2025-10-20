@@ -20,4 +20,8 @@ public interface PatientServiceRepository extends JpaRepository<PatientService, 
      * @return list of patient services
      */
     List<PatientService> findByPatientIdIn(List<UUID> patientIds);
+
+    List<PatientService> findAllByPatientIdOrderByStartDateDesc(UUID patientId);
+    
+    List<PatientService> findAllByPatientIdOrderByServiceTypeCodeAsc(UUID patientId);
 }
