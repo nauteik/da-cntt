@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
       throw new Error('Backend URL not configured');
     }
 
+    // Direct fetch to backend without using apiClient
     const backendResponse = await fetch(`${backendUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

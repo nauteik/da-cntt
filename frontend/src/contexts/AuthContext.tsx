@@ -91,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       try {
         // Try to fetch user info - the cookie will be sent automatically
-        // Use BFF endpoint for consistency
+        // Use direct backend call since we removed BFF for user/me
         const response = await apiClient<UserInfoResponse>("/user/me");
 
         if (response.success && response.data) {
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [pathname, state.isInitialized, state.isAuthenticated]);
 
   const loginMutation = useApiMutation<UserInfoResponse, LoginCredentials>(
-    "/auth/login", // Use BFF endpoint instead of direct backend
+    "api/auth/login", // Use BFF endpoint for login (without /api prefix)
     "POST",
     {
       onSuccess: (data, variables) => {

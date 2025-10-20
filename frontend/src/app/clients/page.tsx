@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import ClientsClient from "./ClientsClient";
 import AdminLayout from "@/components/AdminLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -80,7 +80,7 @@ async function getInitialClients(
 // Fetch active offices for the create client modal
 async function getActiveOffices(): Promise<OfficeDTO[]> {
   try {
-    // Use BFF endpoint for consistency
+    // Use direct backend call since we removed BFF for office/active
     const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>("/office/active");
 
     if (!response.success || !response.data) {

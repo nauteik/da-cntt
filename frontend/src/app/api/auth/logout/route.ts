@@ -22,6 +22,7 @@ export async function POST() {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL;
       if (backendUrl) {
         try {
+          // Direct fetch to backend without using apiClient
           await fetch(`${backendUrl}/api/auth/logout`, {
             method: 'POST',
             headers: {
