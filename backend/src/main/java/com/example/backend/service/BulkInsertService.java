@@ -11,6 +11,8 @@ import com.example.backend.model.entity.ISP;
 import com.example.backend.model.entity.Authorization;
 import com.example.backend.model.entity.ISPGoal;
 import com.example.backend.model.entity.ISPTask;
+import com.example.backend.model.entity.Permission;
+import com.example.backend.model.entity.RolePermission;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -432,5 +434,73 @@ public class BulkInsertService {
         });
 
         log.info("Successfully bulk inserted {} ISP tasks", ispTasks.size());
+    }
+
+    /**
+     * Bulk insert permissions using JDBC batch processing for maximum performance
+     */
+    @Transactional
+    public void bulkInsertPermissions(List<Permission> permissions) {
+        if (permissions.isEmpty()) return;
+
+        log.info("Bulk inserting {} permissions using JDBC batch processing...", permissions.size());
+        
+        String sql = """
+            INSERT INTO permission (
+                id, resource, action, scope, description, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            """;
+
+        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Permission permission = permissions.get(i);
+                ps.setObject(1, permission.getId());
+                ps.setString(2, permission.getResource());
+                ps.setString(3, permission.getAction());
+                ps.setString(4, permission.getScope().toString());
+                ps.setString(5, permission.getDescription());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return permissions.size();
+            }
+        });
+
+        log.info("Successfully bulk inserted {} permissions", permissions.size());
+    }
+
+    /**
+     * Bulk insert role permissions using JDBC batch processing for maximum performance
+     */
+    @Transactional
+    public void bulkInsertRolePermissions(List<RolePermission> rolePermissions) {
+        if (rolePermissions.isEmpty()) return;
+
+        log.info("Bulk inserting {} role permissions using JDBC batch processing...", rolePermissions.size());
+        
+        String sql = """
+            INSERT INTO role_permission (
+                id, role_id, permission_id, created_at, updated_at
+            ) VALUES (?, ?, ?, NOW(), NOW())
+            """;
+
+        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                RolePermission rolePermission = rolePermissions.get(i);
+                ps.setObject(1, rolePermission.getId());
+                ps.setObject(2, rolePermission.getRole().getId());
+                ps.setObject(3, rolePermission.getPermission().getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return rolePermissions.size();
+            }
+        });
+
+        log.info("Successfully bulk inserted {} role permissions", rolePermissions.size());
     }
 }

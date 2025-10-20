@@ -4,10 +4,14 @@ import com.example.backend.model.entity.*;
 import com.example.backend.model.enums.CareSetting;
 import com.example.backend.model.enums.PermissionScope;
 import com.example.backend.repository.*;
+import com.example.backend.service.BulkInsertService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Loads core system data: Organization, Modules, Roles, and basic Permissions
@@ -21,10 +25,18 @@ public class CoreDataLoader {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final ServiceTypeRepository serviceTypeRepository;
+    private final BulkInsertService bulkInsertService;
 
     @Transactional
     public void loadData() {
         log.info("Loading core system data...");
+
+        // Check if data already exists and skip if it does
+        if (moduleRepository.count() > 0 || roleRepository.count() > 0 || 
+            permissionRepository.count() > 0 || serviceTypeRepository.count() > 0) {
+            log.info("Core system data already exists. Skipping.");
+            return;
+        }
 
         // Load modules
         loadModules();
@@ -154,6 +166,7 @@ public class CoreDataLoader {
             {"compliance", "read", "ORG", "View compliance reports"},
         };
 
+        List<Permission> permissionList = new ArrayList<>();
         for (String[] permData : permissions) {
             String resource = permData[0];
             String action = permData[1];
@@ -162,10 +175,17 @@ public class CoreDataLoader {
 
             if (permissionRepository.findByResourceAndActionAndScope(resource, action, PermissionScope.valueOf(scope)).isEmpty()) {
                 Permission permission = new Permission(resource, action, PermissionScope.valueOf(scope));
+                permission.setId(java.util.UUID.randomUUID()); // Set UUID for bulk insert
                 permission.setDescription(description);
-                permissionRepository.save(permission);
-                log.info("Created permission: {}:{}:{}", resource, action, scope);
+                permissionList.add(permission);
+                log.info("Prepared permission: {}:{}:{}", resource, action, scope);
             }
+        }
+
+        // Bulk insert permissions using JDBC batch processing for maximum performance
+        if (!permissionList.isEmpty()) {
+            log.info("Bulk inserting {} permissions using JDBC batch processing...", permissionList.size());
+            bulkInsertService.bulkInsertPermissions(permissionList);
         }
     }
     
