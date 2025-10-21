@@ -96,10 +96,18 @@ export async function apiClient<T>(
     
     const baseUrl = isBffRoute ? BFF_BASE_URL : BACKEND_URL;
     
-    // For BFF routes, prepend 'api/' if needed
+    // For BFF routes, ensure proper path with leading slash
     let finalEndpoint = endpoint;
-    if (isBffRoute && !endpoint.startsWith('api/') && !endpoint.startsWith('/api/')) {
-      finalEndpoint = `api/${endpoint}`;
+    if (isBffRoute) {
+      // Remove leading slash if present for consistency
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+      
+      // Add 'api/' prefix if not already present
+      if (!cleanEndpoint.startsWith('api/')) {
+        finalEndpoint = `/api/${cleanEndpoint}`;
+      } else {
+        finalEndpoint = `/${cleanEndpoint}`;
+      }
     }
     
     const fullUrl = `${baseUrl}${finalEndpoint}`;
