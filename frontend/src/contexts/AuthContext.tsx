@@ -93,6 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Try to fetch user info - the cookie will be sent automatically
         // Use direct backend call since we removed BFF for user/me
         const response = await apiClient<UserInfoResponse>("/user/me");
+        console.log("User info response:", response);
 
         if (response.success && response.data) {
           const userInfo = response.data;
