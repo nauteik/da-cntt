@@ -88,15 +88,27 @@ export async function apiClient<T>(
 
   try {
     // Determine if this is a BFF route or backend route
-    // Only auth routes (login/logout) use BFF, everything else goes to backend
-    const isBffRoute = endpoint.startsWith('api/auth/') && (endpoint.includes('login') || endpoint.includes('logout'));
+    // BFF routes: auth (login/logout) and user info (user/me)
+    const isBffRoute = 
+      (endpoint.startsWith('api/auth/') && (endpoint.includes('login') || endpoint.includes('logout'))) ||
+      endpoint === '/user/me' ||
+      endpoint === 'user/me';
+    
     const baseUrl = isBffRoute ? BFF_BASE_URL : BACKEND_URL;
-    const fullUrl = `${baseUrl}${endpoint}`;
+    
+    // For BFF routes, prepend 'api/' if needed
+    let finalEndpoint = endpoint;
+    if (isBffRoute && !endpoint.startsWith('api/') && !endpoint.startsWith('/api/')) {
+      finalEndpoint = `api/${endpoint}`;
+    }
+    
+    const fullUrl = `${baseUrl}${finalEndpoint}`;
     
     console.log(`API Call: ${method} ${fullUrl}`, {
       isBffRoute,
       baseUrl,
       endpoint,
+      finalEndpoint,
       credentials: config.credentials,
       headers: config.headers
     });
