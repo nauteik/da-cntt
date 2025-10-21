@@ -112,15 +112,6 @@ export async function apiClient<T>(
     
     const fullUrl = `${baseUrl}${finalEndpoint}`;
     
-    console.log(`API Call: ${method} ${fullUrl}`, {
-      isBffRoute,
-      baseUrl,
-      endpoint,
-      finalEndpoint,
-      credentials: config.credentials,
-      headers: config.headers
-    });
-    
     // Use appropriate URL for the call
     const response = await fetch(fullUrl, config);
 

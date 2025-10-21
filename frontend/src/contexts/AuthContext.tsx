@@ -93,7 +93,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Try to fetch user info via BFF route
         // The BFF will forward the HttpOnly cookie to the backend
         const response = await apiClient<UserInfoResponse>("/user/me");
-        console.log("User info response:", response);
 
         if (response.success && response.data) {
           const userInfo = response.data;
