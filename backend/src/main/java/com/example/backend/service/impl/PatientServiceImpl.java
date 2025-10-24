@@ -8,6 +8,7 @@ import com.example.backend.model.dto.PatientCreatedDTO;
 import com.example.backend.model.dto.PatientHeaderDTO;
 import com.example.backend.model.dto.PatientPersonalDTO;
 import com.example.backend.model.dto.PatientSummaryDTO;
+import com.example.backend.model.dto.PatientFilterOptionsDTO;
 import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
@@ -110,6 +111,8 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
     public Page<PatientSummaryDTO> getPatientSummaries(
             String search, 
             List<String> status, 
+            List<String> program,
+            List<String> services,
             int page, 
             int size, 
             String sortBy, 
@@ -145,14 +148,14 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
             pageable = org.springframework.data.domain.PageRequest.of(page, size, defaultSort);
         }
         
-        return getPatientSummaries(search, status, pageable);
+        return getPatientSummaries(search, status, program, services, pageable);
     }
     
     /**
      * Internal method to fetch patient summaries with pre-constructed Pageable.
      * Kept for backwards compatibility and internal use.
      */
-    private Page<PatientSummaryDTO> getPatientSummaries(String search, List<String> status, Pageable pageable) {
+    private Page<PatientSummaryDTO> getPatientSummaries(String search, List<String> status, List<String> program, List<String> services, Pageable pageable) {
         long startTime = System.currentTimeMillis();
         
         log.debug("Fetching patient summaries with search: '{}', status: {}, page: {}, size: {}", 
@@ -161,6 +164,16 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
         // Convert status list to comma-separated string for native query compatibility
         String statusFilter = (status != null && !status.isEmpty()) 
             ? String.join(",", status) 
+            : null;
+        
+        // Convert program list to comma-separated string for native query compatibility
+        String programFilter = (program != null && !program.isEmpty()) 
+            ? String.join(",", program) 
+            : null;
+        
+        // Convert services list to comma-separated string for native query compatibility
+        String servicesFilter = (services != null && !services.isEmpty()) 
+            ? String.join(",", services) 
             : null;
         
         // Extract sort information from Pageable
@@ -182,13 +195,15 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
         List<PatientSummaryDTO> content = patientRepository.findPatientSummariesList(
             search, 
             statusFilter, 
+            programFilter,
+            servicesFilter,
             sortColumn,
             sortDirection,
             limit,
             offset
         );
         
-        long total = patientRepository.countPatientSummaries(search, statusFilter);
+        long total = patientRepository.countPatientSummaries(search, statusFilter, programFilter, servicesFilter);
         
         // Manually construct Page object
         Page<PatientSummaryDTO> patientPage = new PageImpl<>(content, pageable, total);
@@ -198,6 +213,22 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
             content.size(), total, duration, pageable.getPageNumber() + 1, patientPage.getTotalPages());
         
         return patientPage;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientFilterOptionsDTO getPatientFilterOptions() {
+        log.debug("Fetching patient filter options");
+        
+        // Get distinct programs from patient_program table
+        List<String> programs = patientRepository.findDistinctProgramIdentifiers();
+        
+        // Get distinct service types from patient_service table
+        List<String> serviceTypes = patientRepository.findDistinctServiceCodes();
+        
+        log.debug("Found {} programs and {} service types for filtering", programs.size(), serviceTypes.size());
+        
+        return new PatientFilterOptionsDTO(programs, serviceTypes);
     }
 
     @Override

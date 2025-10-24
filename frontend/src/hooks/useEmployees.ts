@@ -32,6 +32,7 @@ export function useEmployees(
     sortDir = "asc",
     search,
     status,
+    role,
   } = params;
 
   // Build query string
@@ -56,10 +57,15 @@ export function useEmployees(
     status.forEach((s: string) => queryParams.append("status", s));
   }
 
+  // Add optional role filters (can have multiple)
+  if (role && role.length > 0) {
+    role.forEach((r: string) => queryParams.append("role", r));
+  }
+
   const endpoint = `/staff?${queryParams.toString()}`;
 
   return useApiQuery<PaginatedStaff>(
-    ["employees", page, size, sortBy, sortDir, search, status] as const,
+    ["employees", page, size, sortBy, sortDir, search, status, role] as const,
     endpoint,
     {
       staleTime: 60 * 1000, // Data is fresh for 60 seconds (matches server cache)

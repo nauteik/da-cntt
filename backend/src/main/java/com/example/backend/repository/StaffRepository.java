@@ -18,6 +18,7 @@ import java.util.UUID;
 public interface StaffRepository extends JpaRepository<Staff, UUID> {
     List<Staff> findByIsActiveTrueAndDeletedAtIsNull();
     Optional<Staff> findById(UUID id);
+    Optional<Staff> findBySsn(String ssn);
 
     @Query(
         value = """
@@ -27,7 +28,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                 s.last_name,
                 CASE WHEN s.is_active = true THEN 'ACTIVE' ELSE 'INACTIVE' END as status,
                 s.employee_id,
-                r.code as position,
+                r.name as position,
                 s.hire_date,
                 s.release_date,
                 s.updated_at
@@ -42,6 +43,8 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                 )
                 AND (COALESCE(:statusFilter, '') = '' OR 
                      CASE WHEN s.is_active = true THEN 'ACTIVE' ELSE 'INACTIVE' END = ANY(string_to_array(:statusFilter, ',')))
+                AND (COALESCE(:roleFilter, '') = '' OR 
+                     r.name = ANY(string_to_array(:roleFilter, ',')))
             ORDER BY
                 CASE WHEN COALESCE(:sortColumn, '') != '' AND :sortDirection = 'asc' THEN
                     CASE :sortColumn
@@ -49,7 +52,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                         WHEN 'firstName' THEN s.first_name
                         WHEN 'lastName' THEN s.last_name
                         WHEN 'employeeId' THEN s.employee_id
-                        WHEN 'position' THEN r.code
+                        WHEN 'position' THEN r.name
                         WHEN 'hireDate' THEN s.hire_date::text
                         WHEN 'releaseDate' THEN s.release_date::text
                         WHEN 'updatedAt' THEN s.updated_at::text
@@ -62,7 +65,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                         WHEN 'firstName' THEN s.first_name
                         WHEN 'lastName' THEN s.last_name
                         WHEN 'employeeId' THEN s.employee_id
-                        WHEN 'position' THEN r.code
+                        WHEN 'position' THEN r.name
                         WHEN 'hireDate' THEN s.hire_date::text
                         WHEN 'releaseDate' THEN s.release_date::text
                         WHEN 'updatedAt' THEN s.updated_at::text
@@ -80,6 +83,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
     List<StaffSummaryDTO> findStaffSummariesList(
         @Param("search") String search,
         @Param("statusFilter") String statusFilter,
+        @Param("roleFilter") String roleFilter,
         @Param("sortColumn") String sortColumn,
         @Param("sortDirection") String sortDirection,
         @Param("limit") int limit,
@@ -100,11 +104,14 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                 )
                 AND (COALESCE(:statusFilter, '') = '' OR 
                      CASE WHEN s.is_active = true THEN 'ACTIVE' ELSE 'INACTIVE' END = ANY(string_to_array(:statusFilter, ',')))
+                AND (COALESCE(:roleFilter, '') = '' OR 
+                     r.name = ANY(string_to_array(:roleFilter, ',')))
             """,
         nativeQuery = true
     )
     long countStaffSummaries(
         @Param("search") String search,
-        @Param("statusFilter") String statusFilter
+        @Param("statusFilter") String statusFilter,
+        @Param("roleFilter") String roleFilter
     );
 }

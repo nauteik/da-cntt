@@ -47,6 +47,8 @@ export interface PatientQueryParams {
   sortDir?: "asc" | "desc";
   search?: string;
   status?: PatientStatus[];
+  program?: string[];
+  services?: string[];
 }
 
 // Patient Detail Types

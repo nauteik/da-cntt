@@ -32,6 +32,8 @@ export function useClients(
     sortDir = "asc",
     search,
     status,
+    program,
+    services,
   } = params;
 
   // Build query string
@@ -56,10 +58,20 @@ export function useClients(
     status.forEach((s: string) => queryParams.append("status", s));
   }
 
+  // Add optional program filters (can have multiple)
+  if (program && program.length > 0) {
+    program.forEach((p: string) => queryParams.append("program", p));
+  }
+
+  // Add optional services filters (can have multiple)
+  if (services && services.length > 0) {
+    services.forEach((s: string) => queryParams.append("services", s));
+  }
+
   const endpoint = `/patients?${queryParams.toString()}`;
 
   return useApiQuery<PaginatedPatients>(
-    ["clients", page, size, sortBy, sortDir, search, status] as const,
+    ["clients", page, size, sortBy, sortDir, search, status, program, services] as const,
     endpoint,
     {
       staleTime: 60 * 1000, // Data is fresh for 60 seconds (matches server cache)

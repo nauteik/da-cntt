@@ -197,6 +197,7 @@ CREATE TABLE staff (
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
     user_id uuid UNIQUE REFERENCES app_user(id) ON DELETE SET NULL,
     employee_id text UNIQUE,
+    ssn text UNIQUE,
     first_name text NOT NULL,
     last_name text NOT NULL,
     is_supervisor boolean NOT NULL DEFAULT false,

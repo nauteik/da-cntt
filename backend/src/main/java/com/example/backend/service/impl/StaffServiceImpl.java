@@ -2,9 +2,20 @@ package com.example.backend.service.impl;
 
 import com.example.backend.model.dto.StaffSelectDTO;
 import com.example.backend.model.dto.StaffSummaryDTO;
+import com.example.backend.model.dto.CreateStaffDTO;
+import com.example.backend.model.dto.StaffCreatedDTO;
 import com.example.backend.model.entity.Staff;
+import com.example.backend.model.entity.AppUser;
+import com.example.backend.model.entity.Office;
+import com.example.backend.model.entity.Role;
+import com.example.backend.model.entity.UserOffice;
 import com.example.backend.repository.StaffRepository;
+import com.example.backend.repository.AppUserRepository;
+import com.example.backend.repository.OfficeRepository;
+import com.example.backend.repository.RoleRepository;
+import com.example.backend.repository.UserOfficeRepository;
 import com.example.backend.service.StaffService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -13,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +39,11 @@ import java.util.stream.Collectors;
 public class StaffServiceImpl implements StaffService {
 
     private final StaffRepository staffRepository;
+    private final AppUserRepository appUserRepository;
+    private final OfficeRepository officeRepository;
+    private final RoleRepository roleRepository;
+    private final UserOfficeRepository userOfficeRepository;
+    private final PasswordEncoder passwordEncoder;
     
     // Whitelist of allowed sort fields to prevent SQL injection via sort parameter
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
@@ -54,6 +71,7 @@ public class StaffServiceImpl implements StaffService {
     public Page<StaffSummaryDTO> getStaffSummaries(
             String search, 
             List<String> status, 
+            List<String> role,
             int page, 
             int size, 
             String sortBy, 
@@ -89,14 +107,14 @@ public class StaffServiceImpl implements StaffService {
             pageable = org.springframework.data.domain.PageRequest.of(page, size, defaultSort);
         }
         
-        return getStaffSummaries(search, status, pageable);
+        return getStaffSummaries(search, status, role, pageable);
     }
     
     /**
      * Internal method to fetch staff summaries with pre-constructed Pageable.
      * Kept for backwards compatibility and internal use.
      */
-    private Page<StaffSummaryDTO> getStaffSummaries(String search, List<String> status, Pageable pageable) {
+    private Page<StaffSummaryDTO> getStaffSummaries(String search, List<String> status, List<String> role, Pageable pageable) {
         long startTime = System.currentTimeMillis();
         
         log.debug("Fetching staff summaries with search: '{}', status: {}, page: {}, size: {}", 
@@ -105,6 +123,11 @@ public class StaffServiceImpl implements StaffService {
         // Convert status list to comma-separated string for native query compatibility
         String statusFilter = (status != null && !status.isEmpty()) 
             ? String.join(",", status) 
+            : null;
+        
+        // Convert role list to comma-separated string for native query compatibility
+        String roleFilter = (role != null && !role.isEmpty()) 
+            ? String.join(",", role) 
             : null;
         
         // Extract sort information from Pageable
@@ -126,13 +149,14 @@ public class StaffServiceImpl implements StaffService {
         List<StaffSummaryDTO> content = staffRepository.findStaffSummariesList(
             search, 
             statusFilter, 
+            roleFilter,
             sortColumn,
             sortDirection,
             limit,
             offset
         );
         
-        long total = staffRepository.countStaffSummaries(search, statusFilter);
+        long total = staffRepository.countStaffSummaries(search, statusFilter, roleFilter);
         
         // Manually construct Page object
         Page<StaffSummaryDTO> staffPage = new PageImpl<>(content, pageable, total);
@@ -142,6 +166,83 @@ public class StaffServiceImpl implements StaffService {
             content.size(), total, duration, pageable.getPageNumber() + 1, staffPage.getTotalPages());
         
         return staffPage;
+    }
+
+    @Override
+    @Transactional
+    public StaffCreatedDTO createStaff(CreateStaffDTO createStaffDTO, String authenticatedUserEmail) {
+        log.info("Creating staff member: {} {}", createStaffDTO.getFirstName(), createStaffDTO.getLastName());
+        
+        // 1. Validate office exists
+        Office office = officeRepository.findById(createStaffDTO.getOfficeId())
+                .orElseThrow(() -> new com.example.backend.exception.ResourceNotFoundException("Office not found"));
+        
+        // 2. Check email uniqueness
+        if (appUserRepository.findByEmail(createStaffDTO.getEmail()).isPresent()) {
+            throw new com.example.backend.exception.ConflictException("Email already exists: " + createStaffDTO.getEmail());
+        }
+        
+        // 3. Check SSN uniqueness (if provided)
+        if (createStaffDTO.getSsn() != null && !createStaffDTO.getSsn().trim().isEmpty()) {
+            if (staffRepository.findBySsn(createStaffDTO.getSsn()).isPresent()) {
+                throw new com.example.backend.exception.ConflictException("SSN already exists: " + createStaffDTO.getSsn());
+            }
+        }
+        
+        // 4. Hash password "123456" using PasswordEncoder
+        String hashedPassword = passwordEncoder.encode("123456");
+        
+        // 5. Validate role exists
+        Role role = roleRepository.findById(createStaffDTO.getRoleId())
+                .orElseThrow(() -> new com.example.backend.exception.ResourceNotFoundException("Role not found"));
+        
+        // 6. Create AppUser entity
+        AppUser appUser = new AppUser(createStaffDTO.getEmail(), hashedPassword, role);
+        appUser.setIsActive(true);
+        AppUser savedUser = appUserRepository.save(appUser);
+        
+        // 7. Create Staff entity linked to user and office
+        Staff staff = new Staff(office, createStaffDTO.getFirstName(), createStaffDTO.getLastName());
+        staff.setUser(savedUser);
+        staff.setSsn(createStaffDTO.getSsn());
+        staff.setIsActive(true);
+        staff.setHireDate(LocalDate.now());
+        
+        // TODO: Consult partner on employeeId auto-generation
+        // For now, generate a simple employee ID
+        String employeeId = generateEmployeeId(office, staff);
+        staff.setEmployeeId(employeeId);
+        
+        Staff savedStaff = staffRepository.save(staff);
+        
+        // 8. Create UserOffice mapping
+        UserOffice userOffice = new UserOffice(savedUser, office);
+        userOfficeRepository.save(userOffice);
+        
+        log.info("Successfully created staff member: {} with ID: {}", 
+                savedStaff.getFullName(), savedStaff.getId());
+        
+        // 9. Return StaffCreatedDTO
+        return new StaffCreatedDTO(
+                savedStaff.getId(),
+                savedStaff.getFirstName(),
+                savedStaff.getLastName(),
+                savedStaff.getEmployeeId(),
+                savedUser.getEmail(),
+                office.getName(),
+                LocalDate.now()
+        );
+    }
+    
+    /**
+     * Generate employee ID based on office and sequence
+     * TODO: Consult partner on employeeId generation strategy
+     */
+    private String generateEmployeeId(Office office, Staff staff) {
+        // Simple implementation: OFFICE_CODE + sequence number
+        String officeCode = office.getCode() != null ? office.getCode() : "OFF";
+        long staffCount = staffRepository.count();
+        return String.format("%s%03d", officeCode, staffCount + 1);
     }
 
     /**

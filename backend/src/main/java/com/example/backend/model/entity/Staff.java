@@ -2,6 +2,7 @@ package com.example.backend.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -21,7 +22,8 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "staff", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"office_id", "employee_code"})
+    @UniqueConstraint(columnNames = {"office_id", "employee_code"}),
+    @UniqueConstraint(columnNames = {"ssn"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
@@ -40,6 +42,10 @@ public class Staff extends BaseEntity {
 
     @Column(name = "employee_id")
     private String employeeId;
+
+    @Pattern(regexp = "^\\d{3}-?\\d{2}-?\\d{4}$", message = "SSN must be in format XXX-XX-XXXX")
+    @Column(name = "ssn")
+    private String ssn;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;

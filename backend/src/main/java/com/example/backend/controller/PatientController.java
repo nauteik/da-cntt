@@ -5,6 +5,7 @@ import com.example.backend.model.dto.PatientHeaderDTO;
 import com.example.backend.model.dto.PatientPersonalDTO;
 import com.example.backend.model.dto.PatientSummaryDTO;
 import com.example.backend.model.dto.PatientCreatedDTO;
+import com.example.backend.model.dto.PatientFilterOptionsDTO;
 import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
@@ -69,14 +70,35 @@ public class PatientController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) List<String> status) {
+            @RequestParam(required = false) List<String> status,
+            @RequestParam(required = false) List<String> program,
+            @RequestParam(required = false) List<String> services) {
                 
         Page<PatientSummaryDTO> patients = patientService.getPatientSummaries(
-            search, status, page, size, sortBy, sortDir
+            search, status, program, services, page, size, sortBy, sortDir
         );
         
         return ResponseEntity.ok(
             ApiResponse.success(patients, "Patients retrieved successfully")
+        );
+    }
+
+    /**
+     * Get available filter options for patients (programs and service types).
+     * Returns distinct values from the database for use in frontend filters.
+     * 
+     * @return filter options containing available programs and service types
+     * 
+     * Example: GET /api/patients/filter-options
+     */
+    @GetMapping("/filter-options")
+    public ResponseEntity<ApiResponse<PatientFilterOptionsDTO>> getPatientFilterOptions() {
+        log.debug("GET /api/patients/filter-options - Fetching patient filter options");
+        
+        PatientFilterOptionsDTO filterOptions = patientService.getPatientFilterOptions();
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(filterOptions, "Patient filter options retrieved successfully")
         );
     }
 

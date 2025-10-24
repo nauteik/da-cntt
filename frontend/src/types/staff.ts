@@ -42,4 +42,5 @@ export interface StaffQueryParams {
   sortDir?: "asc" | "desc";
   search?: string;
   status?: StaffStatus[];
+  role?: string[];
 }

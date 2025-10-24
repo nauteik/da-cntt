@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/apiClient";
 import type { ApiResponse } from "@/types/api";
 import type { OfficeDTO } from "@/types/office";
 import type { PaginatedPatients } from "@/types/patient";
+import type { PatientFilterOptions } from "@/types/patientFilterOptions";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import ErrorFallback from "@/components/common/ErrorFallback";
 
@@ -17,6 +18,8 @@ interface SearchParams {
   sortDir?: string;
   search?: string;
   status?: string | string[];
+  program?: string | string[];
+  services?: string | string[];
 }
 
 interface ClientsPageProps {
@@ -62,6 +65,26 @@ async function getInitialClients(
       );
     }
 
+    // Add program parameters if present (can have multiple)
+    if (searchParams.program) {
+      const programs = Array.isArray(searchParams.program)
+        ? searchParams.program
+        : [searchParams.program];
+      programs.forEach((program: string) =>
+        queryParams.append("program", program)
+      );
+    }
+
+    // Add services parameters if present (can have multiple)
+    if (searchParams.services) {
+      const services = Array.isArray(searchParams.services)
+        ? searchParams.services
+        : [searchParams.services];
+      services.forEach((service: string) =>
+        queryParams.append("services", service)
+      );
+    }
+
     const endpoint = `/patients?${queryParams.toString()}`;
 
     const response: ApiResponse<PaginatedPatients> =
@@ -74,6 +97,24 @@ async function getInitialClients(
   } catch (error) {
     console.error("Error fetching initial clients:", error);
     return { data: null, error: "An unexpected error occurred" };
+  }
+}
+
+// Fetch patient filter options
+async function getPatientFilterOptions(): Promise<PatientFilterOptions> {
+  try {
+    const response: ApiResponse<PatientFilterOptions> = await apiClient<PatientFilterOptions>("/patients/filter-options");
+
+    if (!response.success || !response.data) {
+      console.error("Failed to fetch filter options:", response.message);
+      return { programs: [], serviceTypes: [] };
+    }
+
+    console.log("Successfully fetched filter options:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching filter options:", error);
+    return { programs: [], serviceTypes: [] };
   }
 }
 
@@ -105,10 +146,11 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   // Await searchParams (Next.js 15+ requirement)
   const resolvedSearchParams = await searchParams;
 
-  // Fetch both clients and offices in parallel
-  const [clientsResult, offices] = await Promise.all([
+  // Fetch clients, offices, and filter options in parallel
+  const [clientsResult, offices, filterOptions] = await Promise.all([
     getInitialClients(resolvedSearchParams),
     getActiveOffices(),
+    getPatientFilterOptions(),
   ]);
 
   // If backend is down or data fetch failed, show error UI instead of crashing
@@ -127,7 +169,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     <ProtectedRoute>
       <AdminLayout>
         <Suspense fallback={<LoadingFallback message="Loading clients..." />}>
-          <ClientsClient initialData={initialData} offices={offices} />
+          <ClientsClient initialData={initialData} offices={offices} filterOptions={filterOptions} />
         </Suspense>
       </AdminLayout>
     </ProtectedRoute>

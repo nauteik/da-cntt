@@ -4,6 +4,7 @@ import com.example.backend.model.dto.PatientHeaderDTO;
 import com.example.backend.model.dto.PatientPersonalDTO;
 import com.example.backend.model.dto.PatientSummaryDTO;
 import com.example.backend.model.dto.PatientCreatedDTO;
+import com.example.backend.model.dto.PatientFilterOptionsDTO;
 import com.example.backend.model.dto.CreatePatientDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
@@ -34,6 +35,8 @@ public interface PatientService {
      * 
      * @param search optional search text to filter by client name, medicaid ID, or client payer ID
      * @param status optional list of patient statuses to filter by
+     * @param program optional list of program identifiers to filter by
+     * @param services optional list of service codes to filter by
      * @param page page number (0-indexed)
      * @param size page size
      * @param sortBy field to sort by (optional, validated against whitelist)
@@ -45,14 +48,24 @@ public interface PatientService {
     Page<PatientSummaryDTO> getPatientSummaries(
         String search, 
         List<String> status, 
+        List<String> program,
+        List<String> services,
         int page, 
         int size, 
         String sortBy, 
         String sortDir
-    );
-    
-    /**
-     * Get patient header information by ID.
+     );
+     
+     /**
+      * Get available filter options for patients (programs and service types).
+      * Returns distinct values from the database for use in frontend filters.
+      * 
+      * @return filter options DTO containing available programs and service types
+      */
+     PatientFilterOptionsDTO getPatientFilterOptions();
+     
+     /**
+      * Get patient header information by ID.
      * Used to display common patient information across all tabs.
      * 
      * @param patientId UUID of the patient

@@ -62,6 +62,8 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                      LOWER(pp.client_payer_id) LIKE LOWER(CONCAT('%', :search, '%'))
                 )
                 AND (COALESCE(:statusFilter, '') = '' OR p.status::text = ANY(string_to_array(:statusFilter, ',')))
+                AND (COALESCE(:programFilter, '') = '' OR prog.program_identifier = ANY(string_to_array(:programFilter, ',')))
+                AND (COALESCE(:servicesFilter, '') = '' OR st.code = ANY(string_to_array(:servicesFilter, ',')))
             GROUP BY
                 p.id,
                 p.first_name,
@@ -118,6 +120,8 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     List<PatientSummaryDTO> findPatientSummariesList(
         @Param("search") String search,
         @Param("statusFilter") String statusFilter,
+        @Param("programFilter") String programFilter,
+        @Param("servicesFilter") String servicesFilter,
         @Param("sortColumn") String sortColumn,
         @Param("sortDirection") String sortDirection,
         @Param("limit") int limit,
@@ -135,6 +139,16 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                 ORDER BY pp2.rank ASC NULLS LAST
                 LIMIT 1
             ) pp ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT pp1.patient_id, pp1.program_id
+                FROM patient_program pp1
+                WHERE pp1.patient_id = p.id
+                ORDER BY pp1.status_effective_date DESC
+                LIMIT 1
+            ) pp_latest ON TRUE
+            LEFT JOIN program prog ON pp_latest.program_id = prog.id
+            LEFT JOIN patient_service ps ON p.id = ps.patient_id
+            LEFT JOIN service_type st ON ps.service_type_id = st.id
             WHERE p.deleted_at IS NULL
                 AND (
                     :search IS NULL OR :search = '' OR
@@ -143,13 +157,42 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                      LOWER(pp.client_payer_id) LIKE LOWER(CONCAT('%', :search, '%'))
                 )
                 AND (COALESCE(:statusFilter, '') = '' OR p.status::text = ANY(string_to_array(:statusFilter, ',')))
+                AND (COALESCE(:programFilter, '') = '' OR prog.program_identifier = ANY(string_to_array(:programFilter, ',')))
+                AND (COALESCE(:servicesFilter, '') = '' OR st.code = ANY(string_to_array(:servicesFilter, ',')))
             """,
         nativeQuery = true
     )
     long countPatientSummaries(
         @Param("search") String search,
-        @Param("statusFilter") String statusFilter
+        @Param("statusFilter") String statusFilter,
+        @Param("programFilter") String programFilter,
+        @Param("servicesFilter") String servicesFilter
     );
+
+    /**
+     * Get distinct program identifiers from patient_program table
+     * Used for dynamic filter options
+     */
+    @Query("""
+        SELECT DISTINCT p.programIdentifier 
+        FROM Program p 
+        JOIN PatientProgram pp ON p.id = pp.program.id 
+        WHERE p.isActive = true 
+        ORDER BY p.programIdentifier
+        """)
+    List<String> findDistinctProgramIdentifiers();
+
+    /**
+     * Get distinct service codes from patient_service table
+     * Used for dynamic filter options
+     */
+    @Query("""
+        SELECT DISTINCT st.code 
+        FROM ServiceType st 
+        JOIN PatientService ps ON st.id = ps.serviceType.id 
+        ORDER BY st.code
+        """)
+    List<String> findDistinctServiceCodes();
 
     /**
      * Get patient header information by patient ID
