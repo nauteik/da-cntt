@@ -26,7 +26,7 @@ import java.util.UUID;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"passwordHash", "roles", "userOffices"})
+@ToString(exclude = {"passwordHash", "role", "userOffices"})
 public class AppUser extends BaseEntity {
 
     @Column(name = "email", nullable = false, unique = true)
@@ -59,8 +59,9 @@ public class AppUser extends BaseEntity {
     private Map<String, Object> preferences = new HashMap<>();
 
     // Relationships
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<UserRole> roles = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<UserOffice> userOffices = new HashSet<>();
@@ -68,9 +69,10 @@ public class AppUser extends BaseEntity {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Staff staff;
 
-    public AppUser(String email, String passwordHash) {
+    public AppUser(String email, String passwordHash, Role role) {
         this.email = email;
         this.passwordHash = passwordHash;
+        this.role = role;
     }
 
     // Helper methods

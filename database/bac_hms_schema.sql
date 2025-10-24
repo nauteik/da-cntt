@@ -72,10 +72,22 @@ CREATE TABLE payer (
 );
 
 
+CREATE TABLE role (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code text NOT NULL UNIQUE,
+    name text NOT NULL,
+    description text,
+    is_system boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+
 CREATE TABLE app_user (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email text NOT NULL UNIQUE,
     password_hash text NOT NULL,
+    role_id uuid NOT NULL REFERENCES role(id) ON DELETE RESTRICT,
     is_active boolean NOT NULL DEFAULT true,
     mfa_enabled boolean NOT NULL DEFAULT false,
     last_login_at timestamptz,
@@ -88,17 +100,6 @@ CREATE TABLE app_user (
 );
 
 CREATE INDEX idx_app_user_deleted_at ON app_user (deleted_at);
-
-CREATE TABLE role (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    code text NOT NULL UNIQUE,
-    name text NOT NULL,
-    description text,
-    is_system boolean NOT NULL DEFAULT false,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    deleted_at timestamptz
-);
 
 CREATE INDEX idx_role_deleted_at ON role (deleted_at);
 
@@ -123,16 +124,6 @@ CREATE TABLE role_permission (
     CONSTRAINT role_permission_unique UNIQUE (role_id, permission_id)
 );
 
-CREATE TABLE user_role (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-    role_id uuid NOT NULL REFERENCES role(id) ON DELETE CASCADE,
-    assigned_at timestamptz NOT NULL DEFAULT now(),
-    assigned_by uuid,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT user_role_unique UNIQUE (user_id, role_id)
-);
 
 CREATE TABLE user_office (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -205,15 +196,14 @@ CREATE TABLE staff (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
     user_id uuid UNIQUE REFERENCES app_user(id) ON DELETE SET NULL,
-    employee_code text UNIQUE,
+    employee_id text UNIQUE,
     first_name text NOT NULL,
     last_name text NOT NULL,
-    email text,
-    phone text,
+    is_supervisor boolean NOT NULL DEFAULT false,
     dob date,
     gender text,
     hire_date date,
-    termination_date date,
+    release_date date,
     is_active boolean NOT NULL DEFAULT true,
     portrait_file_id uuid REFERENCES file_object(id) ON DELETE SET NULL,
     custom_fields jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -224,6 +214,19 @@ CREATE TABLE staff (
 
 CREATE INDEX idx_staff_office ON staff (office_id);
 CREATE INDEX idx_staff_deleted_at ON staff (deleted_at);
+
+CREATE TABLE staff_address (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+    address_id uuid REFERENCES address(id) ON DELETE CASCADE,
+    phone text,
+    email text,
+    is_main boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT staff_address_unique UNIQUE (staff_id, address_id),
+    CONSTRAINT chk_address_or_phone CHECK (address_id IS NOT NULL OR phone IS NOT NULL)
+);
 
 CREATE TABLE staff_document (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

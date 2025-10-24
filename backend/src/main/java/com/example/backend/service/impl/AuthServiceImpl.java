@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -64,10 +63,8 @@ public class AuthServiceImpl implements AuthService {
                 .map(staff -> staff.getOffice().getId().toString())
                 .orElse(null);
 
-        // Get user roles
-        List<String> roles = user.getRoles().stream()
-                .map(userRole -> userRole.getRole().getCode())
-                .collect(Collectors.toList());
+        // Get user role
+        List<String> roles = List.of(user.getRole().getCode());
 
         // Generate JWT token with user info and officeId
         String token = generateToken(user, displayName, roles, officeId);

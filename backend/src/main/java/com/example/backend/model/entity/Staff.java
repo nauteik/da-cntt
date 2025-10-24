@@ -38,8 +38,8 @@ public class Staff extends BaseEntity {
     @JoinColumn(name = "user_id", unique = true)
     private AppUser user;
 
-    @Column(name = "employee_code")
-    private String employeeCode;
+    @Column(name = "employee_id")
+    private String employeeId;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -47,11 +47,8 @@ public class Staff extends BaseEntity {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(name = "email")
-    private String email;
-
-    @Column(name = "phone")
-    private String phone;
+    @Column(name ="is_supervisor", nullable = false)
+    private Boolean isSupervisor = false;
 
     @Column(name = "dob")
     private LocalDate dob;
@@ -62,8 +59,8 @@ public class Staff extends BaseEntity {
     @Column(name = "hire_date")
     private LocalDate hireDate;
 
-    @Column(name = "termination_date")
-    private LocalDate terminationDate;
+    @Column(name = "release_date")
+    private LocalDate releaseDate;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -116,11 +113,11 @@ public class Staff extends BaseEntity {
     }
 
     public boolean isActiveStaff() {
-        return Boolean.TRUE.equals(isActive) && !isDeleted() && terminationDate == null;
+        return Boolean.TRUE.equals(isActive) && !isDeleted() && releaseDate == null;
     }
 
     public boolean isTerminated() {
-        return terminationDate != null && terminationDate.isBefore(LocalDate.now());
+        return releaseDate != null && releaseDate.isBefore(LocalDate.now());
     }
 }
 

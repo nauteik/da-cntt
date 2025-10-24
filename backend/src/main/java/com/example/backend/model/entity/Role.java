@@ -19,7 +19,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"permissions", "userRoles"})
+@ToString(exclude = {"permissions", "users"})
 public class Role extends BaseEntity {
 
     @Column(name = "code", nullable = false)
@@ -42,7 +42,7 @@ public class Role extends BaseEntity {
     private Set<RolePermission> permissions = new HashSet<>();
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<UserRole> userRoles = new HashSet<>();
+    private Set<AppUser> users = new HashSet<>();
 
     public Role(String code, String name) {
         this.code = code;
