@@ -23,7 +23,6 @@ public class UserDataLoader {
     private final OfficeRepository officeRepository;
     private final RoleRepository roleRepository;
     private final AppUserRepository appUserRepository;
-    private final UserRoleRepository userRoleRepository;
     private final UserOfficeRepository userOfficeRepository;
     private final StaffRepository staffRepository;
     private final PasswordEncoder passwordEncoder;
@@ -83,13 +82,9 @@ public class UserDataLoader {
             if (appUserRepository.findByEmail(email).isEmpty()) {
                 // Create user
                 String hashedPassword = passwordEncoder.encode("password123"); // Default password
-                AppUser user = new AppUser(email, hashedPassword);
+                AppUser user = new AppUser(email, hashedPassword, role);
                 user.setPreferences(new HashMap<>());
                 AppUser savedUser = appUserRepository.save(user);
-
-                // Assign role
-                UserRole userRole = new UserRole(savedUser, role);
-                userRoleRepository.save(userRole);
 
                 // Assign to offices
                 Office office = assignUserToOffices(savedUser, offices, roleCode, i);
@@ -117,9 +112,7 @@ public class UserDataLoader {
 
         Staff staff = new Staff(office, firstName, lastName);
         staff.setUser(user);
-        staff.setEmail(user.getEmail());
-        staff.setPhone(phone);
-        staff.setEmployeeCode(data[0]); // Using username as employee code
+        staff.setEmployeeId(data[0]); // Using username as employee code
         staff.setIsActive(true);
 
         staffRepository.save(staff);

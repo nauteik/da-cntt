@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Custom UserDetailsService for Spring Security
@@ -33,10 +32,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .filter(AppUser::isActiveUser)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + normalizedEmail));
 
-        // Get user roles
-        List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
-                .map(userRole -> new SimpleGrantedAuthority("ROLE_" + userRole.getRole().getCode()))
-                .collect(Collectors.toList());
+        // Get user role
+        List<SimpleGrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode())
+        );
 
         return User.builder()
                 .username(user.getEmail())
