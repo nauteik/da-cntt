@@ -2,9 +2,12 @@ package com.example.backend.service.impl;
 
 import com.example.backend.model.dto.StaffSelectDTO;
 import com.example.backend.model.dto.StaffSummaryDTO;
+import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.dto.CreateStaffDTO;
 import com.example.backend.model.dto.StaffCreatedDTO;
+import com.example.backend.model.dto.StaffHeaderDTO;
 import com.example.backend.model.entity.Staff;
+import com.example.backend.model.entity.StaffAddress;
 import com.example.backend.model.entity.AppUser;
 import com.example.backend.model.entity.Office;
 import com.example.backend.model.entity.Role;
@@ -13,6 +16,7 @@ import com.example.backend.repository.StaffRepository;
 import com.example.backend.repository.AppUserRepository;
 import com.example.backend.repository.OfficeRepository;
 import com.example.backend.repository.RoleRepository;
+import com.example.backend.repository.StaffAddressRepository;
 import com.example.backend.repository.UserOfficeRepository;
 import com.example.backend.service.StaffService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +32,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +48,7 @@ public class StaffServiceImpl implements StaffService {
     private final OfficeRepository officeRepository;
     private final RoleRepository roleRepository;
     private final UserOfficeRepository userOfficeRepository;
+    private final StaffAddressRepository staffAddressRepository;
     private final PasswordEncoder passwordEncoder;
     
     // Whitelist of allowed sort fields to prevent SQL injection via sort parameter
@@ -179,13 +185,13 @@ public class StaffServiceImpl implements StaffService {
         
         // 2. Check email uniqueness
         if (appUserRepository.findByEmail(createStaffDTO.getEmail()).isPresent()) {
-            throw new com.example.backend.exception.ConflictException("Email already exists: " + createStaffDTO.getEmail());
+            throw new com.example.backend.exception.ConflictException("Email already exists");
         }
         
         // 3. Check SSN uniqueness (if provided)
         if (createStaffDTO.getSsn() != null && !createStaffDTO.getSsn().trim().isEmpty()) {
             if (staffRepository.findBySsn(createStaffDTO.getSsn()).isPresent()) {
-                throw new com.example.backend.exception.ConflictException("SSN already exists: " + createStaffDTO.getSsn());
+                throw new com.example.backend.exception.ConflictException("SSN already exists");
             }
         }
         
@@ -205,6 +211,7 @@ public class StaffServiceImpl implements StaffService {
         Staff staff = new Staff(office, createStaffDTO.getFirstName(), createStaffDTO.getLastName());
         staff.setUser(savedUser);
         staff.setSsn(createStaffDTO.getSsn());
+        staff.setNationalProviderId(createStaffDTO.getNationalProviderId());
         staff.setIsActive(true);
         staff.setHireDate(LocalDate.now());
         
@@ -213,7 +220,20 @@ public class StaffServiceImpl implements StaffService {
         String employeeId = generateEmployeeId(office, staff);
         staff.setEmployeeId(employeeId);
         
+        // Save Staff entity first
         Staff savedStaff = staffRepository.save(staff);
+        
+        // 8. Save phone number in StaffAddress (with null address) - AFTER staff is saved
+        if (createStaffDTO.getPhone() != null && !createStaffDTO.getPhone().trim().isEmpty()) {
+            StaffAddress staffAddress = new StaffAddress();
+            staffAddress.setStaff(savedStaff); // Use saved staff with ID
+            staffAddress.setAddress(null); // No address, only phone
+            staffAddress.setPhone(createStaffDTO.getPhone());
+            staffAddress.setEmail(createStaffDTO.getEmail());
+            staffAddress.setIsMain(true); // Set as main contact phone
+            staffAddressRepository.save(staffAddress);
+            log.debug("Saved phone number for staff ID: {}", savedStaff.getId());
+        }
         
         // 8. Create UserOffice mapping
         UserOffice userOffice = new UserOffice(savedUser, office);
@@ -260,6 +280,22 @@ public class StaffServiceImpl implements StaffService {
                 .id(staff.getId())
                 .displayName(displayName)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public StaffHeaderDTO getStaffHeader(UUID staffId) {
+        log.debug("Fetching staff header for staff ID: {}", staffId);
+        
+        StaffHeaderDTO header = staffRepository.findStaffHeaderById(staffId);
+        
+        if (header == null) {
+            log.warn("Staff header not found for ID: {}", staffId);
+            throw new ResourceNotFoundException("Staff", staffId);
+        }
+        
+        log.debug("Successfully fetched staff header for ID: {}", staffId);
+        return header;
     }
 }
 

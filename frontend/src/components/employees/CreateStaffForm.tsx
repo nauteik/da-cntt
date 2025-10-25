@@ -36,6 +36,10 @@ const createStaffSchema = z.object({
       "Invalid phone number format"
     )
     .max(20, "Phone number must not exceed 20 characters"),
+  nationalProviderId: z
+    .string()
+    .max(50, "National Provider ID must not exceed 50 characters")
+    .optional(),
   email: z
     .string()
     .min(1, "Email is required")
@@ -76,6 +80,7 @@ export default function CreateStaffModal({
       roleId: "",
       ssn: "",
       phone: "",
+      nationalProviderId: "",
       email: "",
     },
   });
@@ -310,6 +315,32 @@ export default function CreateStaffModal({
                     {...field}
                     placeholder="(215) 555-1234"
                     status={errors.phone ? "error" : ""}
+                    className={formStyles.formInput}
+                  />
+                )}
+              />
+            </div>
+
+            {/* National Provider ID */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  National Provider ID
+                </label>
+                {errors.nationalProviderId && (
+                  <span className="text-xs text-red-500">
+                    {errors.nationalProviderId.message}
+                  </span>
+                )}
+              </div>
+              <Controller
+                name="nationalProviderId"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    placeholder="1234567890"
+                    status={errors.nationalProviderId ? "error" : ""}
                     className={formStyles.formInput}
                   />
                 )}

@@ -44,3 +44,12 @@ export interface StaffQueryParams {
   status?: StaffStatus[];
   role?: string[];
 }
+
+export interface StaffHeaderDTO {
+  id: string;
+  staffName: string;
+  employeeId: string;
+  phoneNo: string;
+  email: string;
+  mainEmergencyContact: string;
+}

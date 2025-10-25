@@ -58,6 +58,8 @@ export interface ContactDTO {
   name: string;
   phone: string;
   email: string;
+  line1?: string;
+  line2?: string;
   isPrimary: boolean;
 }
 

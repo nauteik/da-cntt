@@ -3,6 +3,7 @@ package com.example.backend.data;
 import com.example.backend.model.entity.*;
 import com.example.backend.repository.*;
 import com.example.backend.repository.StaffRepository;
+import com.example.backend.repository.StaffContactRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
+import com.github.javafaker.Faker;
 
 /**
  * Loads user data with role assignments and office mappings
@@ -25,6 +27,8 @@ public class UserDataLoader {
     private final AppUserRepository appUserRepository;
     private final UserOfficeRepository userOfficeRepository;
     private final StaffRepository staffRepository;
+    private final StaffAddressRepository staffAddressRepository;
+    private final StaffContactRepository staffContactRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -105,6 +109,7 @@ public class UserDataLoader {
 
         String fullName = data[2];
         String phone = data[3];
+        String email = fullName.toLowerCase().replace(" ", ".") + "@blueangelscare.com";
 
         String[] nameParts = fullName.split(" ", 2);
         String firstName = nameParts[0];
@@ -116,6 +121,21 @@ public class UserDataLoader {
         staff.setIsActive(true);
 
         staffRepository.save(staff);
+
+        // Create StaffAddress entity
+        StaffAddress staffAddress = new StaffAddress(staff, null, phone, email);
+        staffAddress.setIsMain(true);
+        staffAddressRepository.save(staffAddress);
+
+        // Create StaffContact entity
+        Faker faker = new Faker();
+        StaffContact staffContact = new StaffContact(staff, faker.options().option("Spouse", "Parent", "Sibling"), faker.name().fullName());
+        staffContact.setPhone(faker.phoneNumber().cellPhone());
+        staffContact.setEmail(faker.internet().emailAddress());
+        staffContact.setLine1(faker.address().streetAddress());
+        staffContact.setLine2(faker.random().nextBoolean() ? faker.address().secondaryAddress() : null);
+        staffContact.setIsPrimary(true);
+        staffContactRepository.save(staffContact);
     }
 
     private Office assignUserToOffices(AppUser user, List<Office> offices, String roleCode, int userIndex) {

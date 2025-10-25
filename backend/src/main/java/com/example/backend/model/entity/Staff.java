@@ -28,7 +28,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"office", "user", "portraitFile", "documents", "certifications", "backgroundChecks"})
+@ToString(exclude = {"office", "user", "portraitFile", "documents", "certifications", "backgroundChecks", "staffAddresses", "staffContacts"})
 public class Staff extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -55,6 +55,9 @@ public class Staff extends BaseEntity {
 
     @Column(name ="is_supervisor", nullable = false)
     private Boolean isSupervisor = false;
+
+    @Column(name = "national_provider_id", nullable = true)
+    private String nationalProviderId;
 
     @Column(name = "dob")
     private LocalDate dob;
@@ -97,6 +100,12 @@ public class Staff extends BaseEntity {
 
     @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<StaffRate> rates = new HashSet<>();
+
+    @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<StaffAddress> staffAddresses = new HashSet<>();
+
+    @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<StaffContact> staffContacts = new HashSet<>();
 
     public Staff(Office office, String firstName, String lastName) {
         this.office = office;

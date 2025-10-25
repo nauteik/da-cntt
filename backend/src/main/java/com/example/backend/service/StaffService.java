@@ -2,11 +2,13 @@ package com.example.backend.service;
 
 import com.example.backend.model.dto.StaffSelectDTO;
 import com.example.backend.model.dto.StaffSummaryDTO;
+import com.example.backend.model.dto.StaffHeaderDTO;
 import com.example.backend.model.dto.CreateStaffDTO;
 import com.example.backend.model.dto.StaffCreatedDTO;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Service interface for Staff management
@@ -56,5 +58,14 @@ public interface StaffService {
      * @throws com.example.backend.exception.ConflictException if email or SSN already exists
      */
     StaffCreatedDTO createStaff(CreateStaffDTO createStaffDTO, String authenticatedUserEmail);
+
+    /**
+     * Get staff header information by staff ID
+     * 
+     * @param staffId UUID of the staff member
+     * @return staff header DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff not found
+     */
+    StaffHeaderDTO getStaffHeader(UUID staffId);
 }
 

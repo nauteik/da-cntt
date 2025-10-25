@@ -1,6 +1,7 @@
 package com.example.backend.repository;
 
 import com.example.backend.model.dto.StaffSummaryDTO;
+import com.example.backend.model.dto.StaffHeaderDTO;
 import com.example.backend.model.entity.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -114,4 +115,25 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
         @Param("statusFilter") String statusFilter,
         @Param("roleFilter") String roleFilter
     );
+
+    /**
+     * Get staff header information by staff ID
+     */
+    @Query("""
+        SELECT new com.example.backend.model.dto.StaffHeaderDTO(
+            s.id,
+            s.firstName,
+            s.lastName,
+            s.employeeId,
+            COALESCE(mainSa.phone, ''),
+            COALESCE(mainSa.email, ''),
+            COALESCE(primaryContact.name, '')
+        )
+        FROM Staff s
+        LEFT JOIN s.staffAddresses mainSa ON mainSa.isMain = true
+        LEFT JOIN s.staffContacts primaryContact ON primaryContact.isPrimary = true
+        WHERE s.id = :staffId
+          AND s.deletedAt IS NULL
+        """)
+    StaffHeaderDTO findStaffHeaderById(@Param("staffId") UUID staffId);
 }

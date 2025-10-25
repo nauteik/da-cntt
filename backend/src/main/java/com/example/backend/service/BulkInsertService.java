@@ -161,8 +161,8 @@ public class BulkInsertService {
         
         String sql = """
             INSERT INTO patient_contact (
-                id, patient_id, name, relation, phone, email, address_id, is_primary, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                id, patient_id, name, relation, phone, email, line1, line2, is_primary, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             """;
 
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
@@ -175,8 +175,9 @@ public class BulkInsertService {
                 ps.setString(4, patientContact.getRelation());
                 ps.setString(5, patientContact.getPhone());
                 ps.setString(6, patientContact.getEmail());
-                ps.setObject(7, patientContact.getAddress().getId());
-                ps.setBoolean(8, patientContact.getIsPrimary());
+                ps.setString(7, patientContact.getLine1());
+                ps.setString(8, patientContact.getLine2());
+                ps.setBoolean(9, patientContact.getIsPrimary());
             }
 
             @Override

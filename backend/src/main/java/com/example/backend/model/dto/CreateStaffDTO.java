@@ -43,6 +43,9 @@ public class CreateStaffDTO {
     @Size(max = 20, message = "Phone number must not exceed 20 characters")
     private String phone;
 
+    @Size(max = 50, message = "National Provider ID must not exceed 50 characters")
+    private String nationalProviderId;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     @Size(max = 255, message = "Email must not exceed 255 characters")

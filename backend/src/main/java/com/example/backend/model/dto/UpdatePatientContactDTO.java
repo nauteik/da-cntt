@@ -30,6 +30,12 @@ public class UpdatePatientContactDTO {
     @Size(max = 255, message = "Email must not exceed 255 characters")
     private String email;
 
+    @Size(max = 255, message = "Address line 1 must not exceed 255 characters")
+    private String line1;
+
+    @Size(max = 255, message = "Address line 2 must not exceed 255 characters")
+    private String line2;
+
     private Boolean isPrimary;
 }
 

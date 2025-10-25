@@ -285,6 +285,8 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
                 contactDTO.setName(contact.getName());
                 contactDTO.setPhone(contact.getPhone());
                 contactDTO.setEmail(contact.getEmail());
+                contactDTO.setLine1(contact.getLine1());
+                contactDTO.setLine2(contact.getLine2());
                 contactDTO.setPrimary(contact.getIsPrimary());
                 return contactDTO;
             })
@@ -770,6 +772,10 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
         contact.setPhone(updateDTO.getPhone().trim());
         contact.setEmail(updateDTO.getEmail() != null && !updateDTO.getEmail().trim().isEmpty() 
                 ? updateDTO.getEmail().trim() : null);
+        contact.setLine1(updateDTO.getLine1() != null && !updateDTO.getLine1().trim().isEmpty() 
+                ? updateDTO.getLine1().trim() : null);
+        contact.setLine2(updateDTO.getLine2() != null && !updateDTO.getLine2().trim().isEmpty() 
+                ? updateDTO.getLine2().trim() : null);
         contact.setIsPrimary(updateDTO.getIsPrimary() != null ? updateDTO.getIsPrimary() : false);
         
         // 5. Save PatientContact
@@ -812,6 +818,12 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
         }
         if (updateDTO.getEmail() != null) {
             contact.setEmail(updateDTO.getEmail().trim().isEmpty() ? null : updateDTO.getEmail().trim());
+        }
+        if (updateDTO.getLine1() != null) {
+            contact.setLine1(updateDTO.getLine1().trim().isEmpty() ? null : updateDTO.getLine1().trim());
+        }
+        if (updateDTO.getLine2() != null) {
+            contact.setLine2(updateDTO.getLine2().trim().isEmpty() ? null : updateDTO.getLine2().trim());
         }
         if (updateDTO.getIsPrimary() != null) {
             // If setting as primary, unset other primary contacts BEFORE updating this one

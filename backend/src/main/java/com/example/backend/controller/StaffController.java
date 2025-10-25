@@ -3,6 +3,7 @@ package com.example.backend.controller;
 import com.example.backend.model.ApiResponse;
 import com.example.backend.model.dto.StaffSelectDTO;
 import com.example.backend.model.dto.StaffSummaryDTO;
+import com.example.backend.model.dto.StaffHeaderDTO;
 import com.example.backend.model.dto.CreateStaffDTO;
 import com.example.backend.model.dto.StaffCreatedDTO;
 import com.example.backend.service.StaffService;
@@ -20,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * REST Controller for staff management
@@ -116,6 +118,28 @@ public class StaffController {
         
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success(createdStaff, "Staff member created successfully"));
+    }
+
+    /**
+     * Get staff header information by staff ID
+     * 
+     * @param id UUID of the staff member
+     * @return staff header information
+     * 
+     * Example: GET /api/staff/{id}/header
+     */
+    @GetMapping("/{id}/header")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<StaffHeaderDTO>> getStaffHeader(
+            @PathVariable UUID id) {
+        
+        log.debug("GET /api/staff/{}/header", id);
+        
+        StaffHeaderDTO header = staffService.getStaffHeader(id);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(header, "Staff header retrieved successfully")
+        );
     }
 }
 

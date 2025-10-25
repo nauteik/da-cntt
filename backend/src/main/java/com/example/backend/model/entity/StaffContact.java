@@ -8,20 +8,20 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * Patient contact entity for guardian/emergency contact info
+ * Staff contact entity for emergency contact info
  */
 @Entity
-@Table(name = "patient_contact")
+@Table(name = "staff_contact")
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"patient"})
-public class PatientContact extends BaseEntity {
+@ToString(exclude = {"staff"})
+public class StaffContact extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "staff_id", nullable = false)
     @JsonIgnore
-    private Patient patient;
+    private Staff staff;
 
     @Column(name = "relation", nullable = false)
     private String relation;
@@ -44,8 +44,8 @@ public class PatientContact extends BaseEntity {
     @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = false;
 
-    public PatientContact(Patient patient, String relation, String name) {
-        this.patient = patient;
+    public StaffContact(Staff staff, String relation, String name) {
+        this.staff = staff;
         this.relation = relation;
         this.name = name;
     }
@@ -55,4 +55,3 @@ public class PatientContact extends BaseEntity {
         return Boolean.TRUE.equals(isPrimary);
     }
 }
-
