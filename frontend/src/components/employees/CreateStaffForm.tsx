@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Modal, Button, Input, Select } from "antd";
+import { Modal, Button, Input, Select, Switch } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +45,7 @@ const createStaffSchema = z.object({
     .min(1, "Email is required")
     .email("Invalid email format")
     .max(255, "Email must not exceed 255 characters"),
+  isSupervisor: z.boolean().optional(),
 });
 
 type CreateStaffFormData = z.infer<typeof createStaffSchema>;
@@ -82,6 +83,7 @@ export default function CreateStaffModal({
       phone: "",
       nationalProviderId: "",
       email: "",
+      isSupervisor: false,
     },
   });
 
@@ -369,6 +371,36 @@ export default function CreateStaffModal({
                     status={errors.email ? "error" : ""}
                     className={formStyles.formInput}
                   />
+                )}
+              />
+            </div>
+
+            {/* Is Supervisor */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  Is Supervisor
+                </label>
+                {errors.isSupervisor && (
+                  <span className="text-xs text-red-500">
+                    {errors.isSupervisor.message}
+                  </span>
+                )}
+              </div>
+              <Controller
+                name="isSupervisor"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={field.value}
+                      onChange={field.onChange}
+                      className="form-switch"
+                    />
+                    <span className="text-sm text-theme-secondary">
+                      {field.value ? "Yes" : "No"}
+                    </span>
+                  </div>
                 )}
               />
             </div>

@@ -51,6 +51,8 @@ public class CreateStaffDTO {
     @Size(max = 255, message = "Email must not exceed 255 characters")
     private String email;
 
+    private Boolean isSupervisor = false;
+
     // TODO: Consult partner about employeeId generation strategy (auto vs manual)
     // For now, employeeId will be auto-generated based on office and sequence
 }

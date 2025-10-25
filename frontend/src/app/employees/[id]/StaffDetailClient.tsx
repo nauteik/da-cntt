@@ -2,9 +2,10 @@
 
 import React from "react";
 import { Tabs } from "antd";
-import type { StaffHeaderDTO } from "@/types/staff";
-import { useStaffHeader } from "@/hooks/useStaffDetail";
+import type { StaffHeaderDTO, StaffPersonalDTO } from "@/types/staff";
+import { useStaffHeader, useStaffPersonal } from "@/hooks/useStaffDetail";
 import StaffHeader from "@/components/employees/StaffHeader";
+import StaffPersonal from "@/components/employees/StaffPersonal";
 import TabLoading from "@/components/common/TabLoading";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import InlineError from "@/components/common/InlineError";
@@ -12,11 +13,13 @@ import InlineError from "@/components/common/InlineError";
 interface StaffDetailClientProps {
   staffId: string;
   initialHeader: StaffHeaderDTO;
+  initialPersonal?: StaffPersonalDTO;
 }
 
 export default function StaffDetailClient({
   staffId,
   initialHeader,
+  initialPersonal,
 }: StaffDetailClientProps) {
   // Use React Query with server-rendered initial data
   const {
@@ -25,6 +28,14 @@ export default function StaffDetailClient({
     error: headerError,
   } = useStaffHeader(staffId, {
     initialData: initialHeader,
+  });
+
+  const {
+    data: personalData,
+    isLoading: personalLoading,
+    error: personalError,
+  } = useStaffPersonal(staffId, {
+    initialData: initialPersonal,
   });
 
   // Show error if header data fails to load
@@ -47,9 +58,18 @@ export default function StaffDetailClient({
     {
       key: "personal",
       label: "Personal",
-      children: (
+      children: personalData ? (
+        <StaffPersonal staff={personalData} />
+      ) : personalLoading ? (
+        <TabLoading message="Loading personal information..." />
+      ) : personalError ? (
+        <InlineError
+          title="Error Loading Personal Information"
+          message={personalError.message || "Failed to load personal information"}
+        />
+      ) : (
         <div className="min-h-[600px] flex items-center justify-center p-12 text-center text-theme-secondary text-base">
-          Coming soon...
+          No personal information available
         </div>
       ),
     },

@@ -7,7 +7,7 @@
 
 export const VALIDATION_REGEX = {
   // Phone number: (XXX) XXX-XXXX or XXX-XXX-XXXX
-  PHONE: /^((\(\d{3}\)\s?)|\d{3}-)\d{3}-\d{4}$/,
+  PHONE: /^(\(\d{3}\)\s?\d{3}-\d{4}|\d{3}-\d{3}-\d{4})$/,
   
   // ZIP/Postal code: XXXXX or XXXXX-XXXX
   ZIP_CODE: /^\d{5}(-\d{4})?$/,

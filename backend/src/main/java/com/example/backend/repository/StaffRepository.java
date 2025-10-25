@@ -136,4 +136,20 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
           AND s.deletedAt IS NULL
         """)
     StaffHeaderDTO findStaffHeaderById(@Param("staffId") UUID staffId);
+
+    /**
+     * Get staff personal information by staff ID with contacts and addresses
+     */
+    @Query("""
+        SELECT s
+        FROM Staff s
+        LEFT JOIN FETCH s.staffContacts
+        LEFT JOIN FETCH s.staffAddresses sa
+        LEFT JOIN FETCH sa.address
+        LEFT JOIN FETCH s.user u
+        LEFT JOIN FETCH u.role
+        WHERE s.id = :staffId
+          AND s.deletedAt IS NULL
+        """)
+    Staff findStaffPersonalById(@Param("staffId") UUID staffId);
 }

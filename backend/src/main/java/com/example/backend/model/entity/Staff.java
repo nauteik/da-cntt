@@ -65,6 +65,9 @@ public class Staff extends BaseEntity {
     @Column(name = "gender")
     private String gender;
 
+    @Column(name = "primary_language")
+    private String primaryLanguage;
+
     @Column(name = "hire_date")
     private LocalDate hireDate;
 
@@ -73,6 +76,10 @@ public class Staff extends BaseEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supervisor_id")
+    private Staff supervisor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "portrait_file_id")

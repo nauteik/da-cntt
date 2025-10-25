@@ -3,8 +3,13 @@ package com.example.backend.service;
 import com.example.backend.model.dto.StaffSelectDTO;
 import com.example.backend.model.dto.StaffSummaryDTO;
 import com.example.backend.model.dto.StaffHeaderDTO;
+import com.example.backend.model.dto.StaffPersonalDTO;
 import com.example.backend.model.dto.CreateStaffDTO;
 import com.example.backend.model.dto.StaffCreatedDTO;
+import com.example.backend.model.dto.UpdateStaffIdentifiersDTO;
+import com.example.backend.model.dto.UpdateStaffPersonalDTO;
+import com.example.backend.model.dto.UpdateStaffAddressDTO;
+import com.example.backend.model.dto.UpdateStaffContactDTO;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -67,5 +72,99 @@ public interface StaffService {
      * @throws com.example.backend.exception.ResourceNotFoundException if staff not found
      */
     StaffHeaderDTO getStaffHeader(UUID staffId);
+
+    /**
+     * Get staff personal information by staff ID
+     * 
+     * @param staffId UUID of the staff member
+     * @return staff personal DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff not found
+     */
+    StaffPersonalDTO getStaffPersonal(UUID staffId);
+
+    /**
+     * Update staff identifiers.
+     * Updates SSN, employee ID, and national provider ID.
+     * 
+     * @param staffId UUID of the staff member
+     * @param updateDTO staff identifiers update data
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff not found
+     */
+    StaffPersonalDTO updateStaffIdentifiers(UUID staffId, UpdateStaffIdentifiersDTO updateDTO);
+
+    /**
+     * Update staff personal information.
+     * Updates first name, last name, date of birth, gender, primary language, and supervisor status.
+     * 
+     * @param staffId UUID of the staff member
+     * @param updateDTO staff personal information update data
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff not found
+     */
+    StaffPersonalDTO updateStaffPersonal(UUID staffId, UpdateStaffPersonalDTO updateDTO);
+
+    /**
+     * Create a new address for a staff member.
+     * 
+     * @param staffId UUID of the staff member
+     * @param updateDTO address data
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff not found
+     */
+    StaffPersonalDTO createStaffAddress(UUID staffId, UpdateStaffAddressDTO updateDTO);
+
+    /**
+     * Update an existing staff address.
+     * 
+     * @param staffId UUID of the staff member
+     * @param addressId address UUID (StaffAddress ID)
+     * @param updateDTO address data to update
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff or address not found
+     */
+    StaffPersonalDTO updateStaffAddress(UUID staffId, UUID addressId, UpdateStaffAddressDTO updateDTO);
+
+    /**
+     * Delete a staff address.
+     * Also deletes the associated Address entity.
+     * 
+     * @param staffId UUID of the staff member
+     * @param addressId address UUID (StaffAddress ID)
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff or address not found
+     */
+    StaffPersonalDTO deleteStaffAddress(UUID staffId, UUID addressId);
+
+    /**
+     * Create a new emergency contact for a staff member.
+     * 
+     * @param staffId UUID of the staff member
+     * @param updateDTO contact data
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff not found
+     */
+    StaffPersonalDTO createStaffContact(UUID staffId, UpdateStaffContactDTO updateDTO);
+
+    /**
+     * Update an existing staff emergency contact.
+     * 
+     * @param staffId UUID of the staff member
+     * @param contactId contact UUID
+     * @param updateDTO contact data to update
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff or contact not found
+     */
+    StaffPersonalDTO updateStaffContact(UUID staffId, UUID contactId, UpdateStaffContactDTO updateDTO);
+
+    /**
+     * Delete a staff emergency contact.
+     * 
+     * @param staffId UUID of the staff member
+     * @param contactId contact UUID
+     * @return updated staff personal information
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff or contact not found
+     */
+    StaffPersonalDTO deleteStaffContact(UUID staffId, UUID contactId);
 }
 

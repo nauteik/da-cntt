@@ -52,26 +52,26 @@ public class UserDataLoader {
     private void loadUsers(List<Office> offices) {
         // Admin users
         createUsersForRole(offices, "ADMIN", new String[][]{
-            {"admin1", "admin1@blueangelscare.com", "System Administrator 1", "+1-610-100-0001"},
-            {"admin2", "admin2@blueangelscare.com", "System Administrator 2", "+1-610-100-0002"}
+            {"admin1", "admin1@blueangelscare.com", "System Administrator 1", "(610) 100-0001"},
+            {"admin2", "admin2@blueangelscare.com", "System Administrator 2", "(610) 100-0002"}
         });
 
         // Manager users
         createUsersForRole(offices, "MANAGER", new String[][]{
-            {"manager1", "manager1@blueangelscare.com", "Office Manager Delaware", "+1-610-100-0003"},
-            {"manager2", "manager2@blueangelscare.com", "Office Manager Chester", "+1-610-100-0004"}
+            {"manager1", "manager1@blueangelscare.com", "Office Manager Delaware", "(610) 100-0003"},
+            {"manager2", "manager2@blueangelscare.com", "Office Manager Chester", "(610) 100-0004"}
         });
 
         // DSP users
         createUsersForRole(offices, "DSP", new String[][]{
-            {"dsp1", "dsp1@blueangelscare.com", "Direct Support Professional 1", "+1-610-100-0005"},
-            {"dsp2", "dsp2@blueangelscare.com", "Direct Support Professional 2", "+1-610-100-0006"}
+            {"dsp1", "dsp1@blueangelscare.com", "Direct Support Professional 1", "(610) 100-0005"},
+            {"dsp2", "dsp2@blueangelscare.com", "Direct Support Professional 2", "(610) 100-0006"}
         });
 
         // Finance users
         createUsersForRole(offices, "FINANCE", new String[][]{
-            {"finance1", "finance1@blueangelscare.com", "Finance Specialist 1", "+1-610-100-0007"},
-            {"finance2", "finance2@blueangelscare.com", "Finance Specialist 2", "+1-610-100-0008"}
+            {"finance1", "finance1@blueangelscare.com", "Finance Specialist 1", "(610) 100-0007"},
+            {"finance2", "finance2@blueangelscare.com", "Finance Specialist 2", "(610) 100-0008"}
         });
     }
 
@@ -107,6 +107,8 @@ public class UserDataLoader {
             return;
         }
 
+        Faker faker = new Faker();
+        
         String fullName = data[2];
         String phone = data[3];
         String email = fullName.toLowerCase().replace(" ", ".") + "@blueangelscare.com";
@@ -119,6 +121,8 @@ public class UserDataLoader {
         staff.setUser(user);
         staff.setEmployeeId(data[0]); // Using username as employee code
         staff.setIsActive(true);
+        staff.setIsSupervisor(faker.random().nextBoolean()); // Random supervisor status
+        staff.setPrimaryLanguage(faker.options().option("English", "Spanish", "French", "German", "Chinese"));
 
         staffRepository.save(staff);
 
@@ -128,7 +132,6 @@ public class UserDataLoader {
         staffAddressRepository.save(staffAddress);
 
         // Create StaffContact entity
-        Faker faker = new Faker();
         StaffContact staffContact = new StaffContact(staff, faker.options().option("Spouse", "Parent", "Sibling"), faker.name().fullName());
         staffContact.setPhone(faker.phoneNumber().cellPhone());
         staffContact.setEmail(faker.internet().emailAddress());

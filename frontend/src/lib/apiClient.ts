@@ -1,7 +1,7 @@
 import type { ApiResponse } from "../types/api";
 
 // Use backend URL for backend calls, empty for BFF routes
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL + "/api";
+const BACKEND_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api";
 const BFF_BASE_URL = ""; // Empty for Next.js API routes
 
 interface RequestOptions {

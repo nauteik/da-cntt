@@ -201,9 +201,11 @@ CREATE TABLE staff (
     first_name text NOT NULL,
     last_name text NOT NULL,
     is_supervisor boolean NOT NULL DEFAULT false,
+    supervisor_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     national_provider_id text UNIQUE,
     dob date,
     gender text,
+    primary_language text,
     hire_date date,
     release_date date,
     is_active boolean NOT NULL DEFAULT true,
@@ -212,10 +214,11 @@ CREATE TABLE staff (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz
-);
+);      
 
 CREATE INDEX idx_staff_office ON staff (office_id);
 CREATE INDEX idx_staff_deleted_at ON staff (deleted_at);
+CREATE INDEX idx_staff_supervisor ON staff (supervisor_id);
 
 CREATE TABLE staff_address (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
