@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
 
 interface LocationData {
   latitude: number;
@@ -18,16 +19,20 @@ interface LocationData {
   timestamp: string;
 }
 
-interface CheckInScreenProps {
-  patientId?: string;
-  patientName?: string;
-  scheduleId?: string;
-}
-
 export default function CheckInScreen() {
+  const params = useLocalSearchParams();
+  const scheduleId = params.scheduleId as string;
+  const patientId = params.patientId as string;
+  const patientName = params.patientName as string;
+  const visitId = params.visitId as string; // For unscheduled visits
+  
   const [isLoading, setIsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+
+  // Mock patient data if not provided
+  const mockPatientId = patientId || 'PT001';
+  const mockPatientName = patientName || 'John Doe';
 
   useEffect(() => {
     requestLocationPermission();
@@ -88,34 +93,59 @@ export default function CheckInScreen() {
 
   const handleCheckIn = async () => {
     if (!currentLocation) {
-      Alert.alert('Error', 'Location not available. Please try again.');
+      Alert.alert(
+        '📍 Location Required',
+        'Location not available. Please enable GPS and try again.',
+        [{ text: 'OK', style: 'default' }]
+      );
       return;
     }
 
     try {
       setIsLoading(true);
       
-      // TODO: Save check-in data to backend
+      // Mock check-in data since backend not ready
       const checkInData = {
-        timestamp: currentLocation.timestamp,
-        location: currentLocation,
+        scheduleId: scheduleId || `SCH-${Date.now()}`,
+        patientId: mockPatientId,
+        patientName: mockPatientName,
+        checkInTime: currentLocation.timestamp,
+        checkInLocation: currentLocation,
         type: 'check_in',
-        // patientId, scheduleId would come from navigation params
       };
 
       console.log('Check-in data:', checkInData);
       
-      // Navigate to DailyNote form with check-in data
-      router.push({
-        pathname: '/(tabs)/daily-note',
-        params: {
-          checkInData: JSON.stringify(checkInData),
-        }
-      });
+      // Update visit status if this is an unscheduled visit
+      if (visitId) {
+        await UnscheduledVisitService.update(visitId, {
+          checkedIn: true,
+          checkInTime: currentLocation.timestamp,
+        });
+      }
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      Alert.alert(
+        '✅ Check-In Successful',
+        `You have successfully checked in for ${mockPatientName}.\n\nLocation: ${currentLocation.address}\nTime: ${new Date(currentLocation.timestamp).toLocaleTimeString()}`,
+        [
+          {
+            text: 'Back to List',
+            style: 'default',
+            onPress: () => router.back(),
+          },
+        ]
+      );
       
     } catch (error) {
       console.error('Error during check-in:', error);
-      Alert.alert('Error', 'Failed to check in. Please try again.');
+      Alert.alert(
+        '❌ Check-In Failed',
+        'Failed to check in. Please try again.',
+        [{ text: 'OK', style: 'cancel' }]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -161,6 +191,18 @@ export default function CheckInScreen() {
       </View>
 
       <View style={styles.content}>
+        {/* Patient Info Card */}
+        <View style={styles.patientCard}>
+          <View style={styles.patientHeader}>
+            <Ionicons name="person-circle" size={48} color="#2196F3" />
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>{mockPatientName}</Text>
+              <Text style={styles.patientId}>ID: {mockPatientId}</Text>
+              {scheduleId && <Text style={styles.scheduleId}>Schedule: {scheduleId}</Text>}
+            </View>
+          </View>
+        </View>
+
         <View style={styles.locationCard}>
           <View style={styles.locationHeader}>
             <Ionicons name="location" size={24} color="#2196F3" />
@@ -245,6 +287,40 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+  },
+  patientCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  patientHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  patientInfo: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  patientName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  patientId: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  scheduleId: {
+    fontSize: 12,
+    color: '#999',
   },
   locationCard: {
     backgroundColor: 'white',

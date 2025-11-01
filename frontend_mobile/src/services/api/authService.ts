@@ -1,5 +1,11 @@
-import { ApiResponse, LoginCredentials, User } from '../../types';
+import { ApiResponse, LoginCredentials, User, LoginRequest, UserInfoResponse } from '../../types';
 import { apiClient } from './apiClient';
+
+interface BackendApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
 
 export class AuthService {
   /**
@@ -7,46 +13,63 @@ export class AuthService {
    */
   static async login(credentials: LoginCredentials): Promise<ApiResponse<User>> {
     try {
-      // For demo purposes, simulate API call
-      // In production, this would make a real API call
-      if (credentials.username && credentials.password) {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock successful response
-        const mockUser: User = {
-          id: '1',
-          name: 'Sarah Johnson',
-          employeeId: 'EMP001',
-          email: 'sarah.johnson@blueangelscare.com',
-          department: 'Patient Care',
-          role: 'Care Coordinator',
-          phone: '+1 (555) 123-4567',
-          token: 'mock-jwt-token-123456',
-        };
+      // Prepare request body (backend expects email field)
+      const loginRequest: LoginRequest = {
+        email: credentials.email || credentials.username,
+        password: credentials.password,
+      };
 
-        // Set auth token for future requests
-        apiClient.setAuthToken(mockUser.token!);
+      // Call backend login endpoint
+      const response = await apiClient.post<BackendApiResponse<UserInfoResponse>>(
+        '/auth/login',
+        loginRequest
+      );
 
-        return {
-          success: true,
-          data: mockUser,
-        };
-      } else {
+      if (!response.success || !response.data) {
         return {
           success: false,
-          error: 'Invalid credentials',
+          error: response.error || 'Login failed',
         };
       }
+
+      // Extract user info from backend response
+      const backendData = response.data;
+      const userInfo = backendData.data;
+
+      if (!userInfo) {
+        return {
+          success: false,
+          error: 'Invalid response from server',
+        };
+      }
+
+      // Map backend UserInfoResponse to frontend User type
+      const user: User = {
+        id: userInfo.userId,
+        name: userInfo.displayName,
+        employeeId: userInfo.userId, // Use userId as employeeId for now
+        email: userInfo.email,
+        department: 'Patient Care', // Default value
+        role: userInfo.roles[0] || 'DSP',
+        phone: '', // Not provided by backend
+        token: userInfo.token,
+        officeId: userInfo.officeId,
+      };
+
+      // Set auth token for future requests
+      apiClient.setAuthToken(user.token!);
+
+      return {
+        success: true,
+        data: user,
+      };
     } catch (error) {
+      console.error('Login error:', error);
       return {
         success: false,
-        error: 'Login failed. Please try again.',
+        error: error instanceof Error ? error.message : 'Login failed. Please try again.',
       };
     }
-
-    // Production implementation would be:
-    // return apiClient.post<User>('/auth/login', credentials);
   }
 
   /**
