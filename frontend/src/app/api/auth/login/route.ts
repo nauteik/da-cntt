@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       path: '/',
       sameSite: 'lax', // 'lax' is safer and sufficient for first-party contexts
-      maxAge: 60 * 60 * 2, // 2 hours in seconds
+      maxAge: 60* 60 * 24, // 1 day in seconds
     });
 
     // Return user info to the client, but not the token

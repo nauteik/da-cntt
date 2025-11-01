@@ -269,6 +269,15 @@ export default function PatientPersonal({ patient }: PatientPersonalProps) {
                           </>
                         )}
                       </div>
+                      {(contact.line1 || contact.line2) && (
+                        <div className="text-xs text-theme-secondary">
+                          <span className="font-medium">Address:</span>{" "}
+                          <span>
+                            {contact.line1}
+                            {contact.line2 && `, ${contact.line2}`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <MoreOutlined
                       className="text-base text-theme-secondary cursor-pointer hover:text-[var(--primary)] transition-colors"

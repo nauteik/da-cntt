@@ -32,15 +32,18 @@ import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import CreateClientModal from "@/components/clients/CreateClientForm";
 import type { OfficeDTO } from "@/types/office";
+import type { PatientFilterOptions } from "@/types/patientFilterOptions";
 
 interface ClientsClientProps {
   initialData: PaginatedPatients;
   offices: OfficeDTO[];
+  filterOptions: PatientFilterOptions;
 }
 
 export default function ClientsClient({
   initialData,
   offices,
+  filterOptions,
 }: ClientsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,6 +57,8 @@ export default function ClientsClient({
   const sortDir = (searchParams.get("sortDir") as "asc" | "desc") || "asc";
   const searchText = searchParams.get("search") || "";
   const statusFilter = searchParams.getAll("status") as PatientStatus[];
+  const programFilter = searchParams.getAll("program") as string[];
+  const servicesFilter = searchParams.getAll("services") as string[];
 
   // Local state for search input (for immediate UI feedback)
   const [searchInput, setSearchInput] = React.useState(searchText);
@@ -94,6 +99,8 @@ export default function ClientsClient({
       sortDir,
       search: searchText, // Use URL search param for API call
       status: statusFilter.length > 0 ? statusFilter : undefined,
+      program: programFilter.length > 0 ? programFilter : undefined,
+      services: servicesFilter.length > 0 ? servicesFilter : undefined,
     },
     {
       initialData, // Use server-rendered data as initial data
@@ -151,6 +158,11 @@ export default function ClientsClient({
       dataIndex: "program",
       key: "program",
       width: 100,
+      filters: filterOptions?.programs?.map((program) => ({
+        text: program,
+        value: program,
+      })) || [],
+      filteredValue: programFilter.length > 0 ? programFilter : null,
       render: (program: string) => program || "—",
     },
     {
@@ -224,17 +236,15 @@ export default function ClientsClient({
       dataIndex: "services",
       key: "services",
       width: 200,
-      render: (services: string[]) => (
-        <Space size={[0, 4]} wrap>
-          {services && services.length > 0
-            ? services.map((service, idx) => (
-                <Tag key={idx} color="blue">
-                  {service}
-                </Tag>
-              ))
-            : "—"}
-        </Space>
-      ),
+      filters: filterOptions?.serviceTypes?.map((serviceType) => ({
+        text: serviceType,
+        value: serviceType,
+      })) || [],
+      filteredValue: servicesFilter.length > 0 ? servicesFilter : null,
+      render: (services: string[]) => {
+        if (!services || services.length === 0) return "—";
+        return services.join(", ");
+      },
     },
   ];
 
@@ -299,6 +309,50 @@ export default function ClientsClient({
       // Add new status filters
       if (newStatusFilters.length > 0) {
         newStatusFilters.forEach((status) => params.append("status", status));
+      }
+
+      params.set("page", "1"); // Reset to first page on filter change (1-based)
+      shouldUpdate = true;
+    }
+
+    // Handle program filter changes
+    const currentProgramFilters = searchParams.getAll("program");
+    const newProgramFilters = filters.program ? (filters.program as string[]) : [];
+
+    // Compare current and new program filters
+    const programChanged =
+      currentProgramFilters.length !== newProgramFilters.length ||
+      !currentProgramFilters.every((p) => newProgramFilters.includes(p));
+
+    if (programChanged) {
+      // Remove all existing program parameters
+      params.delete("program");
+
+      // Add new program filters
+      if (newProgramFilters.length > 0) {
+        newProgramFilters.forEach((program) => params.append("program", program));
+      }
+
+      params.set("page", "1"); // Reset to first page on filter change (1-based)
+      shouldUpdate = true;
+    }
+
+    // Handle services filter changes
+    const currentServicesFilters = searchParams.getAll("services");
+    const newServicesFilters = filters.services ? (filters.services as string[]) : [];
+
+    // Compare current and new services filters
+    const servicesChanged =
+      currentServicesFilters.length !== newServicesFilters.length ||
+      !currentServicesFilters.every((s) => newServicesFilters.includes(s));
+
+    if (servicesChanged) {
+      // Remove all existing services parameters
+      params.delete("services");
+
+      // Add new services filters
+      if (newServicesFilters.length > 0) {
+        newServicesFilters.forEach((service) => params.append("services", service));
       }
 
       params.set("page", "1"); // Reset to first page on filter change (1-based)
@@ -393,44 +447,7 @@ export default function ClientsClient({
           }}
         />
       </Card>
-
-      {error && (
-        <Card className="mt-4 border-l-4 border-l-red-500 bg-red-50 dark:bg-red-900/10">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="w-5 h-5 text-red-600 dark:text-red-400"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
-                Error Loading Clients
-              </h3>
-              <p className="mt-1 text-sm text-red-700 dark:text-red-400">
-                {error.message === "Không thể kết nối đến máy chủ" ||
-                error.status === 503
-                  ? "Cannot connect to the server. Please ensure the backend is running."
-                  : error.message}
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-3 px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </Card>
-      )}
-
+      
       {/* Create Client Modal */}
       <CreateClientModal
         open={isCreateModalOpen}

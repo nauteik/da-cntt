@@ -47,6 +47,8 @@ export interface PatientQueryParams {
   sortDir?: "asc" | "desc";
   search?: string;
   status?: PatientStatus[];
+  program?: string[];
+  services?: string[];
 }
 
 // Patient Detail Types
@@ -56,6 +58,8 @@ export interface ContactDTO {
   name: string;
   phone: string;
   email: string;
+  line1?: string;
+  line2?: string;
   isPrimary: boolean;
 }
 

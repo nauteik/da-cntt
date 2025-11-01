@@ -3,6 +3,7 @@ package com.example.backend.data;
 import com.example.backend.model.entity.*;
 import com.example.backend.repository.*;
 import com.example.backend.repository.StaffRepository;
+import com.example.backend.repository.StaffContactRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
+import com.github.javafaker.Faker;
 
 /**
  * Loads user data with role assignments and office mappings
@@ -25,6 +27,8 @@ public class UserDataLoader {
     private final AppUserRepository appUserRepository;
     private final UserOfficeRepository userOfficeRepository;
     private final StaffRepository staffRepository;
+    private final StaffAddressRepository staffAddressRepository;
+    private final StaffContactRepository staffContactRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -48,26 +52,26 @@ public class UserDataLoader {
     private void loadUsers(List<Office> offices) {
         // Admin users
         createUsersForRole(offices, "ADMIN", new String[][]{
-            {"admin1", "admin1@blueangelscare.com", "System Administrator 1", "+1-610-100-0001"},
-            {"admin2", "admin2@blueangelscare.com", "System Administrator 2", "+1-610-100-0002"}
+            {"admin1", "admin1@blueangelscare.com", "System Administrator 1", "(610) 100-0001"},
+            {"admin2", "admin2@blueangelscare.com", "System Administrator 2", "(610) 100-0002"}
         });
 
         // Manager users
         createUsersForRole(offices, "MANAGER", new String[][]{
-            {"manager1", "manager1@blueangelscare.com", "Office Manager Delaware", "+1-610-100-0003"},
-            {"manager2", "manager2@blueangelscare.com", "Office Manager Chester", "+1-610-100-0004"}
+            {"manager1", "manager1@blueangelscare.com", "Office Manager Delaware", "(610) 100-0003"},
+            {"manager2", "manager2@blueangelscare.com", "Office Manager Chester", "(610) 100-0004"}
         });
 
         // DSP users
         createUsersForRole(offices, "DSP", new String[][]{
-            {"dsp1", "dsp1@blueangelscare.com", "Direct Support Professional 1", "+1-610-100-0005"},
-            {"dsp2", "dsp2@blueangelscare.com", "Direct Support Professional 2", "+1-610-100-0006"}
+            {"dsp1", "dsp1@blueangelscare.com", "Direct Support Professional 1", "(610) 100-0005"},
+            {"dsp2", "dsp2@blueangelscare.com", "Direct Support Professional 2", "(610) 100-0006"}
         });
 
         // Finance users
         createUsersForRole(offices, "FINANCE", new String[][]{
-            {"finance1", "finance1@blueangelscare.com", "Finance Specialist 1", "+1-610-100-0007"},
-            {"finance2", "finance2@blueangelscare.com", "Finance Specialist 2", "+1-610-100-0008"}
+            {"finance1", "finance1@blueangelscare.com", "Finance Specialist 1", "(610) 100-0007"},
+            {"finance2", "finance2@blueangelscare.com", "Finance Specialist 2", "(610) 100-0008"}
         });
     }
 
@@ -103,8 +107,11 @@ public class UserDataLoader {
             return;
         }
 
+        Faker faker = new Faker();
+        
         String fullName = data[2];
         String phone = data[3];
+        String email = fullName.toLowerCase().replace(" ", ".") + "@blueangelscare.com";
 
         String[] nameParts = fullName.split(" ", 2);
         String firstName = nameParts[0];
@@ -114,8 +121,24 @@ public class UserDataLoader {
         staff.setUser(user);
         staff.setEmployeeId(data[0]); // Using username as employee code
         staff.setIsActive(true);
+        staff.setIsSupervisor(faker.random().nextBoolean()); // Random supervisor status
+        staff.setPrimaryLanguage(faker.options().option("English", "Spanish", "French", "German", "Chinese"));
 
         staffRepository.save(staff);
+
+        // Create StaffAddress entity
+        StaffAddress staffAddress = new StaffAddress(staff, null, phone, email);
+        staffAddress.setIsMain(true);
+        staffAddressRepository.save(staffAddress);
+
+        // Create StaffContact entity
+        StaffContact staffContact = new StaffContact(staff, faker.options().option("Spouse", "Parent", "Sibling"), faker.name().fullName());
+        staffContact.setPhone(faker.phoneNumber().cellPhone());
+        staffContact.setEmail(faker.internet().emailAddress());
+        staffContact.setLine1(faker.address().streetAddress());
+        staffContact.setLine2(faker.random().nextBoolean() ? faker.address().secondaryAddress() : null);
+        staffContact.setIsPrimary(true);
+        staffContactRepository.save(staffContact);
     }
 
     private Office assignUserToOffices(AppUser user, List<Office> offices, String roleCode, int userIndex) {

@@ -45,6 +45,8 @@ export default function EditContactForm({
       name: "",
       phone: "",
       email: "",
+      line1: "",
+      line2: "",
       isPrimary: false,
     },
   });
@@ -58,6 +60,8 @@ export default function EditContactForm({
           name: "",
           phone: "",
           email: "",
+          line1: "",
+          line2: "",
           isPrimary: false,
         }
       );
@@ -269,6 +273,54 @@ export default function EditContactForm({
                   </span>
                 )}
               </div>
+            </div>
+
+            {/* Address Line 1 */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-theme-primary">
+                Address Line 1
+              </label>
+              <Controller
+                name="line1"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    placeholder="Enter street address"
+                    status={errors.line1 ? "error" : ""}
+                    className={formStyles.formInput}
+                  />
+                )}
+              />
+              {errors.line1 && (
+                <span className="text-sm text-red-500">
+                  {errors.line1.message}
+                </span>
+              )}
+            </div>
+
+            {/* Address Line 2 */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-theme-primary">
+                Address Line 2
+              </label>
+              <Controller
+                name="line2"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    placeholder="Enter apartment, suite, etc. (optional)"
+                    status={errors.line2 ? "error" : ""}
+                    className={formStyles.formInput}
+                  />
+                )}
+              />
+              {errors.line2 && (
+                <span className="text-sm text-red-500">
+                  {errors.line2.message}
+                </span>
+              )}
             </div>
 
             {/* Is Primary Contact Checkbox */}

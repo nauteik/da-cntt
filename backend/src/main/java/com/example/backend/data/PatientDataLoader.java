@@ -217,7 +217,8 @@ public class PatientDataLoader {
             contact.setRelation(faker.options().option("Parent", "Guardian", "Spouse"));
             contact.setPhone(faker.phoneNumber().cellPhone());
             contact.setEmail(faker.internet().emailAddress());
-            contact.setAddress(addresses.get(i));
+            contact.setLine1(faker.address().streetAddress());
+            contact.setLine2(faker.random().nextBoolean() ? faker.address().secondaryAddress() : null);
             contact.setIsPrimary(true);
             patientContacts.add(contact);
             

@@ -2,6 +2,7 @@ package com.example.backend.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -21,12 +22,13 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "staff", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"office_id", "employee_code"})
+    @UniqueConstraint(columnNames = {"office_id", "employee_code"}),
+    @UniqueConstraint(columnNames = {"ssn"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"office", "user", "portraitFile", "documents", "certifications", "backgroundChecks"})
+@ToString(exclude = {"office", "user", "portraitFile", "documents", "certifications", "backgroundChecks", "staffAddresses", "staffContacts"})
 public class Staff extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -41,6 +43,10 @@ public class Staff extends BaseEntity {
     @Column(name = "employee_id")
     private String employeeId;
 
+    @Pattern(regexp = "^\\d{3}-?\\d{2}-?\\d{4}$", message = "SSN must be in format XXX-XX-XXXX")
+    @Column(name = "ssn")
+    private String ssn;
+
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
@@ -50,11 +56,17 @@ public class Staff extends BaseEntity {
     @Column(name ="is_supervisor", nullable = false)
     private Boolean isSupervisor = false;
 
+    @Column(name = "national_provider_id", nullable = true)
+    private String nationalProviderId;
+
     @Column(name = "dob")
     private LocalDate dob;
 
     @Column(name = "gender")
     private String gender;
+
+    @Column(name = "primary_language")
+    private String primaryLanguage;
 
     @Column(name = "hire_date")
     private LocalDate hireDate;
@@ -64,6 +76,10 @@ public class Staff extends BaseEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supervisor_id")
+    private Staff supervisor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "portrait_file_id")
@@ -91,6 +107,12 @@ public class Staff extends BaseEntity {
 
     @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<StaffRate> rates = new HashSet<>();
+
+    @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<StaffAddress> staffAddresses = new HashSet<>();
+
+    @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<StaffContact> staffContacts = new HashSet<>();
 
     public Staff(Office office, String firstName, String lastName) {
         this.office = office;

@@ -1,6 +1,7 @@
 package com.example.backend.repository;
 
 import com.example.backend.model.dto.StaffSummaryDTO;
+import com.example.backend.model.dto.StaffHeaderDTO;
 import com.example.backend.model.entity.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public interface StaffRepository extends JpaRepository<Staff, UUID> {
     List<Staff> findByIsActiveTrueAndDeletedAtIsNull();
     Optional<Staff> findById(UUID id);
+    Optional<Staff> findBySsn(String ssn);
 
     @Query(
         value = """
@@ -27,7 +29,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                 s.last_name,
                 CASE WHEN s.is_active = true THEN 'ACTIVE' ELSE 'INACTIVE' END as status,
                 s.employee_id,
-                r.code as position,
+                r.name as position,
                 s.hire_date,
                 s.release_date,
                 s.updated_at
@@ -42,6 +44,8 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                 )
                 AND (COALESCE(:statusFilter, '') = '' OR 
                      CASE WHEN s.is_active = true THEN 'ACTIVE' ELSE 'INACTIVE' END = ANY(string_to_array(:statusFilter, ',')))
+                AND (COALESCE(:roleFilter, '') = '' OR 
+                     r.name = ANY(string_to_array(:roleFilter, ',')))
             ORDER BY
                 CASE WHEN COALESCE(:sortColumn, '') != '' AND :sortDirection = 'asc' THEN
                     CASE :sortColumn
@@ -49,7 +53,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                         WHEN 'firstName' THEN s.first_name
                         WHEN 'lastName' THEN s.last_name
                         WHEN 'employeeId' THEN s.employee_id
-                        WHEN 'position' THEN r.code
+                        WHEN 'position' THEN r.name
                         WHEN 'hireDate' THEN s.hire_date::text
                         WHEN 'releaseDate' THEN s.release_date::text
                         WHEN 'updatedAt' THEN s.updated_at::text
@@ -62,7 +66,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                         WHEN 'firstName' THEN s.first_name
                         WHEN 'lastName' THEN s.last_name
                         WHEN 'employeeId' THEN s.employee_id
-                        WHEN 'position' THEN r.code
+                        WHEN 'position' THEN r.name
                         WHEN 'hireDate' THEN s.hire_date::text
                         WHEN 'releaseDate' THEN s.release_date::text
                         WHEN 'updatedAt' THEN s.updated_at::text
@@ -80,6 +84,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
     List<StaffSummaryDTO> findStaffSummariesList(
         @Param("search") String search,
         @Param("statusFilter") String statusFilter,
+        @Param("roleFilter") String roleFilter,
         @Param("sortColumn") String sortColumn,
         @Param("sortDirection") String sortDirection,
         @Param("limit") int limit,
@@ -100,11 +105,51 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
                 )
                 AND (COALESCE(:statusFilter, '') = '' OR 
                      CASE WHEN s.is_active = true THEN 'ACTIVE' ELSE 'INACTIVE' END = ANY(string_to_array(:statusFilter, ',')))
+                AND (COALESCE(:roleFilter, '') = '' OR 
+                     r.name = ANY(string_to_array(:roleFilter, ',')))
             """,
         nativeQuery = true
     )
     long countStaffSummaries(
         @Param("search") String search,
-        @Param("statusFilter") String statusFilter
+        @Param("statusFilter") String statusFilter,
+        @Param("roleFilter") String roleFilter
     );
+
+    /**
+     * Get staff header information by staff ID
+     */
+    @Query("""
+        SELECT new com.example.backend.model.dto.StaffHeaderDTO(
+            s.id,
+            s.firstName,
+            s.lastName,
+            s.employeeId,
+            COALESCE(mainSa.phone, ''),
+            COALESCE(mainSa.email, ''),
+            COALESCE(primaryContact.name, '')
+        )
+        FROM Staff s
+        LEFT JOIN s.staffAddresses mainSa ON mainSa.isMain = true
+        LEFT JOIN s.staffContacts primaryContact ON primaryContact.isPrimary = true
+        WHERE s.id = :staffId
+          AND s.deletedAt IS NULL
+        """)
+    StaffHeaderDTO findStaffHeaderById(@Param("staffId") UUID staffId);
+
+    /**
+     * Get staff personal information by staff ID with contacts and addresses
+     */
+    @Query("""
+        SELECT s
+        FROM Staff s
+        LEFT JOIN FETCH s.staffContacts
+        LEFT JOIN FETCH s.staffAddresses sa
+        LEFT JOIN FETCH sa.address
+        LEFT JOIN FETCH s.user u
+        LEFT JOIN FETCH u.role
+        WHERE s.id = :staffId
+          AND s.deletedAt IS NULL
+        """)
+    Staff findStaffPersonalById(@Param("staffId") UUID staffId);
 }

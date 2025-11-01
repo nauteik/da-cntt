@@ -165,6 +165,8 @@ export const contactSchema = z.object({
     .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX)),
   phone: phoneSchema,
   email: emailOptionalSchema,
+  line1: z.string().max(255).optional(),
+  line2: z.string().max(255).optional(),
   isPrimary: z.boolean(),
 });
 

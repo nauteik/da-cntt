@@ -21,20 +21,27 @@ import type { ColumnsType, SorterResult } from "antd/es/table/interface";
 import type { FilterValue } from "antd/es/table/interface";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useEmployees } from "@/hooks/useEmployees";
+import CreateStaffForm from "@/components/employees/CreateStaffForm";
 import type {
   PaginatedStaff,
   StaffStatus,
   StaffSummary,
 } from "@/types/staff";
+import type { OfficeDTO } from "@/types/office";
+import type { RoleDTO } from "@/types/role";
 import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 
 interface EmployeesClientProps {
   initialData: PaginatedStaff;
+  offices: OfficeDTO[];
+  roles: RoleDTO[];
 }
 
 export default function EmployeesClient({
   initialData,
+  offices,
+  roles,
 }: EmployeesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,9 +54,13 @@ export default function EmployeesClient({
   const sortDir = (searchParams.get("sortDir") as "asc" | "desc") || "asc";
   const searchText = searchParams.get("search") || "";
   const statusFilter = searchParams.getAll("status") as StaffStatus[];
+  const roleFilter = searchParams.getAll("role") as string[];
 
   // Local state for search input (for immediate UI feedback)
   const [searchInput, setSearchInput] = React.useState(searchText);
+  
+  // State for create modal
+  const [createModalOpen, setCreateModalOpen] = React.useState(false);
 
   // Debounce search input to prevent excessive API calls (500ms delay)
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -76,7 +87,7 @@ export default function EmployeesClient({
 
   // Use React Query with URL-derived state
   // Convert 1-based URL page to 0-based backend page
-  const { data, isLoading, error } = useEmployees(
+  const { data, isLoading, error, refetch } = useEmployees(
     {
       page: currentPage - 1, // Backend uses 0-based indexing
       size: pageSize,
@@ -84,6 +95,7 @@ export default function EmployeesClient({
       sortDir,
       search: searchText, // Use URL search param for API call
       status: statusFilter.length > 0 ? statusFilter : undefined,
+      role: roleFilter.length > 0 ? roleFilter : undefined,
     },
     {
       initialData, // Use server-rendered data as initial data
@@ -91,6 +103,11 @@ export default function EmployeesClient({
       // React Query will use cached data automatically if it's still fresh (within staleTime)
     }
   );
+
+  // Handle create success
+  const handleCreateSuccess = () => {
+    refetch(); // Refetch the employee list
+  };
 
   // Define table columns
   const columns: ColumnsType<StaffSummary> = [
@@ -171,6 +188,11 @@ export default function EmployeesClient({
             ? "ascend"
             : "descend"
           : undefined,
+      filters: roles.map((role) => ({
+        text: role.name,
+        value: role.name,
+      })),
+      filteredValue: roleFilter.length > 0 ? roleFilter : null,
       render: (position: string) => position || "—",
     },
     {
@@ -204,7 +226,7 @@ export default function EmployeesClient({
         date ? new Date(date).toLocaleDateString() : "—",
     },
     {
-      title: "UPDATED AT",
+      title: "UPDATE AS OF",
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 130,
@@ -287,6 +309,28 @@ export default function EmployeesClient({
       shouldUpdate = true;
     }
 
+    // Handle role filter changes
+    const currentRoleFilters = searchParams.getAll("role");
+    const newRoleFilters = filters.position ? (filters.position as string[]) : [];
+
+    // Compare current and new role filters
+    const roleChanged =
+      currentRoleFilters.length !== newRoleFilters.length ||
+      !currentRoleFilters.every((r) => newRoleFilters.includes(r));
+
+    if (roleChanged) {
+      // Remove all existing role parameters
+      params.delete("role");
+
+      // Add new role filters
+      if (newRoleFilters.length > 0) {
+        newRoleFilters.forEach((role) => params.append("role", role));
+      }
+
+      params.set("page", "1"); // Reset to first page on filter change (1-based)
+      shouldUpdate = true;
+    }
+
     // Only navigate if something actually changed
     if (shouldUpdate) {
       router.push(`/employees?${params.toString()}`, { scroll: false });
@@ -301,10 +345,7 @@ export default function EmployeesClient({
             type="primary"
             icon={<PlusOutlined />}
             className={buttonStyles.btnPrimary}
-            onClick={() => {
-              // TODO: Implement create employee modal
-              console.log("Create employee clicked");
-            }}
+            onClick={() => setCreateModalOpen(true)}
           >
             CREATE EMPLOYEE
           </Button>
@@ -365,42 +406,14 @@ export default function EmployeesClient({
         />
       </Card>
 
-      {error && (
-        <Card className="mt-4 border-l-4 border-l-red-500 bg-red-50 dark:bg-red-900/10">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="w-5 h-5 text-red-600 dark:text-red-400"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
-                Error Loading Employees
-              </h3>
-              <p className="mt-1 text-sm text-red-700 dark:text-red-400">
-                {error.message === "Không thể kết nối đến máy chủ" ||
-                error.status === 503
-                  ? "Cannot connect to the server. Please ensure the backend is running."
-                  : error.message}
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-3 px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </Card>
-      )}
+      {/* Create Staff Modal */}
+      <CreateStaffForm
+        open={createModalOpen}
+        onCancel={() => setCreateModalOpen(false)}
+        offices={offices}
+        roles={roles}
+        onCreateSuccess={handleCreateSuccess}
+      />
     </div>
   );
 }

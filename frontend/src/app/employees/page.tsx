@@ -6,6 +6,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { apiClient } from "@/lib/apiClient";
 import type { ApiResponse } from "@/types/api";
 import type { PaginatedStaff } from "@/types/staff";
+import type { OfficeDTO } from "@/types/office";
+import type { RoleDTO } from "@/types/role";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import ErrorFallback from "@/components/common/ErrorFallback";
 
@@ -16,6 +18,7 @@ interface SearchParams {
   sortDir?: string;
   search?: string;
   status?: string | string[];
+  role?: string | string[];
 }
 
 interface EmployeesPageProps {
@@ -61,6 +64,16 @@ async function getInitialEmployees(
       );
     }
 
+    // Add role parameters if present (can have multiple)
+    if (searchParams.role) {
+      const roles = Array.isArray(searchParams.role)
+        ? searchParams.role
+        : [searchParams.role];
+      roles.forEach((role: string) =>
+        queryParams.append("role", role)
+      );
+    }
+
     const endpoint = `/staff?${queryParams.toString()}`;
 
     const response: ApiResponse<PaginatedStaff> =
@@ -76,6 +89,43 @@ async function getInitialEmployees(
   }
 }
 
+// Fetch active offices for the create staff modal
+async function getActiveOffices(): Promise<OfficeDTO[]> {
+  try {
+    // Use direct backend call since we removed BFF for office/active
+    const response: ApiResponse<OfficeDTO[]> = await apiClient<OfficeDTO[]>("/office/active");
+
+    if (!response.success || !response.data) {
+      console.error("Failed to fetch offices:", response.message);
+      return [];
+    }
+
+    console.log("Successfully fetched offices:", response.data.length);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching offices:", error);
+    return [];
+  }
+}
+
+// Fetch active roles for the create staff modal
+async function getActiveRoles(): Promise<RoleDTO[]> {
+  try {
+    const response: ApiResponse<RoleDTO[]> = await apiClient<RoleDTO[]>("/role/active");
+
+    if (!response.success || !response.data) {
+      console.error("Failed to fetch roles:", response.message);
+      return [];
+    }
+
+    console.log("Successfully fetched roles:", response.data.length);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching roles:", error);
+    return [];
+  }
+}
+
 // Server Component (default)
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
   // Force dynamic rendering to access request headers (cookies)
@@ -85,8 +135,12 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   // Await searchParams (Next.js 15+ requirement)
   const resolvedSearchParams = await searchParams;
 
-  // Fetch employees data
-  const employeesResult = await getInitialEmployees(resolvedSearchParams);
+  // Fetch employees, offices, and roles in parallel
+  const [employeesResult, offices, roles] = await Promise.all([
+    getInitialEmployees(resolvedSearchParams),
+    getActiveOffices(),
+    getActiveRoles(),
+  ]);
 
   // If backend is down or data fetch failed, show error UI instead of crashing
   if (!employeesResult.data) {
@@ -104,7 +158,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     <ProtectedRoute>
       <AdminLayout>
         <Suspense fallback={<LoadingFallback message="Loading employees..." />}>
-          <EmployeesClient initialData={initialData} />
+          <EmployeesClient initialData={initialData} offices={offices} roles={roles} />
         </Suspense>
       </AdminLayout>
     </ProtectedRoute>

@@ -27,9 +27,9 @@ public interface PatientContactRepository extends JpaRepository<PatientContact, 
     @Transactional
     @Query(value = """
         INSERT INTO patient_contact (
-            id, patient_id, name, relation, phone, email, address_id, is_primary, created_at, updated_at
+            id, patient_id, name, relation, phone, email, line1, line2, is_primary, created_at, updated_at
         ) VALUES (
-            :id, :patientId, :name, :relation, :phone, :email, :addressId, :isPrimary, NOW(), NOW()
+            :id, :patientId, :name, :relation, :phone, :email, :line1, :line2, :isPrimary, NOW(), NOW()
         )
         """, nativeQuery = true)
     void bulkInsertPatientContact(
@@ -39,7 +39,8 @@ public interface PatientContactRepository extends JpaRepository<PatientContact, 
         @Param("relation") String relation,
         @Param("phone") String phone,
         @Param("email") String email,
-        @Param("addressId") UUID addressId,
+        @Param("line1") String line1,
+        @Param("line2") String line2,
         @Param("isPrimary") boolean isPrimary
     );
 }

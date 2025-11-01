@@ -42,4 +42,63 @@ export interface StaffQueryParams {
   sortDir?: "asc" | "desc";
   search?: string;
   status?: StaffStatus[];
+  role?: string[];
+}
+
+export interface StaffHeaderDTO {
+  id: string;
+  staffName: string;
+  employeeId: string;
+  phoneNo: string;
+  email: string;
+  mainEmergencyContact: string;
+}
+
+export interface StaffContactDTO {
+  id: string;
+  relation: string;
+  name: string;
+  phone: string;
+  email: string;
+  line1: string;
+  line2: string;
+  isPrimary: boolean;
+}
+
+export interface StaffAddressDTO {
+  id: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  county: string;
+  phone: string;
+  email: string;
+  type: string;
+  label: string;
+  isMain: boolean;
+}
+
+export interface StaffPersonalDTO {
+  id: string;
+  ssn: string;
+  status: string;
+  effectiveDate: string;
+  employeeId: string;
+  position: string;
+  hireDate: string;
+  supervisor: string;
+  supervisorId: string;
+  officeName: string;
+  officeId: string;
+  nationalProviderId: string;
+  firstName: string;
+  lastName: string;
+  dob: string;
+  primaryLanguage: string;
+  gender: string;
+  isSupervisor: boolean;
+  contacts: StaffContactDTO[];
+  addresses: StaffAddressDTO[];
 }

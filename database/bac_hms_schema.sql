@@ -197,11 +197,15 @@ CREATE TABLE staff (
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
     user_id uuid UNIQUE REFERENCES app_user(id) ON DELETE SET NULL,
     employee_id text UNIQUE,
+    ssn text UNIQUE,
     first_name text NOT NULL,
     last_name text NOT NULL,
     is_supervisor boolean NOT NULL DEFAULT false,
+    supervisor_id uuid REFERENCES staff(id) ON DELETE SET NULL,
+    national_provider_id text UNIQUE,
     dob date,
     gender text,
+    primary_language text,
     hire_date date,
     release_date date,
     is_active boolean NOT NULL DEFAULT true,
@@ -210,10 +214,11 @@ CREATE TABLE staff (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz
-);
+);      
 
 CREATE INDEX idx_staff_office ON staff (office_id);
 CREATE INDEX idx_staff_deleted_at ON staff (deleted_at);
+CREATE INDEX idx_staff_supervisor ON staff (supervisor_id);
 
 CREATE TABLE staff_address (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -227,6 +232,24 @@ CREATE TABLE staff_address (
     CONSTRAINT staff_address_unique UNIQUE (staff_id, address_id),
     CONSTRAINT chk_address_or_phone CHECK (address_id IS NOT NULL OR phone IS NOT NULL)
 );
+
+CREATE TABLE staff_contact (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+    relation text NOT NULL,
+    name text NOT NULL,
+    phone text,
+    email text,
+    line1 text,
+    line2 text,
+    is_primary boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT chk_staff_contact_info CHECK (phone IS NOT NULL OR line1 IS NOT NULL)
+);
+
+CREATE INDEX idx_staff_contact_staff ON staff_contact (staff_id);
+CREATE UNIQUE INDEX idx_staff_contact_unique_primary ON staff_contact (staff_id) WHERE is_primary;
 
 CREATE TABLE staff_document (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -365,11 +388,12 @@ CREATE TABLE patient_contact (
     name text NOT NULL,
     phone text,
     email text,
-    address_id uuid REFERENCES address(id) ON DELETE SET NULL,
+    line1 text,
+    line2 text,
     is_primary boolean NOT NULL DEFAULT false,
-    last_verified_at date,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT chk_contact_info CHECK (phone IS NOT NULL OR line1 IS NOT NULL)
 );
 
 CREATE INDEX idx_patient_contact_patient ON patient_contact (patient_id);

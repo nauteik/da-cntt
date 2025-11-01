@@ -7,8 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.time.LocalDate;
-
 /**
  * Patient contact entity for guardian/emergency contact info
  */
@@ -17,7 +15,7 @@ import java.time.LocalDate;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"patient", "address"})
+@ToString(exclude = {"patient"})
 public class PatientContact extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -37,15 +35,14 @@ public class PatientContact extends BaseEntity {
     @Column(name = "email")
     private String email;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "address_id")
-    private Address address;
+    @Column(name = "line1")
+    private String line1;
+
+    @Column(name = "line2")
+    private String line2;
 
     @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = false;
-
-    @Column(name = "last_verified_at")
-    private LocalDate lastVerifiedAt;
 
     public PatientContact(Patient patient, String relation, String name) {
         this.patient = patient;
@@ -56,15 +53,6 @@ public class PatientContact extends BaseEntity {
     // Helper methods
     public boolean isPrimaryContact() {
         return Boolean.TRUE.equals(isPrimary);
-    }
-
-    public boolean needsVerification(int monthsThreshold) {
-        if (lastVerifiedAt == null) return true;
-        return lastVerifiedAt.isBefore(LocalDate.now().minusMonths(monthsThreshold));
-    }
-
-    public void markAsVerified() {
-        this.lastVerifiedAt = LocalDate.now();
     }
 }
 

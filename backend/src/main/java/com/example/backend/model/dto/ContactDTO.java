@@ -11,6 +11,8 @@ public class ContactDTO {
     private String name;
     private String phone;
     private String email;
+    private String line1;
+    private String line2;
     
     @JsonProperty("isPrimary")
     private boolean isPrimary;
