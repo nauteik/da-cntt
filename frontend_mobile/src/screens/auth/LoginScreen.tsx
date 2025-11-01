@@ -12,31 +12,53 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { AuthService } from '../../services/api/authService';
+import { useAuth } from '../../store/authStore';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both username and password');
+      Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // For demo purposes, accept any username/password
-      if (username && password) {
+    try {
+      // Call real backend API
+      const response = await AuthService.login({
+        username: username.trim(),
+        password: password.trim(),
+        email: username.trim(), // Support email field
+      });
+
+      if (response.success && response.data) {
+        // Store user info in auth store
+        login(response.data);
+        
+        // Navigate to main app
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Error', 'Invalid credentials');
+        Alert.alert('Login Failed', response.error || 'Invalid credentials');
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert('Error', 'An error occurred during login. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Quick login for testing (DSP user from UserDataLoader)
+  const handleQuickLoginDSP = () => {
+    setUsername('dsp1@blueangelscare.com');
+    setPassword('password123');
   };
 
   return (
@@ -100,6 +122,16 @@ export default function LoginScreen() {
             <Text style={styles.loginButtonText}>
               {isLoading ? 'Signing In...' : 'Sign In'}
             </Text>
+          </TouchableOpacity>
+
+          {/* Quick Login button for testing */}
+          <TouchableOpacity
+            style={styles.quickLoginButton}
+            onPress={handleQuickLoginDSP}
+            disabled={isLoading}
+          >
+            <Ionicons name="flash" size={16} color="#FF9800" style={{ marginRight: 8 }} />
+            <Text style={styles.quickLoginButtonText}>Quick Login (DSP Test)</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.forgotPassword}>
@@ -214,6 +246,23 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  quickLoginButton: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    height: 44,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FFB74D',
+  },
+  quickLoginButtonText: {
+    color: '#FF9800',
+    fontSize: 14,
     fontWeight: '600',
   },
   forgotPassword: {

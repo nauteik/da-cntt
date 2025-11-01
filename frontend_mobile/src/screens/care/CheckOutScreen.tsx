@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -11,6 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
 
 interface LocationData {
   latitude: number;
@@ -19,28 +20,23 @@ interface LocationData {
   timestamp: string;
 }
 
-interface CheckOutData {
-  checkInTime: string;
-  checkInLocation: LocationData;
-  notes: string;
-  totalHours: number;
-}
-
 export default function CheckOutScreen() {
+  const params = useLocalSearchParams();
+  const scheduleId = params.scheduleId as string;
+  const patientId = params.patientId as string;
+  const patientName = params.patientName as string;
+  const checkInTime = params.checkInTime as string;
+  const checkInLocationStr = params.checkInLocation as string;
+  const visitId = params.visitId as string; // For unscheduled visits
+  
   const [isLoading, setIsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [additionalNotes, setAdditionalNotes] = useState('');
-  const [checkInData] = useState<CheckOutData>({
-    checkInTime: '2024-10-10T09:00:00Z', // Would come from navigation params
-    checkInLocation: {
-      latitude: 10.762622,
-      longitude: 106.660172,
-      address: '123 Main St, Ho Chi Minh City',
-      timestamp: '2024-10-10T09:00:00Z'
-    },
-    notes: 'Daily care visit for patient John Doe',
-    totalHours: 0
-  });
+  
+  const checkInLocation = checkInLocationStr ? JSON.parse(checkInLocationStr) : null;
+  const mockPatientId = patientId || 'PT001';
+  const mockPatientName = patientName || 'John Doe';
+  const mockCheckInTime = checkInTime || new Date().toISOString();
 
   useEffect(() => {
     getCurrentLocation();
@@ -84,48 +80,82 @@ export default function CheckOutScreen() {
   };
 
   const calculateHours = () => {
-    const checkInTime = new Date(checkInData.checkInTime);
-    const checkOutTime = new Date();
-    const diffInMs = checkOutTime.getTime() - checkInTime.getTime();
+    const checkIn = new Date(mockCheckInTime);
+    const checkOut = new Date();
+    const diffInMs = checkOut.getTime() - checkIn.getTime();
     const diffInHours = diffInMs / (1000 * 60 * 60);
     return Math.round(diffInHours * 10) / 10; // Round to 1 decimal place
   };
 
   const handleCheckOut = async () => {
     if (!currentLocation) {
-      Alert.alert('Error', 'Location not available. Please try again.');
+      Alert.alert(
+        '📍 Location Required',
+        'Location not available. Please enable GPS and try again.',
+        [{ text: 'OK', style: 'default' }]
+      );
       return;
     }
 
     try {
       setIsLoading(true);
       
+      const totalHours = calculateHours();
       const checkOutData = {
-        checkInTime: checkInData.checkInTime,
+        scheduleId: scheduleId,
+        checkInTime: mockCheckInTime,
         checkOutTime: currentLocation.timestamp,
-        checkInLocation: checkInData.checkInLocation,
+        checkInLocation: checkInLocation,
         checkOutLocation: currentLocation,
-        totalHours: calculateHours(),
+        totalHours,
         additionalNotes: additionalNotes.trim(),
+        patientId: mockPatientId,
+        patientName: mockPatientName,
         careCompleted: true,
       };
 
       console.log('Check-out data:', checkOutData);
       
+      // Update visit status if this is an unscheduled visit
+      if (visitId) {
+        // Get current visit to check if daily note is completed
+        const visitResponse = await UnscheduledVisitService.getById(visitId);
+        const isDailyNoteCompleted = visitResponse.data?.dailyNoteCompleted || false;
+        
+        const updates: any = {
+          checkedOut: true,
+          checkOutTime: currentLocation.timestamp,
+        };
+        
+        // Only mark as completed if daily note is also done
+        if (isDailyNoteCompleted) {
+          updates.status = 'completed';
+        }
+        
+        await UnscheduledVisitService.update(visitId, updates);
+      }
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       Alert.alert(
-        'Check-out Successful',
-        `You have successfully checked out after ${checkOutData.totalHours} hours of care.`,
+        '✅ Check-Out Successful',
+        `You have successfully checked out.\n\nPatient: ${mockPatientName}\nTotal Hours: ${totalHours.toFixed(1)}h\nLocation: ${currentLocation.address}`,
         [
           {
-            text: 'OK',
-            onPress: () => router.push('/(tabs)')
-          }
+            text: 'Back to List',
+            onPress: () => router.back(),
+          },
         ]
       );
       
     } catch (error) {
       console.error('Error during check-out:', error);
-      Alert.alert('Error', 'Failed to check out. Please try again.');
+      Alert.alert(
+        '❌ Check-Out Failed',
+        'Failed to check out. Please try again.',
+        [{ text: 'OK', style: 'cancel' }]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -155,13 +185,18 @@ export default function CheckOutScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Check-in Time:</Text>
             <Text style={styles.summaryValue}>
-              {new Date(checkInData.checkInTime).toLocaleString()}
+              {new Date(mockCheckInTime).toLocaleString()}
             </Text>
           </View>
           
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Check-in Location:</Text>
-            <Text style={styles.summaryValue}>{checkInData.checkInLocation.address}</Text>
+            <Text style={styles.summaryValue}>{checkInLocation?.address || 'Location not available'}</Text>
+          </View>
+          
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Patient:</Text>
+            <Text style={styles.summaryValue}>{mockPatientName}</Text>
           </View>
           
           <View style={styles.summaryRow}>

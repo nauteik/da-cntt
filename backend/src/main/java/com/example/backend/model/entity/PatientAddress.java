@@ -1,7 +1,14 @@
 package com.example.backend.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -35,10 +42,29 @@ public class PatientAddress extends BaseEntity {
     @Column(name = "is_main", nullable = false)
     private Boolean isMain = false;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Column(name = "location_notes")
+    private String locationNotes; // Ghi chú về vị trí (ví dụ: tầng, căn hộ, etc.)
+
     public PatientAddress(Patient patient, Address address, String phone, String email) {
         this.patient = patient;
         this.address = address;
         this.phone = phone;
         this.email = email;
+    }
+
+    public PatientAddress(Patient patient, Address address, String phone, String email, 
+                         Double latitude, Double longitude) {
+        this.patient = patient;
+        this.address = address;
+        this.phone = phone;
+        this.email = email;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 }

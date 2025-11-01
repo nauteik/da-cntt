@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
 
 interface LocationData {
   latitude: number;
@@ -51,6 +52,12 @@ interface DailyNoteForm {
 }
 
 export default function DailyNoteScreen() {
+  const params = useLocalSearchParams();
+  const visitId = params.visitId as string;
+  const patientId = params.patientId as string;
+  const patientName = params.patientName as string;
+  const checkInTime = params.checkInTime as string;
+  
   const [form, setForm] = useState<DailyNoteForm>({
     employeeName: '',
     employeeId: '',
@@ -71,19 +78,17 @@ export default function DailyNoteScreen() {
 
   // Check if user has checked in (would normally come from navigation params or global state)
   useEffect(() => {
-    // Simulate check-in data from navigation params
-    const checkInData = null; // router.params?.checkInData
-    if (checkInData) {
-      const parsedData = JSON.parse(checkInData);
+    // Get data from navigation params
+    if (patientId && patientName) {
       setForm(prev => ({
         ...prev,
+        patientId: patientId,
+        patientName: patientName,
         isCheckedIn: true,
-        checkInTime: new Date(parsedData.timestamp).toLocaleTimeString(),
-        checkInLocation: parsedData.location,
-        careLocation: parsedData.location.address || '',
+        checkInTime: checkInTime ? new Date(checkInTime).toLocaleTimeString() : '',
       }));
     }
-  }, []);
+  }, [patientId, patientName, checkInTime]);
 
   // Calculate if user should see checkout reminder (after 30 minutes)
   const shouldShowCheckoutReminder = () => {
@@ -140,33 +145,46 @@ export default function DailyNoteScreen() {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Basic validation
     if (!form.employeeName || !form.patientName || !form.careContent) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
     
-    // Show success message with checkout reminder
+    // Update visit status if this is from unscheduled visit
+    if (visitId) {
+      try {
+        // Get current visit to check if checkout is done
+        const visitResponse = await UnscheduledVisitService.getById(visitId);
+        const isCheckedOut = visitResponse.data?.checkedOut || false;
+        
+        const updates: any = {
+          dailyNoteCompleted: true,
+        };
+        
+        // Only mark as completed if checkout is also done
+        if (isCheckedOut) {
+          updates.status = 'completed';
+        }
+        
+        await UnscheduledVisitService.update(visitId, updates);
+      } catch (error) {
+        console.error('Error updating visit:', error);
+      }
+    }
+    
+    // Show success message
     Alert.alert(
-      'Daily Note Saved! 📝',
-      'Your daily care note has been saved successfully.\n\n⏰ Don\'t forget to check out when you complete your care visit!',
+      '✅ Daily Note Saved!',
+      'Your daily care note has been saved successfully.',
       [
         { 
-          text: 'OK', 
-          style: 'default' 
+          text: 'Back to List', 
+          onPress: () => router.back(),
         },
-        {
-          text: 'Check Out Now',
-          style: 'default',
-          onPress: () => {
-            // Navigate to check-out screen
-            router.push('/check-out');
-          }
-        }
       ]
     );
-    // Here you would typically send the data to your backend
   };
 
   const handleClear = () => {
@@ -182,10 +200,10 @@ export default function DailyNoteScreen() {
             setForm({
               employeeName: '',
               employeeId: '',
-              patientName: '',
-              patientId: '',
+              patientName: patientName || '',
+              patientId: patientId || '',
               careLocation: '',
-              checkInTime: '',
+              checkInTime: checkInTime ? new Date(checkInTime).toLocaleTimeString() : '',
               checkOutTime: '',
               careContent: '',
               breakfast: { time: '', whatHad: '', whatOffered: '' },
@@ -194,11 +212,50 @@ export default function DailyNoteScreen() {
               employeeSignature: '',
               patientSignature: '',
               checkInLocation: undefined,
-              isCheckedIn: false,
+              isCheckedIn: true,
             });
           },
         },
       ]
+    );
+  };
+
+  const handleAutoFill = () => {
+    const now = new Date();
+    setForm({
+      employeeName: 'John Smith',
+      employeeId: 'EMP001',
+      patientName: patientName || 'Jane Doe',
+      patientId: patientId || 'PT001',
+      careLocation: '123 Care Street, Medical City',
+      checkInTime: checkInTime ? new Date(checkInTime).toLocaleTimeString() : '8:00 AM',
+      checkOutTime: now.toLocaleTimeString(),
+      careContent: 'Provided comprehensive care including:\n- Assisted with morning routine and personal hygiene\n- Administered prescribed medications on schedule\n- Accompanied patient to physical therapy session\n- Prepared and assisted with meals\n- Monitored vital signs (BP: 120/80, Temp: 98.6°F)\n- Engaged in conversation and recreational activities\n- Ensured safe environment and fall prevention',
+      breakfast: {
+        time: '8:30 AM',
+        whatHad: 'Oatmeal with fresh berries, whole wheat toast with butter, orange juice. Patient consumed approximately 90% of meal.',
+        whatOffered: 'Offered oatmeal, toast, eggs, fresh fruit, coffee, tea, and juice. Patient chose oatmeal and toast.',
+      },
+      lunch: {
+        time: '12:30 PM',
+        whatHad: 'Grilled chicken breast, steamed vegetables (broccoli, carrots), brown rice, water. Patient consumed full meal.',
+        whatOffered: 'Offered chicken, fish, or vegetarian option with choice of vegetables, rice or potatoes, and beverages.',
+      },
+      dinner: {
+        time: '6:00 PM',
+        whatHad: 'Baked salmon, mixed green salad with vinaigrette, sweet potato, herbal tea. Patient consumed approximately 85% of meal.',
+        whatOffered: 'Offered salmon, turkey, or pasta with salad, choice of sides, and various beverages.',
+      },
+      employeeSignature: 'John Smith',
+      patientSignature: patientName || 'Jane Doe',
+      checkInLocation: undefined,
+      isCheckedIn: true,
+    });
+    
+    Alert.alert(
+      '✨ Auto Fill Complete',
+      'Sample data has been filled in all fields. You can now review and modify as needed.',
+      [{ text: 'OK' }]
     );
   };
 
@@ -247,63 +304,20 @@ export default function DailyNoteScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Daily Care Note</Text>
-        <Text style={styles.headerDate}>{new Date().toLocaleDateString()}</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Daily Care Note</Text>
+          <Text style={styles.headerDate}>{new Date().toLocaleDateString()}</Text>
+        </View>
+        <TouchableOpacity style={styles.autoFillButton} onPress={handleAutoFill}>
+          <Ionicons name="sparkles" size={20} color="white" />
+          <Text style={styles.autoFillButtonText}>Auto Fill</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Check-in Status */}
-      {!form.isCheckedIn ? (
-        <View style={styles.checkInRequired}>
-          <Ionicons name="location-outline" size={32} color="#ff9800" />
-          <Text style={styles.checkInTitle}>Check-in Required</Text>
-          <Text style={styles.checkInText}>
-            You must check in at the care location before creating a daily note.
-          </Text>
-          <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
-            <Ionicons name="location" size={20} color="white" />
-            <Text style={styles.checkInButtonText}>Check In Now</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          {/* Check-in Status Card */}
-          <View style={styles.statusCard}>
-            <View style={styles.statusHeader}>
-              <View style={styles.statusBadge}>
-                <Ionicons name="checkmark-circle" size={16} color="#4caf50" />
-                <Text style={styles.statusText}>Checked In</Text>
-              </View>
-              <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
-                <Ionicons name="log-out-outline" size={16} color="#f44336" />
-                <Text style={styles.checkOutButtonText}>Check Out</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.locationText}>
-              📍 {form.checkInLocation?.address || form.careLocation}
-            </Text>
-            <Text style={styles.timeText}>
-              ⏰ Checked in at {form.checkInTime}
-            </Text>
-          </View>
-
-          {/* Checkout Reminder Card */}
-          {shouldShowCheckoutReminder() && (
-            <View style={styles.reminderCard}>
-              <View style={styles.reminderHeader}>
-                <Ionicons name="time-outline" size={20} color="#ff9800" />
-                <Text style={styles.reminderTitle}>Remember to Check Out</Text>
-              </View>
-              <Text style={styles.reminderText}>
-                Don't forget to check out when you complete your care visit to record your time and location.
-              </Text>
-              <TouchableOpacity style={styles.reminderButton} onPress={handleCheckOut}>
-                <Ionicons name="log-out" size={16} color="white" />
-                <Text style={styles.reminderButtonText}>Check Out Now</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Employee Information */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Employee Information</Text>
@@ -438,9 +452,7 @@ export default function DailyNoteScreen() {
             <Text style={styles.saveButtonText}>Save Note</Text>
           </TouchableOpacity>
         </View>
-          </ScrollView>
-        </>
-      )}
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -454,6 +466,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#2196F3',
     padding: 20,
     paddingTop: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTextContainer: {
+    flex: 1,
+    marginHorizontal: 12,
   },
   headerTitle: {
     fontSize: 24,
@@ -464,6 +486,22 @@ const styles = StyleSheet.create({
   headerDate: {
     fontSize: 16,
     color: '#e3f2fd',
+  },
+  autoFillButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  autoFillButtonText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   scrollView: {
     flex: 1,

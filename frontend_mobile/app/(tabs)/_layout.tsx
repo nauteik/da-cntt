@@ -31,10 +31,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="daily-note"
+        name="unscheduled"
         options={{
-          title: 'Daily Note',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text" color={color} />,
+          title: 'Unscheduled',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus.circle" color={color} />,
         }}
       />
       <Tabs.Screen

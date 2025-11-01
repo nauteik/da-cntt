@@ -1,8 +1,23 @@
+import { Platform } from 'react-native';
 import { ApiResponse } from '../../types';
 
-const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:3000/api'  // Development
-  : 'https://api.blueangelscare.com'; // Production
+// Android emulator uses 10.0.2.2 to access host machine's localhost
+// iOS simulator and physical devices use actual IP address
+const getBaseURL = () => {
+  if (__DEV__) {
+    // Development mode
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:8080/api';  // Android emulator -> host machine
+    } else {
+      return 'http://localhost:8080/api';  // iOS simulator or web
+    }
+  } else {
+    // Production mode
+    return 'https://api.blueangelscare.com';
+  }
+};
+
+const API_BASE_URL = getBaseURL();
 
 interface RequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';

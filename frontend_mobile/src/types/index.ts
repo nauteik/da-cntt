@@ -2,6 +2,23 @@
 export interface LoginCredentials {
   username: string;
   password: string;
+  email?: string; // Support email field for backend
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface UserInfoResponse {
+  userId: string;
+  displayName: string;
+  email: string;
+  roles: string[];
+  expiresAt: string;
+  mfaEnabled: boolean;
+  officeId: string | null;
+  token: string;
 }
 
 export interface User {
@@ -13,6 +30,7 @@ export interface User {
   role: string;
   phone: string;
   token?: string;
+  officeId?: string | null;
 }
 
 // Patient and Schedule Types
@@ -91,6 +109,45 @@ export interface CancelCategory {
   id: string;
   label: string;
   icon: string;
+}
+
+// ============= Unscheduled Visit Types =============
+/**
+ * Request to create an unscheduled/emergency visit
+ * No approval needed - creates schedule immediately
+ */
+export interface UnscheduledVisitRequest {
+  patientId: string; // Patient's medical record ID (required)
+  patientName?: string; // Optional - can be auto-filled by backend
+  location: string; // Visit address
+  reason?: string; // Reason for unscheduled visit
+  requestedBy: string; // Staff ID creating the visit
+  requestedAt?: string; // ISO timestamp
+}
+
+/**
+ * Unscheduled visit entity (created schedule)
+ * Can be checked-in/out immediately like regular schedules
+ */
+export interface UnscheduledVisit {
+  id: string;
+  patientId: string;
+  patientName?: string;
+  location: string;
+  reason?: string;
+  createdBy: string; // Staff who created it
+  createdAt: string;
+  updatedAt: string;
+  // Schedule-related fields
+  scheduleId?: string; // Associated schedule for check-in/out
+  status: 'active' | 'completed' | 'cancelled';
+  // Progress tracking
+  checkedIn?: boolean;
+  checkInTime?: string;
+  checkedOut?: boolean;
+  checkOutTime?: string;
+  dailyNoteCompleted?: boolean;
+  dailyNoteId?: string;
 }
 
 export interface DailyNoteForm {
