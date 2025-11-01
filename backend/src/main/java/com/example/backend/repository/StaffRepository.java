@@ -1,16 +1,17 @@
 package com.example.backend.repository;
 
-import com.example.backend.model.dto.StaffSummaryDTO;
-import com.example.backend.model.dto.StaffHeaderDTO;
-import com.example.backend.model.entity.Staff;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-import java.util.List;
-import java.util.UUID;
+import com.example.backend.model.dto.StaffHeaderDTO;
+import com.example.backend.model.dto.StaffSummaryDTO;
+import com.example.backend.model.entity.Staff;
 
 /**
  * Repository for Staff entity
@@ -152,4 +153,45 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
           AND s.deletedAt IS NULL
         """)
     Staff findStaffPersonalById(@Param("staffId") UUID staffId);
+    
+    /**
+     * Find all staff by office ID
+     */
+    @Query("""
+        SELECT s
+        FROM Staff s
+        LEFT JOIN FETCH s.user u
+        LEFT JOIN FETCH u.role
+        WHERE s.office.id = :officeId
+          AND s.deletedAt IS NULL
+        ORDER BY s.firstName, s.lastName
+        """)
+    List<Staff> findByOfficeId(@Param("officeId") UUID officeId);
+    
+    /**
+     * Find active staff by office ID
+     */
+    @Query("""
+        SELECT s
+        FROM Staff s
+        LEFT JOIN FETCH s.user u
+        LEFT JOIN FETCH u.role
+        WHERE s.office.id = :officeId
+          AND s.isActive = true
+          AND s.deletedAt IS NULL
+        ORDER BY s.firstName, s.lastName
+        """)
+    List<Staff> findActiveByOfficeId(@Param("officeId") UUID officeId);
+    
+    /**
+     * Count total staff by office ID
+     */
+    @Query("SELECT COUNT(s) FROM Staff s WHERE s.office.id = :officeId AND s.deletedAt IS NULL")
+    long countByOfficeId(@Param("officeId") UUID officeId);
+    
+    /**
+     * Count active staff by office ID
+     */
+    @Query("SELECT COUNT(s) FROM Staff s WHERE s.office.id = :officeId AND s.isActive = true AND s.deletedAt IS NULL")
+    long countActiveByOfficeId(@Param("officeId") UUID officeId);
 }

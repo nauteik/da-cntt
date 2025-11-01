@@ -1,8 +1,8 @@
 package com.example.backend.repository;
 
-import com.example.backend.model.dto.PatientHeaderDTO;
-import com.example.backend.model.dto.PatientSummaryDTO;
-import com.example.backend.model.entity.Patient;
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,8 +10,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import com.example.backend.model.dto.PatientHeaderDTO;
+import com.example.backend.model.dto.PatientSummaryDTO;
+import com.example.backend.model.entity.Patient;
 
 @Repository
 public interface PatientRepository extends JpaRepository<Patient, UUID> {
@@ -279,4 +280,26 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
         @Param("status") String status,
         @Param("officeId") UUID officeId
     );
+    
+    /**
+     * Find all patients by office ID
+     */
+    List<Patient> findByOfficeIdAndDeletedAtIsNull(UUID officeId);
+    
+    /**
+     * Find active patients by office ID
+     */
+    @Query("SELECT p FROM Patient p WHERE p.office.id = :officeId AND p.status = 'ACTIVE' AND p.deletedAt IS NULL ORDER BY p.firstName, p.lastName")
+    List<Patient> findActiveByOfficeId(@Param("officeId") UUID officeId);
+    
+    /**
+     * Count total patients by office ID
+     */
+    long countByOfficeIdAndDeletedAtIsNull(UUID officeId);
+    
+    /**
+     * Count active patients by office ID
+     */
+    @Query("SELECT COUNT(p) FROM Patient p WHERE p.office.id = :officeId AND p.status = 'ACTIVE' AND p.deletedAt IS NULL")
+    long countActiveByOfficeId(@Param("officeId") UUID officeId);
 }
