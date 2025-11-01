@@ -11,6 +11,9 @@ import { apiClient } from "@/lib/apiClient";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import { useQuery } from "@tanstack/react-query";
+import type { RoleDTO } from "@/types/role";
+import type { OfficeDTO } from "@/types/office";
+import type { StaffSelectDTO } from "@/types/patient";
 
 interface EditStaffIdentifiersFormProps {
   open: boolean;
@@ -21,9 +24,12 @@ interface EditStaffIdentifiersFormProps {
     employeeId: string;
     nationalProviderId: string;
     isSupervisor: boolean;
+    isActive: boolean;
     position: string;
     supervisorId: string;
     officeId: string;
+    effectiveDate?: string;
+    hireDate?: string;
   };
   onUpdateSuccess?: () => void;
 }
@@ -58,30 +64,30 @@ export default function EditStaffIdentifiersForm({
   >(`/staff/${staffId}/identifiers`, "PATCH");
 
   // Fetch roles for position dropdown
-  const { data: roles = [] } = useQuery({
+  const { data: roles = [] } = useQuery<RoleDTO[]>({
     queryKey: ["roles-active"],
-    queryFn: async () => {
-      const response = await apiClient("/role/active");
+    queryFn: async (): Promise<RoleDTO[]> => {
+      const response = await apiClient<RoleDTO[]>("/role/active");
       return response.data || [];
     },
     enabled: open,
   });
 
   // Fetch active staff for supervisor dropdown
-  const { data: staffList = [] } = useQuery({
+  const { data: staffList = [] } = useQuery<StaffSelectDTO[]>({
     queryKey: ["staff-select"],
-    queryFn: async () => {
-      const response = await apiClient("/staff/select");
+    queryFn: async (): Promise<StaffSelectDTO[]> => {
+      const response = await apiClient<StaffSelectDTO[]>("/staff/select");
       return response.data || [];
     },
     enabled: open,
   });
 
   // Fetch offices for office dropdown
-  const { data: offices = [] } = useQuery({
+  const { data: offices = [] } = useQuery<OfficeDTO[]>({
     queryKey: ["offices-active"],
-    queryFn: async () => {
-      const response = await apiClient("/office/active");
+    queryFn: async (): Promise<OfficeDTO[]> => {
+      const response = await apiClient<OfficeDTO[]>("/office/active");
       return response.data || [];
     },
     enabled: open,
@@ -102,7 +108,21 @@ export default function EditStaffIdentifiersForm({
 
   const onSubmit = async (data: StaffIdentifiersFormData) => {
     try {
-      await updateIdentifiersMutation.mutateAsync(data);
+      // Normalize: required fields must be non-empty strings; optional -> undefined if empty
+      const normalizedData: StaffIdentifiersFormData = {
+        ...data,
+        ssn: data.ssn.trim(),
+        employeeId: data.employeeId.trim(),
+        position: data.position.trim(),
+        hireDate: data.hireDate.trim(),
+        isActive: data.isActive,
+        nationalProviderId: data.nationalProviderId?.trim() || undefined,
+        supervisorId: data.supervisorId?.trim() || undefined,
+        officeId: data.officeId?.trim() || undefined,
+        effectiveDate: data.effectiveDate?.trim() || undefined,
+      };
+      
+      await updateIdentifiersMutation.mutateAsync(normalizedData);
 
       // Show success message
       setShowSuccess(true);
@@ -159,56 +179,112 @@ export default function EditStaffIdentifiersForm({
           className="flex flex-col min-h-[400px]"
         >
           <div className="flex-1 px-8 py-8 bg-theme-surface flex flex-col gap-6">
-            {/* Employee ID */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-theme-primary mb-0">
-                Employee ID
-              </label>
-              <Controller
-                name="employeeId"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    placeholder="Enter employee ID"
-                    status={errors.employeeId ? "error" : ""}
-                    className={formStyles.formInput}
-                  />
+            {/* Row: SSN | Employee ID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* SSN */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  SSN <span className="text-red-500">*</span>
+                </label>
+                <Controller
+                  name="ssn"
+                  control={control}
+                  render={({ field }) => (
+                    <Input.Password
+                      {...field}
+                      placeholder="XXX-XX-XXXX"
+                      status={errors.ssn ? "error" : ""}
+                      className={formStyles.formInput}
+                      visibilityToggle={{
+                        visible: showSSN,
+                        onVisibleChange: setShowSSN,
+                      }}
+                    />
+                  )}
+                />
+                {errors.ssn && (
+                  <span className="text-xs text-red-500 mt-1">
+                    {errors.ssn.message}
+                  </span>
                 )}
-              />
-              {errors.employeeId && (
-                <span className="text-xs text-red-500 mt-1">
-                  {errors.employeeId.message}
-                </span>
-              )}
+              </div>
+
+              {/* Employee ID */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  Employee ID <span className="text-red-500">*</span>
+                </label>
+                <Controller
+                  name="employeeId"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      placeholder="Enter employee ID"
+                      status={errors.employeeId ? "error" : ""}
+                      className={formStyles.formInput}
+                    />
+                  )}
+                />
+                {errors.employeeId && (
+                  <span className="text-xs text-red-500 mt-1">
+                    {errors.employeeId.message}
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* SSN */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-theme-primary mb-0">
-                SSN
-              </label>
-              <Controller
-                name="ssn"
-                control={control}
-                render={({ field }) => (
-                  <Input.Password
-                    {...field}
-                    placeholder="XXX-XX-XXXX"
-                    status={errors.ssn ? "error" : ""}
-                    className={formStyles.formInput}
-                    visibilityToggle={{
-                      visible: showSSN,
-                      onVisibleChange: setShowSSN,
-                    }}
-                  />
+            {/* Dates Row: Effective Date | Hire Date */}
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Effective Date */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  Effective Date
+                </label>
+                <Controller
+                  name="effectiveDate"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="date"
+                      placeholder="YYYY-MM-DD"
+                      status={errors.effectiveDate ? "error" : ""}
+                      className={formStyles.formInput}
+                    />
+                  )}
+                />
+                {errors.effectiveDate && (
+                  <span className="text-xs text-red-500 mt-1">
+                    {errors.effectiveDate.message as string}
+                  </span>
                 )}
-              />
-              {errors.ssn && (
-                <span className="text-xs text-red-500 mt-1">
-                  {errors.ssn.message}
-                </span>
-              )}
+              </div>
+
+              {/* Hire Date */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  Hire Date <span className="text-red-500">*</span>
+                </label>
+                <Controller
+                  name="hireDate"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="date"
+                      placeholder="YYYY-MM-DD"
+                      status={errors.hireDate ? "error" : ""}
+                      className={formStyles.formInput}
+                    />
+                  )}
+                />
+                {errors.hireDate && (
+                  <span className="text-xs text-red-500 mt-1">
+                    {errors.hireDate.message as string}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* National Provider ID */}
@@ -235,61 +311,75 @@ export default function EditStaffIdentifiersForm({
               )}
             </div>
 
-            {/* Is Supervisor Switch */}
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-theme-primary mb-0">
-                Is Supervisor
-              </label>
-              <Controller
-                name="isSupervisor"
-                control={control}
-                render={({ field }) => (
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={field.value}
-                      onChange={field.onChange}
-                      className="form-switch"
+            {/* Row: Position | Office */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Position */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  Position <span className="text-red-500">*</span>
+                </label>
+                <Controller
+                  name="position"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      placeholder="Select position"
+                      status={errors.position ? "error" : ""}
+                      className={formStyles.formSelect}
+                      options={roles.map((role: RoleDTO) => ({
+                        value: role.name,
+                        label: role.name,
+                      }))}
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }
                     />
-                    <span className="text-sm text-theme-secondary">
-                      {field.value ? "Yes" : "No"}
-                    </span>
-                  </div>
+                  )}
+                />
+                {errors.position && (
+                  <span className="text-xs text-red-500 mt-1">
+                    {errors.position.message}
+                  </span>
                 )}
-              />
-            </div>
+              </div>
 
-            {/* Position */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-theme-primary mb-0">
-                Position
-              </label>
-              <Controller
-                name="position"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    placeholder="Select position"
-                    status={errors.position ? "error" : ""}
-                    className={formStyles.formSelect}
-                    options={roles.map((role: any) => ({
-                      value: role.name,
-                      label: role.name,
-                    }))}
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                  />
+              {/* Office */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-theme-primary mb-0">
+                  Office
+                </label>
+                <Controller
+                  name="officeId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      placeholder="Select office"
+                      status={errors.officeId ? "error" : ""}
+                      className={formStyles.formSelect}
+                      options={offices.map((office: OfficeDTO) => ({
+                        value: office.id,
+                        label: office.name,
+                      }))}
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }
+                    />
+                  )}
+                />
+                {errors.officeId && (
+                  <span className="text-xs text-red-500 mt-1">
+                    {errors.officeId.message}
+                  </span>
                 )}
-              />
-              {errors.position && (
-                <span className="text-xs text-red-500 mt-1">
-                  {errors.position.message}
-                </span>
-              )}
+              </div>
             </div>
 
             {/* Supervisor */}
@@ -306,7 +396,7 @@ export default function EditStaffIdentifiersForm({
                     placeholder="Select supervisor"
                     status={errors.supervisorId ? "error" : ""}
                     className={formStyles.formSelect}
-                    options={staffList.map((staff: any) => ({
+                    options={staffList.map((staff: StaffSelectDTO) => ({
                       value: staff.id,
                       label: staff.displayName,
                     }))}
@@ -327,38 +417,47 @@ export default function EditStaffIdentifiersForm({
               )}
             </div>
 
-            {/* Office */}
-            <div className="flex flex-col gap-2">
+            {/* Status (Active) */}
+            <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Office
+                Active
               </label>
               <Controller
-                name="officeId"
+                name="isActive"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    {...field}
-                    placeholder="Select office"
-                    status={errors.officeId ? "error" : ""}
-                    className={formStyles.formSelect}
-                    options={offices.map((office: any) => ({
-                      value: office.id,
-                      label: office.name,
-                    }))}
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                  />
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={field.value}
+                      onChange={field.onChange}
+                      className="form-switch"
+                    />
+                    <span className="text-sm text-theme-secondary">
+                      {field.value ? "Active" : "Inactive"}
+                    </span>
+                  </div>
                 )}
               />
-              {errors.officeId && (
-                <span className="text-xs text-red-500 mt-1">
-                  {errors.officeId.message}
-                </span>
-              )}
+            </div>
+
+            {/* Is Supervisor Switch - last */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-theme-primary mb-0">
+                Is Supervisor
+              </label>
+              <Controller
+                name="isSupervisor"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={field.value}
+                      onChange={field.onChange}
+                      className="form-switch"
+                    />
+                  </div>
+                )}
+              />
             </div>
           </div>
 

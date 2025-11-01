@@ -68,7 +68,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Value("${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}")
+    @Value("${APP_CORS_ALLOWED_ORIGINS}")
     private String allowedOrigins;
 
     @Bean

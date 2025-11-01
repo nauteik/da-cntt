@@ -40,8 +40,7 @@ const createStaffSchema = z.object({
     .string()
     .max(50, "National Provider ID must not exceed 50 characters")
     .optional(),
-  email: z
-    .string()
+  email: z.string()
     .min(1, "Email is required")
     .email("Invalid email format")
     .max(255, "Email must not exceed 255 characters"),

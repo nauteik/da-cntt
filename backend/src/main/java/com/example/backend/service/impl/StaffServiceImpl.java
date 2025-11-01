@@ -21,7 +21,6 @@ import com.example.backend.model.entity.AppUser;
 import com.example.backend.model.entity.Office;
 import com.example.backend.model.entity.Role;
 import com.example.backend.model.entity.UserOffice;
-import com.example.backend.model.enums.AddressType;
 import com.example.backend.repository.StaffRepository;
 import com.example.backend.repository.AppUserRepository;
 import com.example.backend.repository.OfficeRepository;
@@ -225,7 +224,14 @@ public class StaffServiceImpl implements StaffService {
         Staff staff = new Staff(office, createStaffDTO.getFirstName(), createStaffDTO.getLastName());
         staff.setUser(savedUser);
         staff.setSsn(createStaffDTO.getSsn());
-        staff.setNationalProviderId(createStaffDTO.getNationalProviderId());
+
+        // Normalize empty string to null for nationalProviderId
+        String nationalProviderId = createStaffDTO.getNationalProviderId();
+        if (nationalProviderId != null && nationalProviderId.trim().isEmpty()) {
+            nationalProviderId = null;
+        }
+        staff.setNationalProviderId(nationalProviderId);
+
         staff.setIsActive(true);
         staff.setHireDate(LocalDate.now());
         staff.setIsSupervisor(createStaffDTO.getIsSupervisor() != null ? createStaffDTO.getIsSupervisor() : false);
@@ -396,9 +402,14 @@ public class StaffServiceImpl implements StaffService {
     }
     
     private String getSupervisorName(Staff staff) {
-        // For now, return empty string as supervisor relationship needs to be implemented
-        // TODO: Implement supervisor lookup when supervisor_id field is available
-        return "";
+        if (staff == null || staff.getSupervisor() == null) {
+            return null;
+        }
+        Staff supervisor = staff.getSupervisor();
+        String firstName = supervisor.getFirstName() != null ? supervisor.getFirstName().trim() : "";
+        String lastName = supervisor.getLastName() != null ? supervisor.getLastName().trim() : "";
+        String fullName = (firstName + " " + lastName).trim();
+        return fullName.isEmpty() ? null : fullName;
     }
 
     @Override
@@ -450,6 +461,15 @@ public class StaffServiceImpl implements StaffService {
         }
         if (updateDTO.getOfficeId() != null) {
             staff.setOffice(office);
+        }
+        // Dates: prefer explicit hireDate if provided; otherwise accept effectiveDate as alias
+        if (updateDTO.getHireDate() != null) {
+            staff.setHireDate(updateDTO.getHireDate());
+        } else if (updateDTO.getEffectiveDate() != null) {
+            staff.setHireDate(updateDTO.getEffectiveDate());
+        }
+        if (updateDTO.getIsActive() != null) {
+            staff.setIsActive(updateDTO.getIsActive());
         }
         
         // Save both entities
@@ -523,6 +543,14 @@ public class StaffServiceImpl implements StaffService {
         staffAddress.setIsMain(updateDTO.getIsMain() != null ? updateDTO.getIsMain() : false);
         
         staffAddressRepository.save(staffAddress);
+
+        // Ensure only one main address per staff on create
+        if (Boolean.TRUE.equals(staffAddress.getIsMain())) {
+            staffAddressRepository.unsetMainForOtherAddresses(
+                staff.getId(),
+                staffAddress.getId()
+            );
+        }
         
         log.info("Successfully created address for staff ID: {}", staffId);
         return getStaffPersonal(staffId);
@@ -569,6 +597,32 @@ public class StaffServiceImpl implements StaffService {
                 address.setLabel(updateDTO.getLabel());
             }
             addressRepository.save(address);
+        } else {
+            // If there is no Address yet but the update contains address fields,
+            // create a new Address entity and attach it.
+            boolean hasAddressFields =
+                updateDTO.getLine1() != null ||
+                updateDTO.getLine2() != null ||
+                updateDTO.getCity() != null ||
+                updateDTO.getState() != null ||
+                updateDTO.getPostalCode() != null ||
+                updateDTO.getCounty() != null ||
+                updateDTO.getType() != null ||
+                updateDTO.getLabel() != null;
+
+            if (hasAddressFields) {
+                Address newAddress = new Address();
+                newAddress.setLine1(updateDTO.getLine1());
+                newAddress.setLine2(updateDTO.getLine2());
+                newAddress.setCity(updateDTO.getCity());
+                newAddress.setState(updateDTO.getState());
+                newAddress.setPostalCode(updateDTO.getPostalCode());
+                newAddress.setCounty(updateDTO.getCounty());
+                newAddress.setType(updateDTO.getType());
+                newAddress.setLabel(updateDTO.getLabel());
+                Address savedNewAddress = addressRepository.save(newAddress);
+                staffAddress.setAddress(savedNewAddress);
+            }
         }
         
         // Update StaffAddress fields if provided
@@ -583,6 +637,14 @@ public class StaffServiceImpl implements StaffService {
         }
         
         staffAddressRepository.save(staffAddress);
+
+        // Ensure only one main address per staff on update
+        if (Boolean.TRUE.equals(staffAddress.getIsMain())) {
+            staffAddressRepository.unsetMainForOtherAddresses(
+                staffAddress.getStaff().getId(),
+                staffAddress.getId()
+            );
+        }
         
         log.info("Successfully updated address for staff ID: {}", staffId);
         return getStaffPersonal(staffId);

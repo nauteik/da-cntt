@@ -40,7 +40,7 @@ export default function EditStaffAddressForm({
     resolver: zodResolver(staffAddressSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
-    defaultValues: initialData || {
+    defaultValues: {
       label: "",
       type: undefined,
       line1: "",
@@ -210,7 +210,7 @@ export default function EditStaffAddressForm({
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-theme-primary">
-                  Address Type
+                  Address Type <span className="text-red-500">*</span>
                 </label>
                 <Controller
                   name="type"
@@ -221,11 +221,17 @@ export default function EditStaffAddressForm({
                       onChange={field.onChange}
                       onBlur={field.onBlur}
                       placeholder="Select address type"
+                      status={errors.type ? "error" : ""}
                       className={formStyles.formSelect}
                       options={ADDRESS_TYPES}
                     />
                   )}
                 />
+                {errors.type && (
+                  <span className="text-sm text-red-500">
+                    {errors.type.message}
+                  </span>
+                )}
               </div>
             </div>
 

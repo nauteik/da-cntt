@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Modal, Button, Input, Select, DatePicker, Checkbox } from "antd";
+import { Modal, Button, Input, Select, DatePicker } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -125,7 +125,7 @@ export default function EditStaffPersonalInfoForm({
             {/* First Name */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                First Name
+                First Name <span className="text-red-500">*</span>
               </label>
               <Controller
                 name="firstName"
@@ -149,7 +149,7 @@ export default function EditStaffPersonalInfoForm({
             {/* Last Name */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-theme-primary mb-0">
-                Last Name
+                Last Name <span className="text-red-500">*</span>
               </label>
               <Controller
                 name="lastName"

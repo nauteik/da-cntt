@@ -114,7 +114,9 @@ export const addressSchema = z.object({
     .string()
     .max(FIELD_CONSTRAINTS.LABEL_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.LABEL_MAX))
     .optional(),
-  type: z.enum(["HOME", "COMMUNITY", "SENIOR", "BUSINESS"] as const).optional(),
+  type: z.enum(["HOME", "COMMUNITY", "SENIOR", "BUSINESS"] as const, {
+    required_error: "Address type is required",
+  }),
   line1: z
     .string()
     .min(1, VALIDATION_MESSAGES.ADDRESS_LINE1_REQUIRED)

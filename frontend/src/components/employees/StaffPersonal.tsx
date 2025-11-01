@@ -390,9 +390,12 @@ export default function StaffPersonal({ staff }: StaffPersonalProps) {
           employeeId: staff.employeeId || "",
           nationalProviderId: staff.nationalProviderId || "",
           isSupervisor: staff.isSupervisor || false,
+          isActive: (staff.status || "").toLowerCase() === "active",
           position: staff.position || "",
           supervisorId: staff.supervisorId || "",
           officeId: staff.officeId || "",
+          effectiveDate: staff.effectiveDate || "",
+          hireDate: staff.hireDate || "",
         }}
         onUpdateSuccess={() => {
           // Invalidate both header and personal queries to refresh data
