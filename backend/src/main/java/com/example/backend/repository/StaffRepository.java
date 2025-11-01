@@ -148,6 +148,7 @@ public interface StaffRepository extends JpaRepository<Staff, UUID> {
         LEFT JOIN FETCH sa.address
         LEFT JOIN FETCH s.user u
         LEFT JOIN FETCH u.role
+        LEFT JOIN FETCH s.supervisor sup
         WHERE s.id = :staffId
           AND s.deletedAt IS NULL
         """)
