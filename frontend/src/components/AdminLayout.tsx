@@ -25,6 +25,7 @@ import {
   ToolOutlined,
   BarChartOutlined,
   CheckCircleOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
@@ -50,6 +51,7 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
     if (pathname === "/") return "dashboard";
     if (pathname.startsWith("/clients")) return "client-management";
     if (pathname.startsWith("/employees")) return "employees";
+    if (pathname.startsWith("/offices")) return "offices";
     if (pathname.startsWith("/scheduling")) return "scheduling";
     if (pathname.startsWith("/visit-maintenance")) return "visit-maintenance";
     if (pathname.startsWith("/reports")) return "reports";
@@ -106,6 +108,12 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
         icon: <TeamOutlined />,
         label: "Employees",
         onClick: () => handleNavigate("/employees"),
+      },
+      {
+        key: "offices",
+        icon: <EnvironmentOutlined />,
+        label: "Offices",
+        onClick: () => handleNavigate("/offices"),
       },
       {
         key: "scheduling",
