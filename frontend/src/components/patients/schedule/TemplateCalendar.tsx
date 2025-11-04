@@ -16,6 +16,16 @@ interface TemplateCalendarProps {
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// Convert 24-hour format (HH:mm) to 12-hour format (h:mm A)
+function formatTimeTo12Hour(time24: string): string {
+  if (!time24) return "";
+  const [hours, minutes] = time24.split(":");
+  const hour = parseInt(hours, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minutes} ${ampm}`;
+}
+
 export default function TemplateCalendar({
   events,
   // weekNumber,
@@ -35,8 +45,9 @@ export default function TemplateCalendar({
     };
 
     events.forEach((event) => {
-      if (grouped[event.weekday]) {
-        grouped[event.weekday].push(event);
+      const day = (event.weekday ?? event.dayOfWeek) as number;
+      if (grouped[day]) {
+        grouped[day].push(event);
       }
     });
 
@@ -105,13 +116,21 @@ export default function TemplateCalendar({
                     </Dropdown>
                   </div>
 
-                  <div className={styles.eventBadge}>Active</div>
-                  <div className={styles.eventCode}>
-                    {event.serviceCode || "N/A"}
+                  <div className="flex items-center gap-2">
+                    <div className={styles.eventBadge}>Active</div>
+                    {event.serviceCode && (
+                      <span className="text-[var(--secondary)] font-[550] mb-1 text-[0.9rem]">{event.serviceCode}</span>
+                    )}
                   </div>
                   <div className={styles.eventTime}>
-                    {event.startTime} - {event.endTime}
+                    {formatTimeTo12Hour(event.startTime)} - {formatTimeTo12Hour(event.endTime)}
                   </div>
+                  {event.eventCode && (
+                    <div className="text-xs text-[var(--text-secondary)]">Code: {event.eventCode}</div>
+                  )}
+                  {event.staffName && (
+                    <div className="text-xs text-[var(--text-secondary)]">{event.staffName}</div>
+                  )}
                 </div>
               ))
             ) : (

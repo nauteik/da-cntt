@@ -12,8 +12,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.UUID;
 
 @Data
@@ -46,8 +44,9 @@ public class ScheduleEvent {
     @JoinColumn(name = "authorization_id")
     private Authorization authorization;
 
-    @OneToMany(mappedBy = "scheduleEvent", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ISPTaskSchedule> ispTaskSchedules = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_id")
+    private Staff staff;
 
     @Column(name = "event_code")
     private String eventCode;

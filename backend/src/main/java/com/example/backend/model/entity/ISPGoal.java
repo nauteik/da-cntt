@@ -7,9 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * ISP Goal entity for individual service plan goals
  */
@@ -18,7 +15,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"isp", "tasks"})
+@ToString(exclude = {"isp"})
 public class ISPGoal extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -38,24 +35,9 @@ public class ISPGoal extends BaseEntity {
     @Column(name = "sort_order")
     private Integer sortOrder;
 
-    // Relationships
-    @OneToMany(mappedBy = "ispGoal", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ISPTask> tasks = new HashSet<>();
-
     public ISPGoal(ISP isp, String title) {
         this.isp = isp;
         this.title = title;
-    }
-
-    // Helper methods
-    public void addTask(ISPTask task) {
-        tasks.add(task);
-        task.setIspGoal(this);
-    }
-
-    public void removeTask(ISPTask task) {
-        tasks.remove(task);
-        task.setIspGoal(null);
     }
 }
 

@@ -1,3 +1,5 @@
+
+
 package com.example.backend.model.entity;
 
 
@@ -11,27 +13,25 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "template_event", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"schedule_template_id", "weekday", "start_time"})
+@Table(name = "schedule_template_event", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"template_week_id", "day_of_week", "start_time"})
 })
-public class TemplateEvent {
+public class ScheduleTemplateEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_template_id", nullable = false)
-    private ScheduleTemplate scheduleTemplate;
+    @JoinColumn(name = "template_week_id", nullable = false)
+    private ScheduleTemplateWeek templateWeek;
 
-    @Column(nullable = false)
-    private Short weekday;
+    @Column(name = "day_of_week", nullable = false)
+    private Short dayOfWeek; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
@@ -43,11 +43,15 @@ public class TemplateEvent {
     @JoinColumn(name = "authorization_id", nullable = false)
     private Authorization authorization;
 
-    @OneToMany(mappedBy = "templateEvent", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ISPTaskTemplate> ispTaskTemplates = new HashSet<>();
-
     @Column(name = "event_code")
     private String eventCode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_id")
+    private Staff staff;
+
+    @Column(name = "comment", columnDefinition = "text")
+    private String comment;
 
     @Column(name = "planned_units", nullable = false)
     private Integer plannedUnits;

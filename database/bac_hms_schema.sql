@@ -371,6 +371,9 @@ CREATE TABLE patient_address (
     phone text,
     email text,
     is_main boolean NOT NULL DEFAULT false,
+    latitude double precision,
+    longitude double precision,
+    location_notes text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT patient_address_unique UNIQUE (patient_id, address_id),
@@ -498,20 +501,6 @@ CREATE TABLE isp_goal (
 
 CREATE INDEX idx_isp_goal ON isp_goal (isp_id);
 
-CREATE TABLE isp_task (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_goal_id uuid NOT NULL REFERENCES isp_goal(id) ON DELETE CASCADE,
-    task text NOT NULL,
-    frequency text,
-    required boolean NOT NULL DEFAULT true,
-    sort_order integer,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_isp_task_goal ON isp_task (isp_goal_id);
-
-
 CREATE TABLE unit_consumption (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     authorization_id uuid NOT NULL REFERENCES authorizations(id) ON DELETE CASCADE,
@@ -542,24 +531,37 @@ CREATE TABLE schedule_template (
 
 CREATE INDEX idx_schedule_template_patient ON schedule_template (patient_id);
 
--- Events trong Template (per weekday)
-CREATE TABLE template_event (
+-- Tuần của Template (hỗ trợ multi-week)
+CREATE TABLE schedule_template_week (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    schedule_template_id uuid NOT NULL REFERENCES schedule_template(id) ON DELETE CASCADE,
-    weekday smallint NOT NULL CHECK (weekday BETWEEN 0 AND 6),  -- 0=Sun, 6=Sat
+    template_id uuid NOT NULL REFERENCES schedule_template(id) ON DELETE CASCADE,
+    week_index integer NOT NULL,
+    name text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT schedule_template_week_unique UNIQUE (template_id, week_index)
+);
+
+-- Events trong Template (per week + weekday)
+CREATE TABLE schedule_template_event (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_week_id uuid NOT NULL REFERENCES schedule_template_week(id) ON DELETE CASCADE,
+    day_of_week smallint NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),  -- 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     start_time time NOT NULL,
     end_time time NOT NULL,
     authorization_id uuid REFERENCES authorizations(id) ON DELETE SET NULL,
-    event_code text,  -- Ví dụ: W1726, W7060 từ hình ảnh
+    staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
+    event_code text,
+    comment text,
     planned_units integer NOT NULL CHECK (planned_units >= 0),
-    meta jsonb NOT NULL DEFAULT '{}'::jsonb,  -- Lưu thêm (ví dụ: tổng giờ, tổng units theo ngày)
+    meta jsonb DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK (end_time > start_time),
-    CONSTRAINT template_event_unique UNIQUE (schedule_template_id, weekday, start_time)
+    CONSTRAINT schedule_template_event_unique UNIQUE (template_week_id, day_of_week, start_time)
 );
 
-CREATE INDEX idx_template_event_template ON template_event (schedule_template_id);
+CREATE INDEX idx_schedule_template_event_week ON schedule_template_event (template_week_id);
 
 -- Events thực tế (generated hoặc thủ công, per day)
 CREATE TABLE schedule_event (
@@ -570,6 +572,7 @@ CREATE TABLE schedule_event (
     start_at timestamptz NOT NULL,
     end_at timestamptz NOT NULL,
     authorization_id uuid REFERENCES authorizations(id) ON DELETE SET NULL,
+    staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     event_code text,
     status text NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'PLANNED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')),
     planned_units integer NOT NULL CHECK (planned_units >= 0),
@@ -584,34 +587,9 @@ CREATE TABLE schedule_event (
 );
 
 CREATE INDEX idx_schedule_event_patient_date ON schedule_event (patient_id, event_date);
+CREATE INDEX idx_schedule_event_staff_date ON schedule_event (staff_id, event_date);
 CREATE INDEX idx_schedule_event_office_date ON schedule_event (office_id, event_date DESC);
 
-CREATE TABLE isp_task_schedule (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_task_id uuid NOT NULL REFERENCES isp_task(id) ON DELETE CASCADE,
-    schedule_event_id uuid NOT NULL REFERENCES schedule_event(id) ON DELETE CASCADE,
-    status text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'IN_PROGRESS', 'INCOMPLETE', 'COMPLETED')),
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT isp_task_schedule_unique UNIQUE (isp_task_id, schedule_event_id)
-);
-
-CREATE INDEX idx_isp_task_schedule_task ON isp_task_schedule (isp_task_id);
-CREATE INDEX idx_isp_task_schedule_event ON isp_task_schedule (schedule_event_id);
-
-CREATE TABLE isp_task_template (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    isp_task_id uuid NOT NULL REFERENCES isp_task(id) ON DELETE CASCADE,
-    template_event_id uuid NOT NULL REFERENCES template_event(id) ON DELETE CASCADE,
-    assigned_by_id uuid REFERENCES staff(id) ON DELETE SET NULL,
-    assigned_at timestamptz NOT NULL DEFAULT now(),
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT isp_task_template_unique UNIQUE (isp_task_id, template_event_id)
-);
-
-CREATE INDEX idx_isp_task_template_task ON isp_task_template (isp_task_id);
-CREATE INDEX idx_isp_task_template_event ON isp_task_template (template_event_id);
 
 -- Gán nhân viên cho Events (hỗ trợ multiple nếu cần, nhưng default primary)
 CREATE TABLE event_assignment (
@@ -662,9 +640,18 @@ CREATE TABLE daily_note (
 
     -- check-in / check-out timestamps and optional locations
     check_in_time timestamptz,
-    check_out_time timestamptz,
+    check_in_latitude double precision,
+    check_in_longitude double precision,
     check_in_location text,
+    check_in_distance_meters double precision,
+    check_in_valid boolean,
+    check_out_time timestamptz,
+    check_out_latitude double precision,
+    check_out_longitude double precision,
     check_out_location text,
+    check_out_distance_meters double precision,
+    check_out_valid boolean,
+    total_hours double precision,
 
     patient_signed boolean NOT NULL DEFAULT false,
     patient_signer_name text,

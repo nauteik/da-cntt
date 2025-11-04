@@ -5,24 +5,48 @@
 
 export interface TemplateEventDTO {
   id: string;
-  weekday: number; // 0=Sun, 1=Mon, ..., 6=Sat
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format
-  authorizationId: string;
+  templateWeekId?: string;
+  // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  dayOfWeek: number;
+  // Backwards compatibility with existing UI calendar (0=Sun..6=Sat). Optional.
+  weekday?: number;
+  startTime: string; // HH:mm[:ss]
+  endTime: string; // HH:mm[:ss]
+  authorizationId?: string;
   eventCode?: string;
-  plannedUnits: number;
+  plannedUnits?: number;
   serviceCode?: string; // For display
   serviceName?: string; // For display
+  staffId?: string;
+  staffName?: string;
+  comment?: string;
+  billType?: string; // from Authorization.format
+}
+
+// Authorization select (service) options for Add Event form
+export interface AuthorizationSelectDTO {
+  id: string;
+  serviceCode?: string;
+  serviceName?: string;
+  eventCode?: string;
+  billType?: string;
 }
 
 export interface ScheduleTemplateDTO {
   id: string;
   patientId: string;
+  officeId?: string;
   name: string;
   description?: string;
   status: string; // "active" | "inactive"
-  generatedThrough?: string; // ISO date string - last generated date
-  events: TemplateEventDTO[];
+  createdAt?: string; // ISO datetime string
+  updatedAt?: string; // ISO datetime string
+  generatedThrough?: string; // ISO datetime string - last generated date
+}
+
+export interface CreateScheduleTemplateDTO {
+  name?: string;
+  description?: string;
 }
 
 export interface ScheduleEventDTO {
@@ -37,8 +61,10 @@ export interface ScheduleEventDTO {
   plannedUnits: number;
   actualUnits?: number;
   // For display purposes
-  programName?: string;
+  programIdentifier?: string;
+  employeeId?: string;
   employeeName?: string;
+  supervisorId?: string;
   supervisorName?: string;
   serviceCode?: string;
   checkInTime?: string; // ISO datetime string
@@ -64,10 +90,20 @@ export interface AddEventFormData {
   endTime: string;
   employeeId?: string;
   comments?: string;
-  activeSchedulePopulation: boolean;
+  activeSchedulePopulation?: boolean;
 }
 
 export interface GenerateScheduleFormData {
   endDate: string; // ISO date string
+}
+
+export interface WeekWithEventsDTO {
+  weekIndex: number;
+  events: TemplateEventDTO[];
+}
+
+export interface ScheduleTemplateWeeksDTO {
+  template: ScheduleTemplateDTO;
+  weeks: WeekWithEventsDTO[];
 }
 

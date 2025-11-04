@@ -69,8 +69,8 @@ export default function ScheduleEventsTable({
     },
     {
       title: "PROGRAM",
-      dataIndex: "programName",
-      key: "programName",
+      dataIndex: "programIdentifier",
+      key: "programIdentifier",
       width: 100,
       render: (program: string) => program || "ODP",
     },
@@ -115,9 +115,9 @@ export default function ScheduleEventsTable({
       ),
     },
     {
-      title: "HRS",
+      title: "HRS (Scheduled)",
       key: "scheduledHrs",
-      width: 70,
+      width: 120,
       align: "center",
       render: (_: unknown, record: ScheduleEventDTO) =>
         calculateHours(record.startAt, record.endAt),
@@ -138,9 +138,9 @@ export default function ScheduleEventsTable({
       },
     },
     {
-      title: "HRS",
+      title: "HRS (Actual)",
       key: "actualHrs",
-      width: 70,
+      width: 120,
       align: "center",
       render: (_: unknown, record: ScheduleEventDTO) => {
         if (!record.checkInTime || !record.checkOutTime) {

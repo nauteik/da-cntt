@@ -102,3 +102,9 @@ export interface StaffPersonalDTO {
   contacts: StaffContactDTO[];
   addresses: StaffAddressDTO[];
 }
+
+// For selects (dropdowns)
+export interface StaffSelectDTO {
+  id: string;
+  displayName: string;
+}
