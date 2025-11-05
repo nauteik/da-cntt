@@ -79,15 +79,17 @@ export default function ScheduleEventsTable({
       dataIndex: "employeeName",
       key: "employeeName",
       width: 150,
-      render: (name: string, record: ScheduleEventDTO) => (
-        <div>
-          <div className="text-[13px] text-[var(--text-primary)]">
-            {name || "Clemens, Samantha"}
-          </div>
-          <div className="text-xs text-[var(--text-secondary)]">
-            {record.supervisorName || "Clossin, Bronwen"}
-          </div>
-        </div>
+      render: (name: string) => (
+        <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+      ),
+    },
+    {
+      title: "SUPERVISOR",
+      dataIndex: "supervisorName",
+      key: "supervisorName",
+      width: 150,
+      render: (name: string) => (
+        <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
       ),
     },
     {

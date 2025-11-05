@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ public interface ScheduleEventRepository extends JpaRepository<ScheduleEvent, UU
             LocalDate from,
             LocalDate to
     );
+
+    boolean existsByPatient_IdAndEventDateAndStartAt(UUID patientId, LocalDate eventDate, OffsetDateTime startAt);
 }
 
 

@@ -2,6 +2,7 @@ package com.example.backend.model.dto.schedule;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -15,6 +16,6 @@ public class ScheduleTemplateDTO {
     private String status;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
-    private OffsetDateTime generatedThrough; // Last generation date
+    private LocalDate generatedThrough; // Last generation date
 }
 

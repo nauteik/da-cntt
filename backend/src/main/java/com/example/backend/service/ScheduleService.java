@@ -28,6 +28,8 @@ public interface ScheduleService {
     List<TemplateEventDTO> deleteTemplateEvent(UUID patientId, UUID eventId);
 
     List<ScheduleEventDTO> getScheduleEvents(UUID patientId, LocalDate from, LocalDate to, String status);
+
+    int generateFromTemplate(UUID patientId, LocalDate endDate);
 }
 
 

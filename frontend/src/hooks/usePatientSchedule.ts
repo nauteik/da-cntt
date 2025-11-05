@@ -98,4 +98,20 @@ export function useDeleteTemplate(patientId: string) {
   });
 }
 
+export function useGenerateSchedule(patientId: string) {
+  return useMutation<number, ApiError, { endDate: string }>({
+    mutationFn: async ({ endDate }) => {
+      const endpoint = `/patients/${patientId}/schedule/generate`;
+      const response: ApiResponse<number> = await apiClient<number>(endpoint, {
+        method: "POST",
+        body: { endDate },
+      });
+      if (!response.success) {
+        throw new ApiError(response);
+      }
+      return response.data ?? 0;
+    },
+  });
+}
+
 

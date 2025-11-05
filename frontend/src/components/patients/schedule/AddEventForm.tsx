@@ -237,6 +237,10 @@ export default function AddEventForm({
                     format="hh:mm A"
                     use12Hours
                     placeholder="--:--"
+                    needConfirm={false}
+                    onCalendarChange={(t) => {
+                      form.setFieldValue("startTime",t);
+                    }}
                   />
                 </Form.Item>
 
@@ -261,6 +265,10 @@ export default function AddEventForm({
                     format="hh:mm A"
                     use12Hours
                     placeholder="--:--"
+                    needConfirm={false}
+                    onCalendarChange={(t) => {
+                      form.setFieldValue("endTime", t);
+                    }}
                   />
                 </Form.Item>
               </div>

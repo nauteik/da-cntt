@@ -37,6 +37,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -353,6 +357,81 @@ public class ScheduleServiceImpl implements ScheduleService {
         return dto;
     }
 
+    @Override
+    @Transactional
+    public int generateFromTemplate(UUID patientId, LocalDate endDate) {
+        ScheduleTemplate template = templateRepository
+                .findFirstByPatient_IdAndStatusOrderByCreatedAtDesc(patientId, "active")
+                .orElseThrow(() -> new ResourceNotFoundException("Active schedule template for patient", patientId));
+
+        LocalDate startDate = template.getGeneratedThrough() != null
+                ? template.getGeneratedThrough().plusDays(1)
+                : LocalDate.now();
+        if (startDate.isAfter(endDate)) {
+            return 0;
+        }
+
+        // Load and order weeks
+        List<ScheduleTemplateWeek> weeks = weekRepository.findAllByTemplate_IdOrderByWeekIndexAsc(template.getId());
+        if (weeks.isEmpty()) {
+            return 0;
+        }
+
+        // Preload events per week
+        record WeekBundle(ScheduleTemplateWeek week, List<ScheduleTemplateEvent> events) {}
+        List<WeekBundle> weekBundles = weeks.stream()
+                .map(w -> new WeekBundle(w, eventRepository.findAllByTemplateWeek_IdOrderByDayOfWeekAscStartTimeAsc(w.getId())))
+                .toList();
+
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        int created = 0;
+
+        for (int i = 0; i < days; i++) {
+            LocalDate current = startDate.plusDays(i);
+            long weeksBetween = ChronoUnit.WEEKS.between(startDate, current);
+            int idx = (int) (weeksBetween % weekBundles.size());
+            WeekBundle bundle = weekBundles.get(idx);
+
+            int dowZeroSunday = current.getDayOfWeek().getValue() % 7; // 0=Sun..6=Sat
+            for (ScheduleTemplateEvent te : bundle.events) {
+                if (te.getDayOfWeek() == dowZeroSunday) {
+                    LocalTime st = te.getStartTime();
+                    LocalTime et = te.getEndTime();
+                    OffsetDateTime startAt = OffsetDateTime.of(current, st, ZoneOffset.UTC);
+                    OffsetDateTime endAt = OffsetDateTime.of(current, et, ZoneOffset.UTC);
+
+                    if (scheduleEventRepository.existsByPatient_IdAndEventDateAndStartAt(patientId, current, startAt)) {
+                        continue;
+                    }
+
+                    ScheduleEvent se = new ScheduleEvent();
+                    se.setOffice(template.getOffice());
+                    se.setPatient(template.getPatient());
+                    se.setEventDate(current);
+                    se.setStartAt(startAt);
+                    se.setEndAt(endAt);
+                    se.setAuthorization(te.getAuthorization());
+                    se.setStaff(te.getStaff());
+                    se.setEventCode(te.getEventCode());
+                    se.setStatus(com.example.backend.model.enums.ScheduleEventStatus.PLANNED);
+                    se.setPlannedUnits(te.getPlannedUnits());
+                    se.setSourceTemplate(template);
+                    se.setGeneratedAt(now);
+                    scheduleEventRepository.save(se);
+                    created++;
+                }
+            }
+        }
+
+        if (created > 0) {
+            template.setGeneratedThrough(endDate);
+            templateRepository.save(template);
+        }
+
+        return created;
+    }
+
     private ScheduleEventDTO toScheduleEventDTO(ScheduleEvent e) {
         ScheduleEventDTO dto = new ScheduleEventDTO();
         dto.setId(e.getId());
@@ -419,6 +498,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         dto.setStatus(template.getStatus());
         dto.setCreatedAt(template.getCreatedAt());
         dto.setUpdatedAt(template.getUpdatedAt());
+        dto.setGeneratedThrough(template.getGeneratedThrough());
         // generatedThrough could be calculated from latest ScheduleEvent generated_at if needed
         return dto;
     }

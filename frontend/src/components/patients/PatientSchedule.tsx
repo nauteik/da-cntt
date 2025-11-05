@@ -17,10 +17,11 @@ import type {
 } from "@/types/schedule";
 import TemplateCalendar from "@/components/patients/schedule/TemplateCalendar";
 import GenerateScheduleForm from "@/components/patients/schedule/GenerateScheduleForm";
+import dayjs from "dayjs";
 import AddEventForm from "./schedule/AddEventForm";
 import ScheduleEventsTable from "./schedule/ScheduleEventsTable";
 import buttonStyles from "@/styles/buttons.module.css";
-import { usePatientTemplateWithWeeks, usePatientScheduleEvents, useCreateTemplate, useAddWeek, useDeleteWeek, useDeleteTemplate, useCreateTemplateEvent } from "@/hooks/usePatientSchedule";
+import { usePatientTemplateWithWeeks, usePatientScheduleEvents, useCreateTemplate, useAddWeek, useDeleteWeek, useDeleteTemplate, useCreateTemplateEvent, useGenerateSchedule } from "@/hooks/usePatientSchedule";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface PatientScheduleProps {
@@ -131,9 +132,16 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
   // Schedule events (range: today -7 .. today +7)
   const today = new Date();
   const from = new Date(today);
-  from.setDate(today.getDate() - 7);
-  const to = new Date(today);
-  to.setDate(today.getDate() + 7);
+  // Show from today by default
+  const to = (() => {
+    const gt = templateWithWeeks?.template?.generatedThrough;
+    if (gt) {
+      return new Date(gt);
+    }
+    const d = new Date(today);
+    d.setDate(today.getDate() + 30);
+    return d;
+  })();
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
   const { data: scheduleEvents = [], isLoading: scheduleLoading } = usePatientScheduleEvents(
@@ -146,6 +154,7 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
   const addWeekMutation = useAddWeek(patientId);
   const deleteWeekMutation = useDeleteWeek(patientId);
   const deleteTemplateMutation = useDeleteTemplate(patientId);
+  const generateScheduleMutation = useGenerateSchedule(patientId);
 
   // Modal states
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
@@ -309,8 +318,15 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
     });
   };
 
-  const handleGenerate = () => {
-    setIsGenerateModalOpen(false);
+  const handleGenerate = async (data: import("@/types/schedule").GenerateScheduleFormData) => {
+    try {
+      await generateScheduleMutation.mutateAsync({ endDate: data.endDate });
+      // refresh template (to reflect generatedThrough) and events list
+      await queryClient.invalidateQueries({ queryKey: ["patient-template-with-weeks", patientId] });
+      await queryClient.invalidateQueries({ queryKey: ["patient-schedule-events", patientId] });
+    } finally {
+      setIsGenerateModalOpen(false);
+    }
   };
 
   return (
@@ -323,7 +339,13 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-2 bg-surface-theme border-b border-[var(--border-color)]">
                 <div className="flex flex-col sm:flex-row py-2 items-start sm:items-center gap-3 sm:gap-4 text-sm text-[var(--text-primary)]">
-                  <span>Generated Through: 07/04/2026</span>
+                  <span>
+                    Generated Through: {
+                      templateWithWeeks?.template?.generatedThrough
+                        ? dayjs(templateWithWeeks.template.generatedThrough).format("MM/DD/YYYY")
+                        : "—"
+                    }
+                  </span>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f6ffed] text-[#52c41a] border border-[#b7eb8f] rounded font-medium">
                     <CheckCircleOutlined />
                     Active
@@ -477,7 +499,9 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
           open={isGenerateModalOpen}
           onCancel={() => setIsGenerateModalOpen(false)}
           onGenerate={handleGenerate}
-          currentEndDate="2026-07-04"
+          currentEndDate={templateWithWeeks?.template?.generatedThrough ?? undefined}
+          isGenerating={generateScheduleMutation.isPending}
+          templateWeeks={templateWithWeeks?.weeks}
         />
 
         <AddEventForm

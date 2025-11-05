@@ -8,6 +8,7 @@ import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
 import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
 import com.example.backend.model.dto.schedule.TemplateEventDTO;
 import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
+import com.example.backend.model.dto.schedule.GenerateScheduleRequest;
 import com.example.backend.service.ScheduleService;
 import com.example.backend.repository.AuthorizationRepository;
 import jakarta.validation.Valid;
@@ -137,6 +138,16 @@ public class ScheduleController {
             @RequestParam(required = false) String status) {
         List<ScheduleEventDTO> events = scheduleService.getScheduleEvents(id, from, to, status);
         return ResponseEntity.ok(ApiResponse.success(events, "Schedule events fetched"));
+    }
+
+    @PostMapping("/generate")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<ApiResponse<Integer>> generateFromTemplate(
+            @PathVariable UUID id,
+            @Valid @RequestBody GenerateScheduleRequest req
+    ) {
+        int created = scheduleService.generateFromTemplate(id, req.getEndDate());
+        return ResponseEntity.ok(ApiResponse.success(created, "Schedule generated"));
     }
 }
 

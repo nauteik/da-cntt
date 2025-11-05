@@ -5,7 +5,7 @@ import { Modal, DatePicker, Button, Tooltip } from "antd";
 import { InfoCircleOutlined, CloseOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
-import type { GenerateScheduleFormData } from "@/types/schedule";
+import type { GenerateScheduleFormData, WeekWithEventsDTO, TemplateEventDTO } from "@/types/schedule";
 import styles from "@/styles/schedule.module.css";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
@@ -15,6 +15,8 @@ interface GenerateScheduleFormProps {
   onCancel: () => void;
   onGenerate: (data: GenerateScheduleFormData) => void;
   currentEndDate?: string; // Current "Generated Through" date
+  isGenerating?: boolean;
+  templateWeeks?: WeekWithEventsDTO[];
 }
 
 export default function GenerateScheduleForm({
@@ -22,6 +24,8 @@ export default function GenerateScheduleForm({
   onCancel,
   onGenerate,
   currentEndDate,
+  isGenerating,
+  templateWeeks,
 }: GenerateScheduleFormProps) {
   const [endDate, setEndDate] = useState<Dayjs | null>(
     currentEndDate ? dayjs(currentEndDate) : null
@@ -59,36 +63,47 @@ export default function GenerateScheduleForm({
     onCancel();
   };
 
-  // Calculate preview data
+  // Calculate preview data from templateWeeks
   const getPreviewData = () => {
-    if (!endDate) return null;
+    if (!endDate || !templateWeeks || templateWeeks.length === 0) return null;
 
     const today = dayjs().startOf("day");
     const weeksToGenerate = Math.ceil(endDate.diff(today, "week", true));
+    if (weeksToGenerate <= 0) return { weeks: 0, services: [], totalEvents: 0 };
 
-    // Mock service breakdown - in real app, this would come from template
-    const services = [
-      {
-        code: "W1726",
-        name: "Companion Level 2 (1:1)",
-        eventsPerWeek: 7,
-        timeRange: "7:00 AM - 2:00 PM",
-      },
-      {
-        code: "W7060",
-        name: "IHCS Level 2 (1:1)",
-        eventsPerWeek: 7,
-        timeRange: "2:00 PM - 9:00 PM",
-      },
-    ];
+    // Build rotation across template weeks
+    const totalTemplateWeeks = templateWeeks.length;
 
-    return {
-      weeks: weeksToGenerate,
-      services: services.map((svc) => ({
-        ...svc,
-        totalEvents: svc.eventsPerWeek * weeksToGenerate,
-      })),
+    type Key = string;
+    type ServiceItem = { code?: string; name?: string; timeRange: string; totalEvents: number };
+    const groups = new Map<Key, ServiceItem>();
+
+    const fmtRange = (e: TemplateEventDTO) => {
+      // e.startTime and e.endTime are HH:mm or HH:mm:ss
+      const a = dayjs(e.startTime, "HH:mm");
+      const b = dayjs(e.endTime, "HH:mm");
+      return `${a.format("h:mm A")} - ${b.format("h:mm A")}`;
     };
+
+    for (let i = 0; i < weeksToGenerate; i++) {
+      const weekIdx = i % totalTemplateWeeks; // 0-based
+      const week = templateWeeks[weekIdx];
+      for (const e of week.events || []) {
+        const key: Key = `${e.serviceCode ?? ""}|${e.serviceName ?? ""}|${e.startTime}|${e.endTime}`;
+        const existing = groups.get(key) ?? {
+          code: e.serviceCode,
+          name: e.serviceName,
+          timeRange: fmtRange(e),
+          totalEvents: 0,
+        };
+        existing.totalEvents += 1; // one event per week occurrence
+        groups.set(key, existing);
+      }
+    }
+
+    const services = Array.from(groups.values());
+    const totalEvents = services.reduce((sum, s) => sum + s.totalEvents, 0);
+    return { weeks: weeksToGenerate, services, totalEvents };
   };
 
   const preview = getPreviewData();
@@ -160,13 +175,11 @@ export default function GenerateScheduleForm({
               </div>
               {preview.services.map((service, idx) => (
                 <div key={idx} className={styles.previewItem}>
-                  • <strong>{service.code}</strong> ({service.name}):{" "}
-                  {service.totalEvents} events ({service.timeRange})
+                  • {service.code ? <strong>{service.code}</strong> : <strong>—</strong>} {service.name ? `(${service.name})` : ""}: {service.totalEvents} events ({service.timeRange})
                 </div>
               ))}
               <div className={styles.previewItem}>
-                <strong>Total Events:</strong>{" "}
-                {preview.services.reduce((sum, s) => sum + s.totalEvents, 0)}
+                <strong>Total Events:</strong> {preview.totalEvents}
               </div>
             </div>
           )}
@@ -192,6 +205,8 @@ export default function GenerateScheduleForm({
             type="primary"
             onClick={handleGenerate}
             className={buttonStyles.btnPrimary}
+            loading={!!isGenerating}
+            disabled={!!isGenerating}
           >
             GENERATE
           </Button>
