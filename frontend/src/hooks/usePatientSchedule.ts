@@ -43,6 +43,49 @@ export function usePatientScheduleEvents(
   });
 }
 
+export function usePatientScheduleEventsPaginated(
+  patientId: string,
+  params: { 
+    from: string; 
+    to: string; 
+    status?: string;
+    staffId?: string;
+    search?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+  },
+  options?: Omit<
+    UseQueryOptions<import("@/types/api").PaginatedResponse<ScheduleEventDTO>, ApiError, import("@/types/api").PaginatedResponse<ScheduleEventDTO>, readonly unknown[]>,
+    "queryKey" | "queryFn"
+  >
+) {
+  const search = new URLSearchParams({ 
+    from: params.from, 
+    to: params.to,
+    page: String(params.page ?? 0),
+    size: String(params.size ?? 25),
+  });
+  if (params.status) search.set("status", params.status);
+  if (params.staffId) search.set("staffId", params.staffId);
+  if (params.search) search.set("search", params.search);
+  if (params.sortBy) search.set("sortBy", params.sortBy);
+  if (params.sortDir) search.set("sortDir", params.sortDir);
+  
+  const endpoint = `/patients/${patientId}/schedule/events/paginated?${search.toString()}`;
+  return useApiQuery<import("@/types/api").PaginatedResponse<ScheduleEventDTO>>(
+    ["patient-schedule-events-paginated", patientId, params] as const, 
+    endpoint, 
+    {
+      enabled: !!patientId && !!params?.from && !!params?.to,
+      staleTime: 0,
+      gcTime: 5 * 60 * 1000,
+      ...options,
+    }
+  );
+}
+
 export function useCreateTemplateEvent(patientId: string) {
   return useApiMutation<TemplateEventDTO[]>(`/patients/${patientId}/schedule/template/events`, "POST");
 }
@@ -112,6 +155,19 @@ export function useGenerateSchedule(patientId: string) {
       return response.data ?? 0;
     },
   });
+}
+
+export function useRelatedStaffForPatient(patientId: string) {
+  const endpoint = `/patients/${patientId}/schedule/related-staff`;
+  return useApiQuery<import("@/types/staff").StaffSelectDTO[]>(
+    ["patient-related-staff", patientId] as const,
+    endpoint,
+    {
+      enabled: !!patientId,
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+      gcTime: 10 * 60 * 1000,
+    }
+  );
 }
 
 

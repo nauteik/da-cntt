@@ -9,6 +9,8 @@ import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
 import com.example.backend.model.dto.schedule.TemplateEventDTO;
 import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
 import com.example.backend.model.dto.schedule.GenerateScheduleRequest;
+import com.example.backend.model.dto.StaffSelectDTO;
+import com.example.backend.model.dto.PatientSelectDTO;
 import com.example.backend.service.ScheduleService;
 import com.example.backend.repository.AuthorizationRepository;
 import jakarta.validation.Valid;
@@ -140,6 +142,26 @@ public class ScheduleController {
         return ResponseEntity.ok(ApiResponse.success(events, "Schedule events fetched"));
     }
 
+    @GetMapping("/events/paginated")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ScheduleEventDTO>>> getScheduleEventsPaginated(
+            @PathVariable UUID id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID staffId,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") @jakarta.validation.constraints.Min(0) int page,
+            @RequestParam(defaultValue = "25") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        
+        org.springframework.data.domain.Page<ScheduleEventDTO> events = scheduleService.getScheduleEvents(
+                id, from, to, status, staffId, search, page, size, sortBy, sortDir
+        );
+        return ResponseEntity.ok(ApiResponse.success(events, "Schedule events fetched"));
+    }
+
     @PostMapping("/generate")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ApiResponse<Integer>> generateFromTemplate(
@@ -148,6 +170,55 @@ public class ScheduleController {
     ) {
         int created = scheduleService.generateFromTemplate(id, req.getEndDate());
         return ResponseEntity.ok(ApiResponse.success(created, "Schedule generated"));
+    }
+
+    @GetMapping("/related-staff")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    public ResponseEntity<ApiResponse<List<StaffSelectDTO>>> getRelatedStaff(
+            @PathVariable UUID id) {
+        log.info("Fetching related staff for patient ID: {}", id);
+        List<StaffSelectDTO> staffList = scheduleService.getRelatedStaffForPatient(id);
+        return ResponseEntity.ok(ApiResponse.success(staffList, "Related staff fetched"));
+    }
+}
+
+@RestController
+@RequestMapping("/api/staff/{id}/schedule")
+@RequiredArgsConstructor
+@Slf4j
+class StaffScheduleController {
+
+    private final ScheduleService scheduleService;
+
+    @GetMapping("/events")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ScheduleEventDTO>>> getStaffScheduleEvents(
+            @PathVariable UUID id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID patientId,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") @jakarta.validation.constraints.Min(0) int page,
+            @RequestParam(defaultValue = "25") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        
+        log.info("Fetching schedule events for staff ID: {} from {} to {}", id, from, to);
+        
+        org.springframework.data.domain.Page<ScheduleEventDTO> events = scheduleService.getScheduleEventsByStaff(
+                id, from, to, status, patientId, search, page, size, sortBy, sortDir
+        );
+        return ResponseEntity.ok(ApiResponse.success(events, "Staff schedule events fetched"));
+    }
+
+    @GetMapping("/related-patients")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    public ResponseEntity<ApiResponse<List<PatientSelectDTO>>> getRelatedPatients(
+            @PathVariable UUID id) {
+        log.info("Fetching related patients for staff ID: {}", id);
+        List<PatientSelectDTO> patientList = scheduleService.getRelatedPatientsForStaff(id);
+        return ResponseEntity.ok(ApiResponse.success(patientList, "Related patients fetched"));
     }
 }
 

@@ -10,6 +10,8 @@ import java.util.UUID;
 public class ScheduleEventDTO {
     private UUID id;
     private UUID patientId;
+    private String patientName; // For display in staff context
+    private String patientClientId; // For display in staff context
     private LocalDate eventDate;
     private OffsetDateTime startAt;
     private OffsetDateTime endAt;

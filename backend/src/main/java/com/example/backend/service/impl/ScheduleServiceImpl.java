@@ -30,6 +30,8 @@ import com.example.backend.repository.StaffRepository;
 import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.Office;
 import com.example.backend.model.entity.AppUser;
+import com.example.backend.model.dto.StaffSelectDTO;
+import com.example.backend.model.dto.PatientSelectDTO;
 import com.example.backend.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -331,6 +333,162 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ScheduleEventDTO> getScheduleEvents(
+            UUID patientId,
+            LocalDate from,
+            LocalDate to,
+            String status,
+            UUID staffId,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+        
+        // Whitelist of allowed sort fields
+        java.util.Set<String> allowedSortFields = java.util.Set.of(
+                "eventDate", "startAt", "endAt", "status", "plannedUnits", "actualUnits"
+        );
+        
+        // Validate sortBy
+        if (sortBy != null && !sortBy.isEmpty() && !allowedSortFields.contains(sortBy)) {
+            log.warn("Invalid sort field requested: {}", sortBy);
+            sortBy = "eventDate"; // Default to eventDate
+        }
+        
+        // Create pageable
+        org.springframework.data.domain.Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            org.springframework.data.domain.Sort.Direction direction = 
+                    "desc".equalsIgnoreCase(sortDir) 
+                            ? org.springframework.data.domain.Sort.Direction.DESC 
+                            : org.springframework.data.domain.Sort.Direction.ASC;
+            org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(direction, sortBy);
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+        } else {
+            // Default sorting by eventDate ASC, startAt ASC
+            org.springframework.data.domain.Sort defaultSort = org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Direction.ASC, "eventDate", "startAt"
+            );
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, defaultSort);
+        }
+        
+        // Normalize search term
+        String normalizedSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        
+        // Query events with pagination and search
+        org.springframework.data.domain.Page<ScheduleEvent> eventsPage;
+        if (normalizedSearch != null) {
+            // Use search-enabled query
+            eventsPage = scheduleEventRepository.findAllByPatientIdWithSearch(
+                    patientId, from, to, staffId, normalizedSearch, pageable
+            );
+        } else {
+            // Use simple query without search
+            if (staffId != null) {
+                eventsPage = scheduleEventRepository.findAllByPatient_IdAndStaff_IdAndEventDateBetween(
+                        patientId, staffId, from, to, pageable
+                );
+            } else {
+                eventsPage = scheduleEventRepository.findAllByPatient_IdAndEventDateBetween(
+                        patientId, from, to, pageable
+                );
+            }
+        }
+        
+        // Filter by status if provided
+        List<ScheduleEventDTO> filteredContent = eventsPage.getContent().stream()
+                .filter(se -> status == null || (se.getStatus() != null && se.getStatus().name().equalsIgnoreCase(status)))
+                .map(this::toScheduleEventDTO)
+                .collect(Collectors.toList());
+        
+        return new org.springframework.data.domain.PageImpl<>(
+                filteredContent,
+                pageable,
+                eventsPage.getTotalElements()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ScheduleEventDTO> getScheduleEventsByStaff(
+            UUID staffId,
+            LocalDate from,
+            LocalDate to,
+            String status,
+            UUID patientId,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+        
+        // Whitelist of allowed sort fields
+        java.util.Set<String> allowedSortFields = java.util.Set.of(
+                "eventDate", "startAt", "endAt", "status", "plannedUnits", "actualUnits"
+        );
+        
+        // Validate sortBy
+        if (sortBy != null && !sortBy.isEmpty() && !allowedSortFields.contains(sortBy)) {
+            log.warn("Invalid sort field requested: {}", sortBy);
+            sortBy = "eventDate"; // Default to eventDate
+        }
+        
+        // Create pageable
+        org.springframework.data.domain.Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            org.springframework.data.domain.Sort.Direction direction = 
+                    "desc".equalsIgnoreCase(sortDir) 
+                            ? org.springframework.data.domain.Sort.Direction.DESC 
+                            : org.springframework.data.domain.Sort.Direction.ASC;
+            org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(direction, sortBy);
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+        } else {
+            // Default sorting by eventDate ASC, startAt ASC
+            org.springframework.data.domain.Sort defaultSort = org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Direction.ASC, "eventDate", "startAt"
+            );
+            pageable = org.springframework.data.domain.PageRequest.of(page, size, defaultSort);
+        }
+        
+        // Normalize search term
+        String normalizedSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        
+        // Query events with pagination and search
+        org.springframework.data.domain.Page<ScheduleEvent> eventsPage;
+        if (normalizedSearch != null) {
+            // Use search-enabled query
+            eventsPage = scheduleEventRepository.findAllByStaffIdWithSearch(
+                    staffId, from, to, patientId, normalizedSearch, pageable
+            );
+        } else {
+            // Use simple query without search
+            if (patientId != null) {
+                eventsPage = scheduleEventRepository.findAllByStaff_IdAndPatient_IdAndEventDateBetween(
+                        staffId, patientId, from, to, pageable
+                );
+            } else {
+                eventsPage = scheduleEventRepository.findAllByStaff_IdAndEventDateBetween(
+                        staffId, from, to, pageable
+                );
+            }
+        }
+        
+        // Filter by status if provided
+        List<ScheduleEventDTO> filteredContent = eventsPage.getContent().stream()
+                .filter(se -> status == null || (se.getStatus() != null && se.getStatus().name().equalsIgnoreCase(status)))
+                .map(this::toScheduleEventDTO)
+                .collect(Collectors.toList());
+        
+        return new org.springframework.data.domain.PageImpl<>(
+                filteredContent,
+                pageable,
+                eventsPage.getTotalElements()
+        );
+    }
+
     private TemplateEventDTO toTemplateEventDTO(ScheduleTemplateEvent e) {
         TemplateEventDTO dto = new TemplateEventDTO();
         dto.setId(e.getId());
@@ -436,6 +594,12 @@ public class ScheduleServiceImpl implements ScheduleService {
         ScheduleEventDTO dto = new ScheduleEventDTO();
         dto.setId(e.getId());
         dto.setPatientId(e.getPatient() != null ? e.getPatient().getId() : null);
+        // Patient name for display in staff context
+        if (e.getPatient() != null) {
+            String patientName = (e.getPatient().getLastName() != null ? e.getPatient().getLastName() : "") + ", " + (e.getPatient().getFirstName() != null ? e.getPatient().getFirstName() : "");
+            dto.setPatientName(patientName.trim().replaceAll(", $", ""));
+            dto.setPatientClientId(e.getPatient().getClientId());
+        }
         dto.setEventDate(e.getEventDate());
         dto.setStartAt(e.getStartAt());
         dto.setEndAt(e.getEndAt());
@@ -501,6 +665,87 @@ public class ScheduleServiceImpl implements ScheduleService {
         dto.setGeneratedThrough(template.getGeneratedThrough());
         // generatedThrough could be calculated from latest ScheduleEvent generated_at if needed
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StaffSelectDTO> getRelatedStaffForPatient(UUID patientId) {
+        // Verify patient exists
+        patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        // Get distinct staff IDs from schedule events
+        List<UUID> staffIds = scheduleEventRepository.findDistinctStaffIdsByPatientId(patientId);
+
+        if (staffIds.isEmpty()) {
+            return List.of();
+        }
+
+        // Fetch staff entities and convert to DTOs
+        return staffRepository.findAllById(staffIds).stream()
+                .filter(staff -> staff.isActiveStaff())
+                .map(staff -> {
+                    String fullName = (staff.getLastName() != null ? staff.getLastName() : "") + ", " + 
+                                     (staff.getFirstName() != null ? staff.getFirstName() : "");
+                    fullName = fullName.trim().replaceAll(", $", "");
+                    
+                    String displayName = fullName;
+                    if (staff.getEmployeeId() != null && !staff.getEmployeeId().isEmpty()) {
+                        displayName += " (" + staff.getEmployeeId() + ")";
+                    }
+                    if (staff.getOffice() != null && staff.getOffice().getName() != null) {
+                        displayName += " - " + staff.getOffice().getName();
+                    }
+                    
+                    return StaffSelectDTO.builder()
+                            .id(staff.getId())
+                            .displayName(displayName)
+                            .build();
+                })
+                .sorted((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientSelectDTO> getRelatedPatientsForStaff(UUID staffId) {
+        // Verify staff exists
+        staffRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff", staffId));
+
+        // Get distinct patient IDs from schedule events
+        List<UUID> patientIds = scheduleEventRepository.findDistinctPatientIdsByStaffId(staffId);
+
+        if (patientIds.isEmpty()) {
+            return List.of();
+        }
+
+        // Fetch patient entities and convert to DTOs
+        return patientRepository.findAllById(patientIds).stream()
+                .filter(patient -> patient.getStatus() != null && patient.getStatus().name().equals("ACTIVE"))
+                .map(patient -> {
+                    String fullName = (patient.getLastName() != null ? patient.getLastName() : "") + ", " + 
+                                     (patient.getFirstName() != null ? patient.getFirstName() : "");
+                    fullName = fullName.trim().replaceAll(", $", "");
+                    
+                    String displayName = fullName;
+                    if (patient.getMedicaidId() != null && !patient.getMedicaidId().isEmpty()) {
+                        displayName += " (" + patient.getMedicaidId() + ")";
+                    } else if (patient.getClientId() != null && !patient.getClientId().isEmpty()) {
+                        displayName += " (" + patient.getClientId() + ")";
+                    }
+                    
+                    return PatientSelectDTO.builder()
+                            .id(patient.getId())
+                            .displayName(displayName)
+                            .firstName(patient.getFirstName())
+                            .lastName(patient.getLastName())
+                            .medicaidId(patient.getMedicaidId())
+                            .clientId(patient.getClientId())
+                            .build();
+                })
+                .sorted((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()))
+                .collect(Collectors.toList());
     }
 }
 
