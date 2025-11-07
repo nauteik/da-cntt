@@ -3,7 +3,8 @@
 import React from "react";
 import { Table, Tag, Space } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import type { ScheduleEventDTO, ScheduleEventStatus } from "@/types/schedule";
 import { formatDate } from "@/lib/dateUtils";
 
@@ -12,6 +13,14 @@ interface ScheduleEventsTableProps {
   loading?: boolean;
   onEdit?: (event: ScheduleEventDTO) => void;
   onDelete?: (eventId: string) => void;
+  pagination?: {
+    current: number;
+    pageSize: number;
+    total: number;
+    onChange: (page: number, pageSize: number) => void;
+  };
+  onSortChange?: (sortBy: string, sortDir: string) => void;
+  context?: "patient" | "staff"; // "patient" shows EMPLOYEE/SUPERVISOR, "staff" shows CLIENT/CLIENT SUPERVISOR
 }
 
 export default function ScheduleEventsTable({
@@ -19,13 +28,15 @@ export default function ScheduleEventsTable({
   loading = false,
   onEdit,
   onDelete,
+  pagination,
+  onSortChange,
+  context = "patient",
 }: ScheduleEventsTableProps) {
   const getStatusColor = (status: ScheduleEventStatus): string => {
     const colorMap: Record<ScheduleEventStatus, string> = {
       CONFIRMED: "green",
       CANCELLED: "red",
       PLANNED: "blue",
-      DRAFT: "default",
       IN_PROGRESS: "orange",
       COMPLETED: "green",
     };
@@ -74,30 +85,57 @@ export default function ScheduleEventsTable({
       width: 100,
       render: (program: string) => program || "ODP",
     },
-    {
-      title: "EMPLOYEE",
-      dataIndex: "employeeName",
-      key: "employeeName",
-      width: 150,
-      render: (name: string) => (
-        <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
-      ),
-    },
-    {
-      title: "SUPERVISOR",
-      dataIndex: "supervisorName",
-      key: "supervisorName",
-      width: 150,
-      render: (name: string) => (
-        <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
-      ),
-    },
+    ...(context === "staff"
+      ? [
+          {
+            title: "CLIENT",
+            dataIndex: "patientName",
+            key: "patientName",
+            width: 150,
+            render: (name: string, record: ScheduleEventDTO) => (
+              <div className="text-[13px] text-[var(--text-primary)]">
+                {name || record.patientClientId || "-"}
+              </div>
+            ),
+          },
+          {
+            title: "CLIENT SUPERVISOR",
+            dataIndex: "supervisorName",
+            key: "supervisorName",
+            width: 150,
+            render: (name: string) => (
+              <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+            ),
+          },
+        ]
+      : [
+          {
+            title: "EMPLOYEE",
+            dataIndex: "employeeName",
+            key: "employeeName",
+            width: 150,
+            render: (name: string) => (
+              <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+            ),
+          },
+          {
+            title: "SUPERVISOR",
+            dataIndex: "supervisorName",
+            key: "supervisorName",
+            width: 150,
+            render: (name: string) => (
+              <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+            ),
+          },
+        ]),
     {
       title: "SERVICE",
       dataIndex: "serviceCode",
       key: "serviceCode",
       width: 100,
-      render: (code: string) => code || "W7060",
+      render: (code: string) => (
+        <div className="overflow-hidden text-ellipsis whitespace-nowrap">{code || "-"}</div>
+      ),
     },
     {
       title: "EVENT CODE",
@@ -165,7 +203,6 @@ export default function ScheduleEventsTable({
         { text: "Confirmed", value: "CONFIRMED" },
         { text: "Cancelled", value: "CANCELLED" },
         { text: "Planned", value: "PLANNED" },
-        { text: "Draft", value: "DRAFT" },
         { text: "In Progress", value: "IN_PROGRESS" },
         { text: "Completed", value: "COMPLETED" },
       ],
@@ -191,6 +228,19 @@ export default function ScheduleEventsTable({
     },
   ];
 
+  const handleTableChange = (
+    paginationConfig: TablePaginationConfig,
+    filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<ScheduleEventDTO> | SorterResult<ScheduleEventDTO>[]
+  ) => {
+    // Handle sorting - only handle single sorter
+    if (!Array.isArray(sorter) && sorter.field && onSortChange) {
+      const sortDir = sorter.order === "descend" ? "desc" : "asc";
+      const fieldStr = Array.isArray(sorter.field) ? sorter.field[0] : String(sorter.field);
+      onSortChange(fieldStr, sortDir);
+    }
+  };
+
   return (
     <div className="tableCard">
       <Table
@@ -198,14 +248,29 @@ export default function ScheduleEventsTable({
         dataSource={data}
         rowKey="id"
         loading={loading}
-        pagination={{
-          pageSize: 25,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} entries`,
-          pageSizeOptions: ["10", "25", "50", "100"],
-        }}
+        pagination={
+          pagination
+            ? {
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} entries`,
+                pageSizeOptions: ["10", "25", "50", "100"],
+                onChange: pagination.onChange,
+              }
+            : {
+                pageSize: 25,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} entries`,
+                pageSizeOptions: ["10", "25", "50", "100"],
+              }
+        }
+        onChange={handleTableChange}
         scroll={{ x: 1400 }}
         size="small"
       />

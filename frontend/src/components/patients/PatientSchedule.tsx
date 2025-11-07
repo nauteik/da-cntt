@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { Card, Button, Input, Select, Space, App } from "antd";
+import { Card, Button, Input, Select, Space, App, DatePicker } from "antd";
+import type { Dayjs } from "dayjs";
 import {
   PlusOutlined,
   SearchOutlined,
-  FilterOutlined,
   ExportOutlined,
   CheckCircleOutlined,
   UpOutlined,
@@ -21,7 +21,7 @@ import dayjs from "dayjs";
 import AddEventForm from "./schedule/AddEventForm";
 import ScheduleEventsTable from "./schedule/ScheduleEventsTable";
 import buttonStyles from "@/styles/buttons.module.css";
-import { usePatientTemplateWithWeeks, usePatientScheduleEvents, useCreateTemplate, useAddWeek, useDeleteWeek, useDeleteTemplate, useCreateTemplateEvent, useGenerateSchedule } from "@/hooks/usePatientSchedule";
+import { usePatientTemplateWithWeeks, usePatientScheduleEventsPaginated, useCreateTemplate, useAddWeek, useDeleteWeek, useDeleteTemplate, useCreateTemplateEvent, useGenerateSchedule, useRelatedStaffForPatient } from "@/hooks/usePatientSchedule";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface PatientScheduleProps {
@@ -129,25 +129,41 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
 
   const hasTemplate = !!templateWithWeeks && templateWithWeeks.template !== null;
 
-  // Schedule events (range: today -7 .. today +7)
-  const today = new Date();
-  const from = new Date(today);
-  // Show from today by default
-  const to = (() => {
-    const gt = templateWithWeeks?.template?.generatedThrough;
-    if (gt) {
-      return new Date(gt);
-    }
-    const d = new Date(today);
-    d.setDate(today.getDate() + 30);
-    return d;
-  })();
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  // Filter state for schedule events
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
+    dayjs(),
+    dayjs().add(30, "day"),
+  ]);
+  const [filterStaffId, setFilterStaffId] = useState<string | undefined>(undefined);
+  const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1); // UI uses 1-based
+  const [pageSize, setPageSize] = useState(25);
+  const [sortBy, setSortBy] = useState<string>("eventDate");
+  const [sortDir, setSortDir] = useState<string>("asc");
+  const [searchText, setSearchText] = useState("");
 
-  const { data: scheduleEvents = [], isLoading: scheduleLoading } = usePatientScheduleEvents(
+  // Fetch related staff list for dropdown (only staff with schedule events for this patient)
+  const { data: staffList = [] } = useRelatedStaffForPatient(patientId);
+
+  const fmt = (d: Dayjs) => d.format("YYYY-MM-DD");
+
+  // Fetch schedule events with pagination
+  const { data: scheduleEventsPage, isLoading: scheduleLoading } = usePatientScheduleEventsPaginated(
     patientId,
-    { from: fmt(from), to: fmt(to) }
+    {
+      from: fmt(dateRange[0]),
+      to: fmt(dateRange[1]),
+      status: filterStatus,
+      staffId: filterStaffId,
+      search: searchText || undefined,
+      page: currentPage - 1, // Convert to 0-based for backend
+      size: pageSize,
+      sortBy,
+      sortDir,
+    }
   );
+
+  const scheduleEvents = scheduleEventsPage?.content || [];
 
   // Mutations
   const createTemplateMutation = useCreateTemplate(patientId);
@@ -164,8 +180,19 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
   );
   const [selectedWeekIndex, setSelectedWeekIndex] = useState<number | null>(null);
 
-  // Filter states
-  const [searchText, setSearchText] = useState("");
+  // Pagination handlers
+  const handlePaginationChange = (page: number, newPageSize: number) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  };
+
+  const handleSortChange = (field: string, direction: string) => {
+    setSortBy(field);
+    setSortDir(direction);
+  };
 
   const handleEditEvent = (event: TemplateEventDTO) => {
     setEditingEvent(event);
@@ -424,44 +451,60 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
                   placeholder="Type here for a quick search..."
                   prefix={<SearchOutlined />}
                   value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  onChange={(e) => {
+                    setSearchText(e.target.value);
+                    setCurrentPage(1); // Reset to first page
+                  }}
                   style={{ minWidth: 240 }}
                   allowClear
                 />
-                <Select
-                  placeholder="DATE RANGE"
-                  style={{ width: 150 }}
-                  options={[
-                    { value: "today", label: "Today" },
-                    { value: "week", label: "This Week" },
-                    { value: "month", label: "This Month" },
-                  ]}
+                <DatePicker.RangePicker
+                  value={dateRange}
+                  onChange={(dates) => {
+                    if (dates && dates[0] && dates[1]) {
+                      setDateRange([dates[0], dates[1]]);
+                      setCurrentPage(1); // Reset to first page
+                    }
+                  }}
+                  format="MM/DD/YYYY"
+                  style={{ width: 240 }}
                 />
                 <Select
-                  placeholder="EMPLOYEE"
-                  style={{ width: 150 }}
+                  placeholder="Employee"
+                  style={{ width: 180 }}
                   showSearch
-                  options={[
-                    { value: "1", label: "Clemens, Samantha" },
-                    { value: "2", label: "Alverez, Julio" },
-                    { value: "3", label: "Clossin, Bronwen" },
-                  ]}
+                  value={filterStaffId}
+                  onChange={(value) => {
+                    setFilterStaffId(value);
+                    setCurrentPage(1); // Reset to first page
+                  }}
+                  options={staffList.map(staff => ({
+                    value: staff.id,
+                    label: staff.displayName,
+                  }))}
+                  allowClear
+                  filterOption={(input, option) =>
+                    (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
                 />
                 <Select
                   placeholder="STATUS"
                   style={{ width: 130 }}
+                  value={filterStatus}
+                  onChange={(value) => {
+                    setFilterStatus(value);
+                    setCurrentPage(1); // Reset to first page
+                  }}
                   options={[
                     { value: "CONFIRMED", label: "Confirmed" },
                     { value: "CANCELLED", label: "Cancelled" },
                     { value: "PLANNED", label: "Planned" },
+                    { value: "IN_PROGRESS", label: "In Progress" },
+                    { value: "COMPLETED", label: "Completed" },
+                    { value: "DRAFT", label: "Draft" },
                   ]}
+                  allowClear
                 />
-                <Button
-                  icon={<FilterOutlined />}
-                  className={buttonStyles.btnSecondary}
-                >
-                  FILTERS
-                </Button>
                 <Button
                   icon={<ExportOutlined />}
                   className={buttonStyles.btnSecondary}
@@ -484,12 +527,20 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
             <ScheduleEventsTable
               data={scheduleEvents}
               loading={scheduleLoading}
-                  onEdit={() => {
-                    // TODO: implement edit
-                  }}
-                  onDelete={() => {
-                    // TODO: implement delete
-                  }}
+              pagination={{
+                current: currentPage,
+                pageSize: pageSize,
+                total: scheduleEventsPage?.totalElements || 0,
+                onChange: handlePaginationChange,
+              }}
+              onSortChange={handleSortChange}
+              context="patient"
+              onEdit={() => {
+                // TODO: implement edit
+              }}
+              onDelete={() => {
+                // TODO: implement delete
+              }}
             />
           </div>
         </Card>

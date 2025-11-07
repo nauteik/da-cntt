@@ -52,6 +52,8 @@ export interface CreateScheduleTemplateDTO {
 export interface ScheduleEventDTO {
   id: string;
   patientId: string;
+  patientName?: string; // For display in staff context
+  patientClientId?: string; // For display in staff context
   eventDate: string; // ISO date string
   startAt: string; // ISO datetime string
   endAt: string; // ISO datetime string
@@ -72,7 +74,6 @@ export interface ScheduleEventDTO {
 }
 
 export enum ScheduleEventStatus {
-  DRAFT = "DRAFT",
   PLANNED = "PLANNED",
   CONFIRMED = "CONFIRMED",
   IN_PROGRESS = "IN_PROGRESS",

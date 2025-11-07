@@ -6,6 +6,8 @@ import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
 import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
 import com.example.backend.model.dto.schedule.TemplateEventDTO;
 import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
+import com.example.backend.model.dto.StaffSelectDTO;
+import com.example.backend.model.dto.PatientSelectDTO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,7 +31,37 @@ public interface ScheduleService {
 
     List<ScheduleEventDTO> getScheduleEvents(UUID patientId, LocalDate from, LocalDate to, String status);
 
+    org.springframework.data.domain.Page<ScheduleEventDTO> getScheduleEvents(
+            UUID patientId,
+            LocalDate from,
+            LocalDate to,
+            String status,
+            UUID staffId,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    );
+
+    org.springframework.data.domain.Page<ScheduleEventDTO> getScheduleEventsByStaff(
+            UUID staffId,
+            LocalDate from,
+            LocalDate to,
+            String status,
+            UUID patientId,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    );
+
     int generateFromTemplate(UUID patientId, LocalDate endDate);
+
+    List<StaffSelectDTO> getRelatedStaffForPatient(UUID patientId);
+
+    List<PatientSelectDTO> getRelatedPatientsForStaff(UUID staffId);
 }
 
 

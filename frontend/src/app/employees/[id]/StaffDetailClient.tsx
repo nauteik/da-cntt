@@ -6,6 +6,7 @@ import type { StaffHeaderDTO, StaffPersonalDTO } from "@/types/staff";
 import { useStaffHeader, useStaffPersonal } from "@/hooks/useStaffDetail";
 import StaffHeader from "@/components/employees/StaffHeader";
 import StaffPersonal from "@/components/employees/StaffPersonal";
+import StaffSchedule from "@/components/employees/StaffSchedule";
 import TabLoading from "@/components/common/TabLoading";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import InlineError from "@/components/common/InlineError";
@@ -76,11 +77,7 @@ export default function StaffDetailClient({
     {
       key: "schedules",
       label: "Schedules",
-      children: (
-        <div className="min-h-[600px] flex items-center justify-center p-12 text-center text-theme-secondary text-base">
-          Coming soon...
-        </div>
-      ),
+      children: <StaffSchedule staffId={staffId} />,
     },
   ];
 

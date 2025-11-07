@@ -32,3 +32,14 @@ export class ApiError extends Error {
     this.errors = response.errors;
   }
 }
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number; // Current page number (0-indexed)
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
