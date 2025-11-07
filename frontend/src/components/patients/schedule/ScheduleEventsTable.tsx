@@ -69,8 +69,8 @@ export default function ScheduleEventsTable({
     },
     {
       title: "PROGRAM",
-      dataIndex: "programName",
-      key: "programName",
+      dataIndex: "programIdentifier",
+      key: "programIdentifier",
       width: 100,
       render: (program: string) => program || "ODP",
     },
@@ -79,15 +79,17 @@ export default function ScheduleEventsTable({
       dataIndex: "employeeName",
       key: "employeeName",
       width: 150,
-      render: (name: string, record: ScheduleEventDTO) => (
-        <div>
-          <div className="text-[13px] text-[var(--text-primary)]">
-            {name || "Clemens, Samantha"}
-          </div>
-          <div className="text-xs text-[var(--text-secondary)]">
-            {record.supervisorName || "Clossin, Bronwen"}
-          </div>
-        </div>
+      render: (name: string) => (
+        <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+      ),
+    },
+    {
+      title: "SUPERVISOR",
+      dataIndex: "supervisorName",
+      key: "supervisorName",
+      width: 150,
+      render: (name: string) => (
+        <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
       ),
     },
     {
@@ -115,9 +117,9 @@ export default function ScheduleEventsTable({
       ),
     },
     {
-      title: "HRS",
+      title: "HRS (Scheduled)",
       key: "scheduledHrs",
-      width: 70,
+      width: 120,
       align: "center",
       render: (_: unknown, record: ScheduleEventDTO) =>
         calculateHours(record.startAt, record.endAt),
@@ -138,9 +140,9 @@ export default function ScheduleEventsTable({
       },
     },
     {
-      title: "HRS",
+      title: "HRS (Actual)",
       key: "actualHrs",
-      width: 70,
+      width: 120,
       align: "center",
       render: (_: unknown, record: ScheduleEventDTO) => {
         if (!record.checkInTime || !record.checkOutTime) {

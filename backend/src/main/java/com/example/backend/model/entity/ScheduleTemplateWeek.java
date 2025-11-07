@@ -1,38 +1,38 @@
 package com.example.backend.model.entity;
 
-import com.example.backend.model.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Data
-@NoArgsConstructor
 @Entity
-@Table(name = "isp_task_schedule", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"isp_task_id", "schedule_event_id"})
+@Table(name = "schedule_template_week", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"template_id", "week_index"})
 })
-public class ISPTaskSchedule {
+public class ScheduleTemplateWeek {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "isp_task_id", nullable = false)
-    private ISPTask ispTask;
+    @JoinColumn(name = "template_id", nullable = false)
+    private ScheduleTemplate template;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_event_id", nullable = false)
-    private ScheduleEvent scheduleEvent;
+    @Column(name = "week_index", nullable = false)
+    private Integer weekIndex;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private TaskStatus status = TaskStatus.PENDING;
+    @Column(name = "name")
+    private String name;
+
+    @OneToMany(mappedBy = "templateWeek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<ScheduleTemplateEvent> events = new HashSet<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -42,3 +42,5 @@ public class ISPTaskSchedule {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 }
+
+

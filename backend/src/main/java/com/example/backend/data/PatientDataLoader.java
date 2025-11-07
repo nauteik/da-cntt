@@ -63,8 +63,7 @@ public class PatientDataLoader {
             
             // Load ISP data
             List<ISP> isps = loadIspData(faker, patients);
-            List<ISPGoal> ispGoals = loadIspGoalData(faker, isps);
-            loadIspTaskData(faker, ispGoals);
+            loadIspGoalData(faker, isps);
             
             log.info("Patient data loaded.");
         } else {
@@ -429,22 +428,4 @@ public class PatientDataLoader {
         return ispGoals;
     }
 
-    private void loadIspTaskData(Faker faker, List<ISPGoal> ispGoals) {
-        List<ISPTask> ispTasks = new ArrayList<>();
-        for (ISPGoal goal : ispGoals) {
-            for (int i = 0; i < 2; i++) {
-                ISPTask task = new ISPTask();
-                // Set UUID manually for bulk insert
-                task.setId(java.util.UUID.randomUUID());
-                task.setIspGoal(goal);
-                task.setTask(faker.company().catchPhrase());
-                task.setFrequency(faker.options().option("Daily", "Weekly", "Monthly"));
-                ispTasks.add(task);
-            }
-        }
-        
-        // Bulk insert ISP tasks using JDBC batch processing for maximum performance
-        log.info("Bulk inserting {} ISP tasks using JDBC batch processing...", ispTasks.size());
-        bulkInsertService.bulkInsertISPTasks(ispTasks);
-    }
 }

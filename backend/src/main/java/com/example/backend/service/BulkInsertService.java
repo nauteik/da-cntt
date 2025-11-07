@@ -10,7 +10,6 @@ import com.example.backend.model.entity.PatientService;
 import com.example.backend.model.entity.ISP;
 import com.example.backend.model.entity.Authorization;
 import com.example.backend.model.entity.ISPGoal;
-import com.example.backend.model.entity.ISPTask;
 import com.example.backend.model.entity.Permission;
 import com.example.backend.model.entity.RolePermission;
 import lombok.RequiredArgsConstructor;
@@ -401,40 +400,6 @@ public class BulkInsertService {
         });
 
         log.info("Successfully bulk inserted {} ISP goals", ispGoals.size());
-    }
-
-    /**
-     * Bulk insert ISP tasks using JDBC batch processing for maximum performance
-     */
-    @Transactional
-    public void bulkInsertISPTasks(List<ISPTask> ispTasks) {
-        if (ispTasks.isEmpty()) return;
-
-        log.info("Bulk inserting {} ISP tasks using JDBC batch processing...", ispTasks.size());
-        
-        String sql = """
-            INSERT INTO isp_task (
-                id, isp_goal_id, task, frequency, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, NOW(), NOW())
-            """;
-
-        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps, int i) throws SQLException {
-                ISPTask task = ispTasks.get(i);
-                ps.setObject(1, task.getId());
-                ps.setObject(2, task.getIspGoal().getId());
-                ps.setString(3, task.getTask());
-                ps.setString(4, task.getFrequency());
-            }
-
-            @Override
-            public int getBatchSize() {
-                return ispTasks.size();
-            }
-        });
-
-        log.info("Successfully bulk inserted {} ISP tasks", ispTasks.size());
     }
 
     /**
