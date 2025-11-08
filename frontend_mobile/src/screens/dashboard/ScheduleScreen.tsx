@@ -249,23 +249,15 @@ export default function ScheduleScreen() {
   };
 
   const handleCancelSchedule = (scheduleEvent: Schedule) => {
-    showAlert(
-      'Cancel Schedule',
-      `Are you sure you want to cancel the appointment with ${scheduleEvent.patient.name}?`,
-      [
-        { text: 'No', style: 'cancel' },
-        { 
-          text: 'Yes, Cancel', 
-          style: 'destructive',
-          onPress: () => {
-            // Navigate to cancel schedule screen
-            router.push('/cancel-schedule');
-          }
-        }
-      ],
-      'warning',
-      '#FF9800'
-    );
+    // Navigate directly to cancel schedule screen with params
+    router.push({
+      pathname: '/cancel-schedule',
+      params: {
+        serviceDeliveryId: scheduleEvent.serviceDeliveryId || '',
+        patientName: scheduleEvent.patient.name,
+        scheduledTime: `${scheduleEvent.date}, ${scheduleEvent.startTime} - ${scheduleEvent.endTime}`,
+      },
+    });
   };
 
   const handleCheckIn = (scheduleEvent: Schedule, serviceDeliveryId?: string) => {

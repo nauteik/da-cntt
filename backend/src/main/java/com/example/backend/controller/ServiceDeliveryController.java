@@ -199,4 +199,18 @@ public class ServiceDeliveryController {
         ServiceDeliveryResponseDTO updated = serviceDeliveryService.updateApprovalStatus(id, approvalStatus);
         return ResponseEntity.ok(ApiResponse.success(updated, "Approval status updated successfully"));
     }
+
+    /**
+     * Cancel service delivery
+     * POST /api/service-delivery/{id}/cancel
+     */
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    public ResponseEntity<ApiResponse<ServiceDeliveryResponseDTO>> cancel(
+            @PathVariable UUID id,
+            @RequestParam String reason) {
+        log.info("Cancelling service delivery: {} with reason: {}", id, reason);
+        ServiceDeliveryResponseDTO cancelled = serviceDeliveryService.cancel(id, reason);
+        return ResponseEntity.ok(ApiResponse.success(cancelled, "Service delivery cancelled successfully"));
+    }
 }

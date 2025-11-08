@@ -37,6 +37,13 @@ public class ServiceDeliveryResponseDTO {
     private Boolean isCheckInCheckOutCompleted;
     private Boolean isCheckInCheckOutFullyValid;
 
+    // Cancel information
+    private Boolean cancelled;
+    private String cancelReason;
+    private LocalDateTime cancelledAt;
+    private UUID cancelledByStaffId;
+    private String cancelledByStaffName;
+
     // Metadata
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

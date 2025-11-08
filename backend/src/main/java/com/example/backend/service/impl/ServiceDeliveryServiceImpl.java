@@ -274,6 +274,45 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         return toDto(saved);
     }
 
+    @Override
+    @Transactional
+    public ServiceDeliveryResponseDTO cancel(UUID id, String reason) {
+        log.info("Cancelling service delivery {} with reason: {}", id, reason);
+        
+        ServiceDelivery serviceDelivery = serviceDeliveryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Service delivery not found"));
+        
+        // Check if already cancelled
+        if (serviceDelivery.isCancelled()) {
+            throw new ValidationException("Service delivery is already cancelled");
+        }
+        
+        // Check if already completed
+        if (serviceDelivery.isCompleted()) {
+            throw new ValidationException("Cannot cancel a completed service delivery");
+        }
+        
+        // Validate reason
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new ValidationException("Cancel reason is required");
+        }
+        
+        // Get current authenticated staff (from SecurityContext)
+        // For now, we'll use a placeholder - you should implement proper authentication
+        Staff cancelledBy = null;
+        // TODO: Get current staff from SecurityContextHolder
+        // Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // String staffId = auth.getName();
+        // cancelledBy = staffRepository.findById(UUID.fromString(staffId)).orElse(null);
+        
+        // Cancel the service delivery
+        serviceDelivery.cancel(reason, cancelledBy);
+        ServiceDelivery saved = serviceDeliveryRepository.save(serviceDelivery);
+        
+        log.info("Cancelled service delivery {} by staff {}", id, cancelledBy != null ? cancelledBy.getId() : "system");
+        return toDto(saved);
+    }
+
     /**
      * Convert entity to DTO
      */
@@ -317,6 +356,18 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         dto.setCheckOutTime(serviceDelivery.getCheckOutTime());
         dto.setIsCheckInCheckOutCompleted(serviceDelivery.isCheckInCheckOutCompleted());
         dto.setIsCheckInCheckOutFullyValid(serviceDelivery.isCheckInCheckOutFullyValid());
+        
+        // Cancel information
+        dto.setCancelled(serviceDelivery.isCancelled());
+        dto.setCancelReason(serviceDelivery.getCancelReason());
+        dto.setCancelledAt(serviceDelivery.getCancelledAt());
+        if (serviceDelivery.getCancelledByStaff() != null) {
+            dto.setCancelledByStaffId(serviceDelivery.getCancelledByStaff().getId());
+            dto.setCancelledByStaffName(
+                serviceDelivery.getCancelledByStaff().getFirstName() + " " + 
+                serviceDelivery.getCancelledByStaff().getLastName()
+            );
+        }
         
         // Metadata
         dto.setCreatedAt(serviceDelivery.getCreatedAt());

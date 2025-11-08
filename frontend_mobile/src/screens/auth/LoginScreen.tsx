@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { AuthService } from '../../services/api/authService';
 import { useAuth } from '../../store/authStore';
+import { useCustomAlert } from '../../components/common/CustomAlert';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -21,10 +21,11 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { showAlert, AlertComponent } = useCustomAlert();
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password');
+      showAlert('Error', 'Please enter both email and password', undefined, 'alert-circle', '#f44336');
       return;
     }
 
@@ -45,11 +46,11 @@ export default function LoginScreen() {
         // Navigate to main app
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Login Failed', response.error || 'Invalid credentials');
+        showAlert('Login Failed', response.error || 'Invalid credentials', undefined, 'close-circle', '#f44336');
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', 'An error occurred during login. Please try again.');
+      showAlert('Error', 'An error occurred during login. Please try again.', undefined, 'alert-circle', '#f44336');
     } finally {
       setIsLoading(false);
     }
@@ -145,6 +146,9 @@ export default function LoginScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Alert Component */}
+      <AlertComponent />
     </KeyboardAvoidingView>
   );
 }

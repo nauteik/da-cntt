@@ -57,6 +57,19 @@ public class ServiceDelivery extends BaseEntity {
     @Column(name = "total_hours")
     private Double totalHours;
 
+    @Column(name = "cancelled", nullable = false)
+    private Boolean cancelled = false;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by_staff_id")
+    private Staff cancelledByStaff;
+
     // Relationships
     @OneToMany(mappedBy = "serviceDelivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<DailyNote> dailyNotes = new HashSet<>();
@@ -81,10 +94,6 @@ public class ServiceDelivery extends BaseEntity {
 
     public boolean isCompleted() {
         return "completed".equals(status);
-    }
-
-    public boolean isCancelled() {
-        return "cancelled".equals(status);
     }
 
     public boolean isApproved() {
@@ -223,6 +232,24 @@ public class ServiceDelivery extends BaseEntity {
     public boolean isCheckOutValid() {
         CheckEvent checkOut = getCheckOutEvent();
         return checkOut != null && checkOut.isOK();
+    }
+
+    /**
+     * Cancel the service delivery
+     */
+    public void cancel(String reason, Staff cancelledBy) {
+        this.cancelled = true;
+        this.cancelReason = reason;
+        this.cancelledAt = LocalDateTime.now();
+        this.cancelledByStaff = cancelledBy;
+        this.status = "cancelled";
+    }
+
+    /**
+     * Check if service delivery is cancelled
+     */
+    public boolean isCancelled() {
+        return Boolean.TRUE.equals(this.cancelled);
     }
 }
 

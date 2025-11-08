@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -11,92 +10,97 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from 'react-native';
-
-interface CancelScheduleProps {
-  scheduleId?: string;
-  patientName?: string;
-  scheduledTime?: string;
-}
+import { useCustomAlert } from '@/src/components/common/CustomAlert';
+import { apiClient } from '@/src/services/api/apiClient';
 
 export default function CancelScheduleScreen() {
+  const params = useLocalSearchParams<{
+    serviceDeliveryId?: string;
+    patientName?: string;
+    scheduledTime?: string;
+  }>();
+
+  const { showAlert, AlertComponent } = useCustomAlert();
   const [cancelReason, setCancelReason] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const cancelCategories = [
-    { id: 'patient_sick', label: 'Patient is sick/unwell', icon: 'medical' },
-    { id: 'patient_unavailable', label: 'Patient not available', icon: 'person-remove' },
-    { id: 'family_request', label: 'Family request', icon: 'people' },
-    { id: 'emergency', label: 'Emergency situation', icon: 'alert-circle' },
-    { id: 'weather', label: 'Weather conditions', icon: 'rainy' },
-    { id: 'transport', label: 'Transportation issues', icon: 'car' },
-    { id: 'staff_unavailable', label: 'Staff unavailable', icon: 'person-outline' },
-    { id: 'other', label: 'Other reason', icon: 'ellipsis-horizontal' },
+  // Quick reason templates
+  const reasonTemplates = [
+    'Patient is sick/unwell',
+    'Patient not available',
+    'Family request',
+    'Emergency situation',
+    'Weather conditions',
+    'Transportation issues',
+    'Staff unavailable',
   ];
 
-  const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategory(categoryId);
+  const handleQuickReason = (template: string) => {
+    setCancelReason(template);
   };
 
   const handleSubmitCancel = async () => {
-    if (!selectedCategory) {
-      Alert.alert('Error', 'Please select a cancellation category');
-      return;
-    }
-
     if (!cancelReason.trim()) {
-      Alert.alert('Error', 'Please provide a detailed reason for cancellation');
+      showAlert('Error', 'Please provide a reason for cancellation');
       return;
     }
 
     if (cancelReason.trim().length < 10) {
-      Alert.alert('Error', 'Please provide a more detailed reason (at least 10 characters)');
+      showAlert('Error', 'Please provide a more detailed reason (at least 10 characters)');
       return;
     }
 
     try {
       setIsSubmitting(true);
       
-      const cancelData = {
-        scheduleId: 'schedule-123', // Would come from navigation params
-        category: selectedCategory,
-        reason: cancelReason.trim(),
-        timestamp: new Date().toISOString(),
-        cancelledBy: 'current-user-id', // Would come from auth context
-      };
+      // Call backend API to cancel service delivery
+      if (params.serviceDeliveryId) {
+        const response = await apiClient.post(
+          `/service-delivery/${params.serviceDeliveryId}/cancel?reason=${encodeURIComponent(cancelReason.trim())}`
+        );
 
-      // TODO: Submit cancellation to backend
-      console.log('Cancellation data:', cancelData);
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to cancel service delivery');
+        }
+
+        showAlert(
+          'Service Delivery Cancelled',
+          'The service delivery has been successfully cancelled.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.back()
+            }
+          ],
+          'checkmark-circle',
+          '#4CAF50'
+        );
+      } else {
+        showAlert('Error', 'Service delivery ID is missing');
+      }
       
-      Alert.alert(
-        'Schedule Cancelled',
-        'The schedule has been successfully cancelled.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ]
-      );
-      
-    } catch (error) {
-      console.error('Error cancelling schedule:', error);
-      Alert.alert('Error', 'Failed to cancel schedule. Please try again.');
+    } catch (error: any) {
+      console.error('Error cancelling service delivery:', error);
+      const errorMessage = error.message || 'Failed to cancel service delivery. Please try again.';
+      showAlert('Error', errorMessage, undefined, 'alert-circle', '#f44336');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoBack = () => {
-    if (selectedCategory || cancelReason.trim()) {
-      Alert.alert(
+    if (cancelReason.trim()) {
+      showAlert(
         'Discard Changes',
         'Are you sure you want to go back? Your changes will be lost.',
         [
           { text: 'Stay', style: 'cancel' },
           { text: 'Discard', style: 'destructive', onPress: () => router.back() }
-        ]
+        ],
+        'warning',
+        '#ff9800'
       );
     } else {
       router.back();
@@ -112,20 +116,23 @@ export default function CancelScheduleScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cancel Schedule</Text>
+        <Text style={styles.headerTitle}>Cancel Service Delivery</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Schedule Info */}
+        {/* Service Delivery Info */}
         <View style={styles.scheduleCard}>
           <View style={styles.scheduleHeader}>
-            <Ionicons name="calendar" size={24} color="#f44336" />
-            <Text style={styles.scheduleTitle}>Schedule to Cancel</Text>
+            <Ionicons name="calendar-outline" size={24} color="#f44336" />
+            <Text style={styles.scheduleTitle}>Service Delivery to Cancel</Text>
           </View>
           <View style={styles.scheduleInfo}>
-            <Text style={styles.patientName}>Patient: John Doe</Text>
-            <Text style={styles.scheduleTime}>Time: Today, 2:00 PM - 6:00 PM</Text>
-            <Text style={styles.scheduleLocation}>Location: 123 Main St, City</Text>
+            <Text style={styles.patientName}>
+              Patient: {params.patientName || 'N/A'}
+            </Text>
+            <Text style={styles.scheduleTime}>
+              Time: {params.scheduledTime || 'N/A'}
+            </Text>
           </View>
         </View>
 
@@ -133,60 +140,52 @@ export default function CancelScheduleScreen() {
         <View style={styles.warningCard}>
           <Ionicons name="warning" size={20} color="#ff9800" />
           <Text style={styles.warningText}>
-            Cancelling this schedule will notify the patient and update the care records. 
-            Please provide a detailed reason for documentation.
+            Cancelling this service delivery will update the status to "cancelled" and prevent check-in/check-out. 
+            Please provide a detailed reason for documentation and billing purposes.
           </Text>
         </View>
 
-        {/* Cancellation Categories */}
+        {/* Quick Reason Templates */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Cancellation Category *</Text>
-          <View style={styles.categoriesGrid}>
-            {cancelCategories.map((category) => (
+          <Text style={styles.sectionTitle}>Quick Reason Templates</Text>
+          <View style={styles.templateContainer}>
+            {reasonTemplates.map((template, index) => (
               <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryCard,
-                  selectedCategory === category.id && styles.selectedCategoryCard
-                ]}
-                onPress={() => handleCategorySelect(category.id)}
+                key={index}
+                style={styles.templateButton}
+                onPress={() => handleQuickReason(template)}
               >
-                <Ionicons 
-                  name={category.icon as any} 
-                  size={24} 
-                  color={selectedCategory === category.id ? '#2196F3' : '#666'} 
-                />
-                <Text style={[
-                  styles.categoryText,
-                  selectedCategory === category.id && styles.selectedCategoryText
-                ]}>
-                  {category.label}
-                </Text>
+                <Text style={styles.templateText}>{template}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Detailed Reason */}
+        {/* Cancellation Reason */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Detailed Reason *</Text>
+          <Text style={styles.sectionTitle}>Cancellation Reason *</Text>
           <TextInput
             style={styles.reasonInput}
             value={cancelReason}
             onChangeText={setCancelReason}
-            placeholder="Please provide a detailed explanation for the cancellation..."
+            placeholder="Enter the reason for cancellation (minimum 10 characters)..."
             multiline
             numberOfLines={6}
             textAlignVertical="top"
+            editable={!isSubmitting}
           />
           <Text style={styles.characterCount}>
-            {cancelReason.length}/500 characters
+            {cancelReason.length} characters (minimum 10)
           </Text>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.discardButton} onPress={handleGoBack}>
+          <TouchableOpacity 
+            style={styles.discardButton} 
+            onPress={handleGoBack}
+            disabled={isSubmitting}
+          >
             <Ionicons name="close-circle-outline" size={20} color="#666" />
             <Text style={styles.discardButtonText}>Discard</Text>
           </TouchableOpacity>
@@ -194,18 +193,25 @@ export default function CancelScheduleScreen() {
           <TouchableOpacity 
             style={[
               styles.cancelScheduleButton, 
-              (!selectedCategory || !cancelReason.trim() || isSubmitting) && styles.disabledButton
+              (!cancelReason.trim() || cancelReason.trim().length < 10 || isSubmitting) && styles.disabledButton
             ]} 
             onPress={handleSubmitCancel}
-            disabled={!selectedCategory || !cancelReason.trim() || isSubmitting}
+            disabled={!cancelReason.trim() || cancelReason.trim().length < 10 || isSubmitting}
           >
-            <Ionicons name="close-circle" size={20} color="white" />
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Ionicons name="close-circle" size={20} color="white" />
+            )}
             <Text style={styles.cancelScheduleButtonText}>
-              {isSubmitting ? 'Cancelling...' : 'Cancel Schedule'}
+              {isSubmitting ? 'Cancelling...' : 'Confirm Cancel'}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Alert Component */}
+      <AlertComponent />
     </KeyboardAvoidingView>
   );
 }
@@ -272,11 +278,6 @@ const styles = StyleSheet.create({
   scheduleTime: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 2,
-  },
-  scheduleLocation: {
-    fontSize: 14,
-    color: '#666',
   },
   warningCard: {
     backgroundColor: '#fff3e0',
@@ -310,36 +311,22 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 12,
   },
-  categoriesGrid: {
+  templateContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 8,
   },
-  categoryCard: {
-    width: '48%',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    alignItems: 'center',
+  templateButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#ddd',
   },
-  selectedCategoryCard: {
-    backgroundColor: '#e3f2fd',
-    borderColor: '#2196F3',
-    borderWidth: 2,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 4,
-    lineHeight: 16,
-  },
-  selectedCategoryText: {
-    color: '#2196F3',
-    fontWeight: '600',
+  templateText: {
+    fontSize: 13,
+    color: '#555',
   },
   reasonInput: {
     borderWidth: 1,
@@ -390,6 +377,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     flex: 0.45,
     justifyContent: 'center',
+    gap: 6,
   },
   disabledButton: {
     backgroundColor: '#ccc',
@@ -398,6 +386,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 6,
   },
 });

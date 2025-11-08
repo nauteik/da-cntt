@@ -73,4 +73,9 @@ public interface ServiceDeliveryService {
      * Update approval status
      */
     ServiceDeliveryResponseDTO updateApprovalStatus(UUID id, String approvalStatus);
+    
+    /**
+     * Cancel service delivery
+     */
+    ServiceDeliveryResponseDTO cancel(UUID id, String reason);
 }

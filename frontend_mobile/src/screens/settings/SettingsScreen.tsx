@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
     ScrollView,
     StyleSheet,
     Switch,
@@ -10,32 +9,28 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-
-interface UserInfo {
-  name: string;
-  employeeId: string;
-  email: string;
-  department: string;
-  role: string;
-  phone: string;
-}
+import { useAuth } from '../../store/authStore';
+import { useCustomAlert } from '../../components/common/CustomAlert';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoSync, setAutoSync] = useState(true);
+  const { state: authState, logout: authLogout } = useAuth();
+  const { showAlert, AlertComponent } = useCustomAlert();
   
-  // Mock user data - in a real app, this would come from your auth system
-  const userInfo: UserInfo = {
-    name: 'Sarah Johnson',
-    employeeId: 'EMP001',
-    email: 'sarah.johnson@blueangelscare.com',
-    department: 'Patient Care',
-    role: 'Care Coordinator',
-    phone: '+1 (555) 123-4567',
+  // Get user data from auth context
+  const currentUser = authState.user;
+  const userInfo = {
+    name: currentUser?.name || 'N/A',
+    employeeId: currentUser?.staffId || currentUser?.id || 'N/A',
+    email: currentUser?.email || 'N/A',
+    department: 'Patient Care', // TODO: Get from backend
+    role: currentUser?.role || 'N/A',
+    phone: currentUser?.phone || 'N/A',
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    showAlert(
       'Logout',
       'Are you sure you want to logout?',
       [
@@ -44,24 +39,46 @@ export default function SettingsScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: () => {
+            // Clear auth state
+            authLogout();
             // Navigate back to login screen
             router.replace('../login');
           },
         },
-      ]
+      ],
+      'log-out',
+      '#f44336'
     );
   };
 
   const handleChangePassword = () => {
-    Alert.alert('Change Password', 'This feature will redirect to the password change page.');
+    showAlert(
+      'Change Password', 
+      'This feature will redirect to the password change page.',
+      [{ text: 'OK', style: 'default' }],
+      'key',
+      '#2196F3'
+    );
   };
 
   const handleSyncData = () => {
-    Alert.alert('Sync Data', 'Data synchronization started...');
+    showAlert(
+      'Sync Data', 
+      'Data synchronization started...',
+      [{ text: 'OK', style: 'default' }],
+      'sync',
+      '#4CAF50'
+    );
   };
 
   const handleContactSupport = () => {
-    Alert.alert('Support', 'Contacting support team...');
+    showAlert(
+      'Support', 
+      'Contacting support team...',
+      [{ text: 'OK', style: 'default' }],
+      'help-circle',
+      '#2196F3'
+    );
   };
 
   const renderUserInfoItem = (icon: string, label: string, value: string) => (
@@ -217,6 +234,9 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Alert Component */}
+      <AlertComponent />
     </View>
   );
 }

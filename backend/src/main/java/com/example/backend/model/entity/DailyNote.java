@@ -89,12 +89,6 @@ public class DailyNote extends BaseEntity {
     @Column(name = "staff_signature")
     private String staffSignature; // staff signature (name or reference)
 
-    @Column(name = "cancelled", nullable = false)
-    private Boolean cancelled = false;
-
-    @Column(name = "cancel_reason")
-    private String cancelReason;
-
     public DailyNote(ServiceDelivery serviceDelivery, Staff authorStaff, String content) {
         this.serviceDelivery = serviceDelivery;
         this.authorStaff = authorStaff;

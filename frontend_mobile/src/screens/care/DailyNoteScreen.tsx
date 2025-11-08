@@ -490,38 +490,9 @@ export default function DailyNoteScreen() {
           </View>
         </View>
 
-        {/* Care Details */}
+        {/* Care Content */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Care Details</Text>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Care Location</Text>
-            <TextInput
-              style={styles.input}
-              value={form.careLocation}
-              onChangeText={(text) => setForm(prev => ({ ...prev, careLocation: text }))}
-              placeholder="Enter care location"
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Check-in Time</Text>
-              <TextInput
-                style={styles.input}
-                value={form.checkInTime}
-                onChangeText={(text) => setForm(prev => ({ ...prev, checkInTime: text }))}
-                placeholder="e.g., 9:00 AM"
-              />
-            </View>
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Check-out Time</Text>
-              <TextInput
-                style={styles.input}
-                value={form.checkOutTime}
-                onChangeText={(text) => setForm(prev => ({ ...prev, checkOutTime: text }))}
-                placeholder="e.g., 5:00 PM"
-              />
-            </View>
-          </View>
+          <Text style={styles.sectionTitle}>Care Content</Text>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Care Content *</Text>
             <TextInput

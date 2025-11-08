@@ -55,9 +55,6 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         note.setMealInfo(dto.getMealInfo() == null ? List.of() : List.copyOf(dto.getMealInfo()));
         note.setPatientSignature(dto.getPatientSignature());
         note.setStaffSignature(dto.getStaffSignature());
-        note.setCancelled(Boolean.TRUE.equals(dto.getCancelled()));
-        note.setCancelReason(dto.getCancelReason());
-
         DailyNote saved = dailyNoteRepository.save(note);
         log.info("Created DailyNote {} for ServiceDelivery {} - Patient: {}, Staff: {}", 
             saved.getId(), serviceDelivery.getId(), patient.getFullName(), 
@@ -100,8 +97,6 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         note.setMealInfo(dto.getMealInfo() == null ? List.of() : List.copyOf(dto.getMealInfo()));
         note.setPatientSignature(dto.getPatientSignature());
         note.setStaffSignature(dto.getStaffSignature());
-        note.setCancelled(Boolean.TRUE.equals(dto.getCancelled()));
-        note.setCancelReason(dto.getCancelReason());
 
         DailyNote saved = dailyNoteRepository.save(note);
         log.info("Updated DailyNote {} for ServiceDelivery {}", saved.getId(), saved.getServiceDelivery().getId());
@@ -151,8 +146,6 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         
         dto.setPatientSignature(note.getPatientSignature());
         dto.setStaffSignature(note.getStaffSignature());
-        dto.setCancelled(note.getCancelled());
-        dto.setCancelReason(note.getCancelReason());
         return dto;
     }
 }
