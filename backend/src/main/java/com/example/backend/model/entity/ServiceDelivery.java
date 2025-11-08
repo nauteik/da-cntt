@@ -1,44 +1,39 @@
 package com.example.backend.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 /**
  * Service delivery entity for actual shift records used in billing & claims
+ * Links to ScheduleEvent for office, patient, and staff information
+ * Check-in/check-out information is stored in CheckEvent entities
  */
 @Entity
 @Table(name = "service_delivery")
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"scheduleEvent", "office", "patient", "staff","authorization", "dailyNotes", "medicationAdministrations"})
+@ToString(exclude = {"scheduleEvent", "authorization", "dailyNotes", "medicationAdministrations", "checkEvents"})
 public class ServiceDelivery extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_event_id")
+    @JoinColumn(name = "schedule_event_id", nullable = false)
     private ScheduleEvent scheduleEvent;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "office_id")
-    private Office office;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "patient_id", nullable = false)
-    @JsonIgnore
-    private Patient patient;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "staff_id", nullable = false)
-    private Staff staff;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "authorization_id")
@@ -54,10 +49,13 @@ public class ServiceDelivery extends BaseEntity {
     private Integer units;
 
     @Column(name = "status", nullable = false)
-    private String status = "in_progress";
+    private String status = "in_progress"; // in_progress, completed, cancelled
 
     @Column(name = "approval_status", nullable = false)
-    private String approvalStatus = "pending";
+    private String approvalStatus = "pending"; // pending, approved, rejected
+
+    @Column(name = "total_hours")
+    private Double totalHours;
 
     // Relationships
     @OneToMany(mappedBy = "serviceDelivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -66,10 +64,11 @@ public class ServiceDelivery extends BaseEntity {
     @OneToMany(mappedBy = "serviceDelivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<MedicationAdministration> medicationAdministrations = new HashSet<>();
 
-    public ServiceDelivery(Patient patient, Staff staff, 
-                          LocalDateTime startAt, LocalDateTime endAt, Integer units) {
-        this.patient = patient;
-        this.staff = staff;
+    @OneToMany(mappedBy = "serviceDelivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<CheckEvent> checkEvents = new HashSet<>();
+
+    public ServiceDelivery(ScheduleEvent scheduleEvent, LocalDateTime startAt, LocalDateTime endAt, Integer units) {
+        this.scheduleEvent = scheduleEvent;
         this.startAt = startAt;
         this.endAt = endAt;
         this.units = units;
@@ -106,6 +105,124 @@ public class ServiceDelivery extends BaseEntity {
 
     public long getDurationHours() {
         return ChronoUnit.HOURS.between(startAt, endAt);
+    }
+
+    /**
+     * Get office from schedule event
+     */
+    public Office getOffice() {
+        return scheduleEvent != null ? scheduleEvent.getOffice() : null;
+    }
+
+    /**
+     * Get patient from schedule event
+     */
+    public Patient getPatient() {
+        return scheduleEvent != null ? scheduleEvent.getPatient() : null;
+    }
+
+    /**
+     * Get staff from schedule event
+     */
+    public Staff getStaff() {
+        return scheduleEvent != null ? scheduleEvent.getStaff() : null;
+    }
+
+    /**
+     * Get check-in event
+     */
+    public CheckEvent getCheckInEvent() {
+        return checkEvents.stream()
+                .filter(CheckEvent::isCheckIn)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Get check-out event
+     */
+    public CheckEvent getCheckOutEvent() {
+        return checkEvents.stream()
+                .filter(CheckEvent::isCheckOut)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Check if check-in/check-out is completed
+     */
+    public boolean isCheckInCheckOutCompleted() {
+        return getCheckInEvent() != null && getCheckOutEvent() != null;
+    }
+
+    /**
+     * Check if both check-in and check-out are valid (within acceptable range)
+     */
+    public boolean isCheckInCheckOutFullyValid() {
+        CheckEvent checkIn = getCheckInEvent();
+        CheckEvent checkOut = getCheckOutEvent();
+        return checkIn != null && checkIn.isOK() && 
+               checkOut != null && checkOut.isOK();
+    }
+
+    /**
+     * Add a check-in event
+     */
+    public void addCheckInEvent(CheckEvent checkEvent) {
+        checkEvent.setServiceDelivery(this);
+        checkEvent.setEventType(com.example.backend.model.enums.CheckEventType.CHECK_IN);
+        this.checkEvents.add(checkEvent);
+    }
+
+    /**
+     * Add a check-out event and calculate total hours
+     */
+    public void addCheckOutEvent(CheckEvent checkEvent) {
+        checkEvent.setServiceDelivery(this);
+        checkEvent.setEventType(com.example.backend.model.enums.CheckEventType.CHECK_OUT);
+        this.checkEvents.add(checkEvent);
+        
+        // Calculate total hours
+        CheckEvent checkIn = getCheckInEvent();
+        if (checkIn != null && checkEvent.getOccurredAt() != null) {
+            long seconds = java.time.Duration.between(
+                checkIn.getOccurredAt(), 
+                checkEvent.getOccurredAt()
+            ).getSeconds();
+            this.totalHours = seconds / 3600.0;
+        }
+    }
+
+    /**
+     * Get check-in time
+     */
+    public LocalDateTime getCheckInTime() {
+        CheckEvent checkIn = getCheckInEvent();
+        return checkIn != null ? checkIn.getOccurredAt() : null;
+    }
+
+    /**
+     * Get check-out time
+     */
+    public LocalDateTime getCheckOutTime() {
+        CheckEvent checkOut = getCheckOutEvent();
+        return checkOut != null ? checkOut.getOccurredAt() : null;
+    }
+
+    /**
+     * Check if check-in is valid
+     */
+    public boolean isCheckInValid() {
+        CheckEvent checkIn = getCheckInEvent();
+        return checkIn != null && checkIn.isOK();
+    }
+
+    /**
+     * Check if check-out is valid
+     */
+    public boolean isCheckOutValid() {
+        CheckEvent checkOut = getCheckOutEvent();
+        return checkOut != null && checkOut.isOK();
     }
 }
 

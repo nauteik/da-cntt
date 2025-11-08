@@ -6,13 +6,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * Request DTO for checking out from a daily note
+ * Request DTO for checking in to a service delivery
  */
 @Data
-public class DailyNoteCheckOutRequest {
+public class ServiceDeliveryCheckInRequest {
 
-    @NotNull(message = "Daily note ID is required")
-    private UUID dailyNoteId;
+    @NotNull(message = "Service delivery ID is required")
+    private UUID serviceDeliveryId;
 
     @NotNull(message = "Latitude is required")
     private Double latitude;

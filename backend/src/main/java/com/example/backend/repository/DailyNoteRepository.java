@@ -18,24 +18,20 @@ public interface DailyNoteRepository extends JpaRepository<DailyNote, UUID> {
     List<DailyNote> findByStaffId(UUID staffId);
     List<DailyNote> findByServiceDeliveryId(UUID serviceDeliveryId);
     
-    // Find daily notes by staff ordered by check-in time
-    List<DailyNote> findByStaffOrderByCheckInTimeDesc(Staff staff);
+    // Find daily notes by staff ordered by creation date
+    List<DailyNote> findByStaffOrderByCreatedAtDesc(Staff staff);
     
-    // Find daily notes with incomplete check-out (checked in but not checked out)
-    @Query("SELECT dn FROM DailyNote dn WHERE dn.staff = :staff AND dn.checkInTime IS NOT NULL AND dn.checkOutTime IS NULL")
-    List<DailyNote> findIncompleteCheckOutByStaff(@Param("staff") Staff staff);
-    
-    // Find daily notes by staff and date range
-    @Query("SELECT dn FROM DailyNote dn WHERE dn.staff = :staff AND dn.checkInTime BETWEEN :startDate AND :endDate ORDER BY dn.checkInTime DESC")
+    // Find daily notes by staff and date range (based on created_at)
+    @Query("SELECT dn FROM DailyNote dn WHERE dn.staff = :staff AND dn.createdAt BETWEEN :startDate AND :endDate ORDER BY dn.createdAt DESC")
     List<DailyNote> findByStaffAndDateRange(@Param("staff") Staff staff, 
                                             @Param("startDate") LocalDateTime startDate, 
                                             @Param("endDate") LocalDateTime endDate);
     
-    // Find invalid check-ins or check-outs (outside 1km radius)
-    @Query("SELECT dn FROM DailyNote dn WHERE dn.checkInValid = false OR dn.checkOutValid = false ORDER BY dn.checkInTime DESC")
-    List<DailyNote> findInvalidCheckInCheckOuts();
-    
-    // Count daily notes by staff and date
-    @Query("SELECT COUNT(dn) FROM DailyNote dn WHERE dn.staff = :staff AND DATE(dn.checkInTime) = DATE(:date)")
+    // Count daily notes by staff and date (based on created_at)
+    @Query("SELECT COUNT(dn) FROM DailyNote dn WHERE dn.staff = :staff AND DATE(dn.createdAt) = DATE(:date)")
     Long countByStaffAndDate(@Param("staff") Staff staff, @Param("date") LocalDateTime date);
+    
+    // Find daily notes by patient ordered by creation date
+    @Query("SELECT dn FROM DailyNote dn WHERE dn.patient.id = :patientId ORDER BY dn.createdAt DESC")
+    List<DailyNote> findByPatientIdOrderByCreatedAtDesc(@Param("patientId") UUID patientId);
 }

@@ -9,9 +9,7 @@ import jakarta.validation.constraints.NotNull;
 public class DailyNoteRequestDTO {
 
     @NotNull
-    private UUID patientId;
-
-    private UUID staffId;
+    private UUID serviceDeliveryId;
 
     @NotNull
     private String content;
@@ -31,10 +29,8 @@ public class DailyNoteRequestDTO {
     private String cancelReason;
 
     // getters and setters
-    public UUID getPatientId() { return patientId; }
-    public void setPatientId(UUID patientId) { this.patientId = patientId; }
-    public UUID getStaffId() { return staffId; }
-    public void setStaffId(UUID staffId) { this.staffId = staffId; }
+    public UUID getServiceDeliveryId() { return serviceDeliveryId; }
+    public void setServiceDeliveryId(UUID serviceDeliveryId) { this.serviceDeliveryId = serviceDeliveryId; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
     public LocalDateTime getCheckInTime() { return checkInTime; }

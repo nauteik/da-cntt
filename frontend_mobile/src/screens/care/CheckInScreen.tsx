@@ -4,13 +4,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
+import checkInCheckOutService, { CheckInCheckOutResponse } from '../../services/api/checkInCheckOutService';
+import CheckInCheckOutValidation from '../../components/care/CheckInCheckOutValidation';
+import { CustomAlert, AlertButton } from '../../components/common/CustomAlert';
 
 interface LocationData {
   latitude: number;
@@ -21,7 +24,8 @@ interface LocationData {
 
 export default function CheckInScreen() {
   const params = useLocalSearchParams();
-  const scheduleId = params.scheduleId as string;
+  const scheduleEventId = params.scheduleEventId as string;
+  const serviceDeliveryId = params.serviceDeliveryId as string;
   const patientId = params.patientId as string;
   const patientName = params.patientName as string;
   const visitId = params.visitId as string; // For unscheduled visits
@@ -29,6 +33,22 @@ export default function CheckInScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+  const [checkInResult, setCheckInResult] = useState<CheckInCheckOutResponse | null>(null);
+  const [distanceToPatient, setDistanceToPatient] = useState<number | null>(null);
+  const [patientAddress, setPatientAddress] = useState<string | null>(null);
+  
+  // Custom Alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    icon?: keyof typeof Ionicons.glyphMap;
+    iconColor?: string;
+    buttons?: AlertButton[];
+  }>({
+    title: '',
+    message: '',
+  });
 
   // Mock patient data if not provided
   const mockPatientId = patientId || 'PT001';
@@ -36,7 +56,29 @@ export default function CheckInScreen() {
 
   useEffect(() => {
     requestLocationPermission();
+    // Load patient address from params or fetch from API
+    if (patientName) {
+      // In real app, fetch patient address from API using patientId
+      // For now, use mock data
+      setPatientAddress('Patient Address (from schedule)');
+    }
   }, []);
+
+  // Calculate distance between two GPS coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distance in meters
+  };
 
   const requestLocationPermission = async () => {
     try {
@@ -46,18 +88,28 @@ export default function CheckInScreen() {
       if (status === 'granted') {
         getCurrentLocation();
       } else {
-        Alert.alert(
-          'Location Permission Required',
-          'Please enable location permission to check in.',
-          [
-            { text: 'Cancel', onPress: () => router.back() },
-            { text: 'Settings', onPress: () => Location.requestForegroundPermissionsAsync() }
+        setAlertConfig({
+          title: 'Location Permission Required',
+          message: 'Please enable location permission to check in.',
+          icon: 'location-outline',
+          iconColor: '#FF9800',
+          buttons: [
+            { text: 'Cancel', style: 'cancel', onPress: () => router.back() },
+            { text: 'Settings', style: 'default', onPress: () => Location.requestForegroundPermissionsAsync() }
           ]
-        );
+        });
+        setAlertVisible(true);
       }
     } catch (error) {
       console.error('Error requesting location permission:', error);
-      Alert.alert('Error', 'Failed to request location permission');
+      setAlertConfig({
+        title: 'Error',
+        message: 'Failed to request location permission',
+        icon: 'alert-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
     }
   };
 
@@ -83,9 +135,34 @@ export default function CheckInScreen() {
       };
 
       setCurrentLocation(locationData);
+
+      // Calculate distance to patient address if available
+      // TODO: In production, fetch actual patient GPS coordinates from backend
+      // For now, using mock coordinates - you should fetch from serviceDeliveryId
+      // Example: GET /api/service-delivery/{id} to get patient address coordinates
+      const mockPatientLat = 10.802485074288798;  // Replace with actual patient lat
+      const mockPatientLon = 106.70588177651746;  // Replace with actual patient lon
+      
+      if (mockPatientLat && mockPatientLon) {
+        const distance = calculateDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          mockPatientLat,
+          mockPatientLon
+        );
+        setDistanceToPatient(distance);
+        console.log('[CheckInScreen] Distance to patient:', distance, 'meters');
+      }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('Error', 'Failed to get current location');
+      setAlertConfig({
+        title: 'Error',
+        message: 'Failed to get current location. Please try again.',
+        icon: 'alert-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -93,28 +170,44 @@ export default function CheckInScreen() {
 
   const handleCheckIn = async () => {
     if (!currentLocation) {
-      Alert.alert(
-        '📍 Location Required',
-        'Location not available. Please enable GPS and try again.',
-        [{ text: 'OK', style: 'default' }]
-      );
+      setAlertConfig({
+        title: 'Location Required',
+        message: 'Location not available. Please enable GPS and try again.',
+        icon: 'location',
+        iconColor: '#FF9800',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
+      return;
+    }
+
+    if (!serviceDeliveryId) {
+      setAlertConfig({
+        title: 'Error',
+        message: 'Service Delivery ID not found. Please start shift first.',
+        icon: 'alert-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
       return;
     }
 
     try {
       setIsLoading(true);
       
-      // Mock check-in data since backend not ready
-      const checkInData = {
-        scheduleId: scheduleId || `SCH-${Date.now()}`,
-        patientId: mockPatientId,
-        patientName: mockPatientName,
-        checkInTime: currentLocation.timestamp,
-        checkInLocation: currentLocation,
-        type: 'check_in',
-      };
+      // Call backend API for check-in
+      const checkInResponse = await checkInCheckOutService.checkIn({
+        serviceDeliveryId: serviceDeliveryId,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        address: currentLocation.address,
+      });
 
-      console.log('Check-in data:', checkInData);
+      console.log('[CheckInScreen] Check-in response:', checkInResponse);
+      
+      // Store check-in result for display
+      setCheckInResult(checkInResponse);
       
       // Update visit status if this is an unscheduled visit
       if (visitId) {
@@ -124,28 +217,37 @@ export default function CheckInScreen() {
         });
       }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Show success message with validation info
+      const validationMessage = checkInResponse.checkInValid 
+        ? `Distance: ${checkInResponse.checkInDistanceFormatted || `${Math.round(checkInResponse.checkInDistanceMeters || 0)}m`}`
+        : `⚠️ You are ${checkInResponse.checkInDistanceFormatted || `${Math.round(checkInResponse.checkInDistanceMeters || 0)}m`} from patient's address`;
       
-      Alert.alert(
-        '✅ Check-In Successful',
-        `You have successfully checked in for ${mockPatientName}.\n\nLocation: ${currentLocation.address}\nTime: ${new Date(currentLocation.timestamp).toLocaleTimeString()}`,
-        [
+      setAlertConfig({
+        title: 'Check-In Successful',
+        message: `You have successfully checked in for ${mockPatientName}.\n\nLocation: ${currentLocation.address}\nTime: ${new Date(currentLocation.timestamp).toLocaleTimeString()}\n\n${validationMessage}`,
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50',
+        buttons: [
           {
-            text: 'Back to List',
+            text: 'Back to Schedule',
             style: 'default',
             onPress: () => router.back(),
           },
         ]
-      );
+      });
+      setAlertVisible(true);
       
-    } catch (error) {
-      console.error('Error during check-in:', error);
-      Alert.alert(
-        '❌ Check-In Failed',
-        'Failed to check in. Please try again.',
-        [{ text: 'OK', style: 'cancel' }]
-      );
+    } catch (error: any) {
+      console.error('[CheckInScreen] Error during check-in:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to check in. Please try again.';
+      setAlertConfig({
+        title: 'Check-In Failed',
+        message: errorMessage,
+        icon: 'close-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'cancel' }]
+      });
+      setAlertVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +292,11 @@ export default function CheckInScreen() {
         <Text style={styles.headerTitle}>Check In</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Patient Info Card */}
         <View style={styles.patientCard}>
           <View style={styles.patientHeader}>
@@ -198,7 +304,7 @@ export default function CheckInScreen() {
             <View style={styles.patientInfo}>
               <Text style={styles.patientName}>{mockPatientName}</Text>
               <Text style={styles.patientId}>ID: {mockPatientId}</Text>
-              {scheduleId && <Text style={styles.scheduleId}>Schedule: {scheduleId}</Text>}
+              {scheduleEventId && <Text style={styles.scheduleId}>Schedule: {scheduleEventId}</Text>}
             </View>
           </View>
         </View>
@@ -236,13 +342,58 @@ export default function CheckInScreen() {
           )}
         </View>
 
+        {/* Display distance preview BEFORE check-in */}
+        {currentLocation && distanceToPatient !== null && !checkInResult && (
+          <View style={[
+            styles.distancePreviewCard,
+            distanceToPatient <= 1000 ? styles.distanceGood : styles.distanceFar
+          ]}>
+            <Ionicons 
+              name={distanceToPatient <= 1000 ? "checkmark-circle" : "warning"} 
+              size={32} 
+              color={distanceToPatient <= 1000 ? "#4CAF50" : "#FF9800"} 
+            />
+            <View style={styles.distancePreviewContent}>
+              <Text style={styles.distancePreviewTitle}>
+                Distance to Patient Address
+              </Text>
+              <Text style={styles.distancePreviewValue}>
+                {distanceToPatient < 1000 
+                  ? `${distanceToPatient.toFixed(0)} meters`
+                  : `${(distanceToPatient / 1000).toFixed(2)} km`
+                }
+              </Text>
+              {distanceToPatient > 1000 && (
+                <Text style={styles.distanceWarning}>
+                  ⚠️ You are more than 1km away from patient's address. Please move closer or confirm if this is correct.
+                </Text>
+              )}
+              {distanceToPatient <= 1000 && (
+                <Text style={styles.distanceGoodText}>
+                  ✓ You are within acceptable range (≤1km)
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={24} color="#ff9800" />
           <Text style={styles.infoText}>
             Your location will be recorded when you check in. This helps ensure accurate care documentation and compliance with care protocols.
           </Text>
         </View>
-      </View>
+
+        {/* Display GPS validation results after check-in */}
+        {checkInResult && (
+          <CheckInCheckOutValidation
+            isValid={checkInResult.checkInValid || false}
+            distanceMeters={checkInResult.checkInDistanceMeters}
+            distanceFormatted={checkInResult.checkInDistanceFormatted}
+            type="check-in"
+          />
+        )}
+      </ScrollView>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
@@ -260,6 +411,17 @@ export default function CheckInScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        iconColor={alertConfig.iconColor}
+        buttons={alertConfig.buttons}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </View>
   );
 }
@@ -286,7 +448,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
+    paddingBottom: 40,
   },
   patientCard: {
     backgroundColor: 'white',
@@ -380,6 +545,56 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     padding: 20,
+  },
+  distancePreviewCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  distanceGood: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#E8F5E9',
+  },
+  distanceFar: {
+    borderColor: '#FF9800',
+    backgroundColor: '#FFF3E0',
+  },
+  distancePreviewContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  distancePreviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  distancePreviewValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2196F3',
+    marginBottom: 8,
+  },
+  distanceWarning: {
+    fontSize: 13,
+    color: '#E65100',
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  distanceGoodText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    lineHeight: 18,
+    marginTop: 4,
   },
   infoCard: {
     backgroundColor: '#fff3e0',

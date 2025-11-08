@@ -54,10 +54,14 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Invalid email or password");
         }
 
-        // Get display name and office from the associated Staff entity
+        // Get display name, staff ID, and office from the associated Staff entity
         String displayName = Optional.ofNullable(user.getStaff())
                 .map(Staff::getFullName)
                 .orElse(user.getEmail());
+        
+        String staffId = Optional.ofNullable(user.getStaff())
+                .map(staff -> staff.getId().toString())
+                .orElse(null);
         
         String officeId = Optional.ofNullable(user.getStaff())
                 .map(staff -> staff.getOffice().getId().toString())
@@ -66,8 +70,8 @@ public class AuthServiceImpl implements AuthService {
         // Get user role
         List<String> roles = List.of(user.getRole().getCode());
 
-        // Generate JWT token with user info and officeId
-        String token = generateToken(user, displayName, roles, officeId);
+        // Generate JWT token with user info, staffId, and officeId
+        String token = generateToken(user, displayName, roles, staffId, officeId);
 
         // Calculate expiration time
         long expirationSeconds = jwtProperties.getExpiration();
@@ -76,6 +80,7 @@ public class AuthServiceImpl implements AuthService {
         // Create user info response with token for BFF pattern
         UserInfoResponse userInfo = new UserInfoResponse(
                 user.getId().toString(),
+                staffId, // Add staff ID
                 displayName,
                 user.getEmail(),
                 roles,
@@ -94,7 +99,7 @@ public class AuthServiceImpl implements AuthService {
         return new LoginResult(userInfo, token);
     }
 
-    private String generateToken(AppUser user, String displayName, List<String> roles, String officeId) {
+    private String generateToken(AppUser user, String displayName, List<String> roles, String staffId, String officeId) {
         Date now = new Date();
         Instant expiryInstant = Instant.now().plusSeconds(jwtProperties.getExpiration());
         Date expiryDate = Date.from(expiryInstant);
@@ -106,6 +111,7 @@ public class AuthServiceImpl implements AuthService {
                 .claim("email", user.getEmail())
                 .claim("displayName", displayName)
                 .claim("roles", roles)
+                .claim("staffId", staffId) // Add staff ID for DSP role
                 .claim("officeId", officeId) // Add office ID for multi-office support
                 .issuedAt(now)
                 .expiration(expiryDate)

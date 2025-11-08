@@ -1,11 +1,11 @@
 package com.example.backend.model.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * User info response DTO (returned to client after login or for /me endpoint)
@@ -17,6 +17,7 @@ import java.util.List;
 public class UserInfoResponse {
     
     private String userId;
+    private String staffId; // Staff ID for DSP role (UUID as string)
     private String displayName;
     private String email;
     private List<String> roles;

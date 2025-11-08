@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -12,6 +12,9 @@ import {
     View,
 } from 'react-native';
 import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
+import checkInCheckOutService, { CheckInCheckOutResponse } from '../../services/api/checkInCheckOutService';
+import CheckInCheckOutValidation from '../../components/care/CheckInCheckOutValidation';
+import { CustomAlert, AlertButton } from '../../components/common/CustomAlert';
 
 interface LocationData {
   latitude: number;
@@ -22,7 +25,7 @@ interface LocationData {
 
 export default function CheckOutScreen() {
   const params = useLocalSearchParams();
-  const scheduleId = params.scheduleId as string;
+  const serviceDeliveryId = params.serviceDeliveryId as string;
   const patientId = params.patientId as string;
   const patientName = params.patientName as string;
   const checkInTime = params.checkInTime as string;
@@ -32,6 +35,21 @@ export default function CheckOutScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [checkOutResult, setCheckOutResult] = useState<CheckInCheckOutResponse | null>(null);
+  const [distanceToPatient, setDistanceToPatient] = useState<number | null>(null);
+  
+  // Custom Alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    icon?: keyof typeof Ionicons.glyphMap;
+    iconColor?: string;
+    buttons?: AlertButton[];
+  }>({
+    title: '',
+    message: '',
+  });
   
   const checkInLocation = checkInLocationStr ? JSON.parse(checkInLocationStr) : null;
   const mockPatientId = patientId || 'PT001';
@@ -42,13 +60,36 @@ export default function CheckOutScreen() {
     getCurrentLocation();
   }, []);
 
+  // Calculate distance between two GPS coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distance in meters
+  };
+
   const getCurrentLocation = async () => {
     try {
       setIsLoading(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       
       if (status !== 'granted') {
-        Alert.alert('Error', 'Location permission is required for check-out');
+        setAlertConfig({
+          title: 'Permission Required',
+          message: 'Location permission is required for check-out.',
+          icon: 'location-outline',
+          iconColor: '#FF9800',
+          buttons: [{ text: 'OK', style: 'default' }]
+        });
+        setAlertVisible(true);
         return;
       }
 
@@ -71,9 +112,32 @@ export default function CheckOutScreen() {
       };
 
       setCurrentLocation(locationData);
+
+      // Calculate distance to patient address
+      // TODO: Fetch actual patient coordinates from backend
+      const mockPatientLat = 10.802485074288798;
+      const mockPatientLon = 106.70588177651746;
+      
+      if (mockPatientLat && mockPatientLon) {
+        const distance = calculateDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          mockPatientLat,
+          mockPatientLon
+        );
+        setDistanceToPatient(distance);
+        console.log('[CheckOutScreen] Distance to patient:', distance, 'meters');
+      }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('Error', 'Failed to get current location');
+      setAlertConfig({
+        title: 'Error',
+        message: 'Failed to get current location. Please try again.',
+        icon: 'alert-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -89,11 +153,26 @@ export default function CheckOutScreen() {
 
   const handleCheckOut = async () => {
     if (!currentLocation) {
-      Alert.alert(
-        '📍 Location Required',
-        'Location not available. Please enable GPS and try again.',
-        [{ text: 'OK', style: 'default' }]
-      );
+      setAlertConfig({
+        title: 'Location Required',
+        message: 'Location not available. Please enable GPS and try again.',
+        icon: 'location',
+        iconColor: '#FF9800',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
+      return;
+    }
+
+    if (!serviceDeliveryId) {
+      setAlertConfig({
+        title: 'Error',
+        message: 'Service Delivery ID not found.',
+        icon: 'alert-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
       return;
     }
 
@@ -101,20 +180,20 @@ export default function CheckOutScreen() {
       setIsLoading(true);
       
       const totalHours = calculateHours();
-      const checkOutData = {
-        scheduleId: scheduleId,
-        checkInTime: mockCheckInTime,
-        checkOutTime: currentLocation.timestamp,
-        checkInLocation: checkInLocation,
-        checkOutLocation: currentLocation,
-        totalHours,
-        additionalNotes: additionalNotes.trim(),
-        patientId: mockPatientId,
-        patientName: mockPatientName,
-        careCompleted: true,
-      };
+      
+      // Call backend API for check-out
+      const checkOutResponse = await checkInCheckOutService.checkOut({
+        serviceDeliveryId: serviceDeliveryId,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        address: currentLocation.address,
+        notes: additionalNotes.trim(),
+      });
 
-      console.log('Check-out data:', checkOutData);
+      console.log('[CheckOutScreen] Check-out response:', checkOutResponse);
+      
+      // Store check-out result for display
+      setCheckOutResult(checkOutResponse);
       
       // Update visit status if this is an unscheduled visit
       if (visitId) {
@@ -135,27 +214,37 @@ export default function CheckOutScreen() {
         await UnscheduledVisitService.update(visitId, updates);
       }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Show success message with validation info
+      const validationMessage = checkOutResponse.checkOutValid 
+        ? `Distance: ${checkOutResponse.checkOutDistanceFormatted || `${Math.round(checkOutResponse.checkOutDistanceMeters || 0)}m`}`
+        : `⚠️ You are ${checkOutResponse.checkOutDistanceFormatted || `${Math.round(checkOutResponse.checkOutDistanceMeters || 0)}m`} from patient's address`;
       
-      Alert.alert(
-        '✅ Check-Out Successful',
-        `You have successfully checked out.\n\nPatient: ${mockPatientName}\nTotal Hours: ${totalHours.toFixed(1)}h\nLocation: ${currentLocation.address}`,
-        [
+      setAlertConfig({
+        title: 'Check-Out Successful',
+        message: `You have successfully checked out.\n\nPatient: ${mockPatientName}\nTotal Hours: ${totalHours.toFixed(1)}h\nLocation: ${currentLocation.address}\n\n${validationMessage}`,
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50',
+        buttons: [
           {
-            text: 'Back to List',
+            text: 'Back to Schedule',
+            style: 'default',
             onPress: () => router.back(),
           },
         ]
-      );
+      });
+      setAlertVisible(true);
       
-    } catch (error) {
-      console.error('Error during check-out:', error);
-      Alert.alert(
-        '❌ Check-Out Failed',
-        'Failed to check out. Please try again.',
-        [{ text: 'OK', style: 'cancel' }]
-      );
+    } catch (error: any) {
+      console.error('[CheckOutScreen] Error during check-out:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to check out. Please try again.';
+      setAlertConfig({
+        title: 'Check-Out Failed',
+        message: errorMessage,
+        icon: 'close-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'cancel' }]
+      });
+      setAlertVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -174,7 +263,11 @@ export default function CheckOutScreen() {
         <Text style={styles.headerTitle}>Check Out</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Check-in Summary */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
@@ -255,6 +348,41 @@ export default function CheckOutScreen() {
           />
         </View>
 
+        {/* Display distance preview BEFORE check-out */}
+        {currentLocation && distanceToPatient !== null && !checkOutResult && (
+          <View style={[
+            styles.distancePreviewCard,
+            distanceToPatient <= 1000 ? styles.distanceGood : styles.distanceFar
+          ]}>
+            <Ionicons 
+              name={distanceToPatient <= 1000 ? "checkmark-circle" : "warning"} 
+              size={32} 
+              color={distanceToPatient <= 1000 ? "#4CAF50" : "#FF9800"} 
+            />
+            <View style={styles.distancePreviewContent}>
+              <Text style={styles.distancePreviewTitle}>
+                Distance to Patient Address
+              </Text>
+              <Text style={styles.distancePreviewValue}>
+                {distanceToPatient < 1000 
+                  ? `${distanceToPatient.toFixed(0)} meters`
+                  : `${(distanceToPatient / 1000).toFixed(2)} km`
+                }
+              </Text>
+              {distanceToPatient > 1000 && (
+                <Text style={styles.distanceWarning}>
+                  ⚠️ You are more than 1km away from patient's address. Please move closer or confirm if this is correct.
+                </Text>
+              )}
+              {distanceToPatient <= 1000 && (
+                <Text style={styles.distanceGoodText}>
+                  ✓ You are within acceptable range (≤1km)
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Info */}
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={20} color="#2196F3" />
@@ -262,7 +390,17 @@ export default function CheckOutScreen() {
             Your check-out location will be recorded to complete the care visit documentation.
           </Text>
         </View>
-      </View>
+
+        {/* Display GPS validation results after check-out */}
+        {checkOutResult && (
+          <CheckInCheckOutValidation
+            isValid={checkOutResult.checkOutValid || false}
+            distanceMeters={checkOutResult.checkOutDistanceMeters}
+            distanceFormatted={checkOutResult.checkOutDistanceFormatted}
+            type="check-out"
+          />
+        )}
+      </ScrollView>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
@@ -280,6 +418,17 @@ export default function CheckOutScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        iconColor={alertConfig.iconColor}
+        buttons={alertConfig.buttons}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </View>
   );
 }
@@ -306,7 +455,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
+    paddingBottom: 40,
   },
   summaryCard: {
     backgroundColor: 'white',
@@ -440,6 +592,56 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     height: 80,
     textAlignVertical: 'top',
+  },
+  distancePreviewCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  distanceGood: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#E8F5E9',
+  },
+  distanceFar: {
+    borderColor: '#FF9800',
+    backgroundColor: '#FFF3E0',
+  },
+  distancePreviewContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  distancePreviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  distancePreviewValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2196F3',
+    marginBottom: 8,
+  },
+  distanceWarning: {
+    fontSize: 13,
+    color: '#E65100',
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  distanceGoodText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    lineHeight: 18,
+    marginTop: 4,
   },
   infoCard: {
     backgroundColor: '#e3f2fd',

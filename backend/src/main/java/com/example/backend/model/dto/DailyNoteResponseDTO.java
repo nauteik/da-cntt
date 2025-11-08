@@ -6,8 +6,11 @@ import java.util.UUID;
 
 public class DailyNoteResponseDTO {
     private UUID id;
+    private UUID serviceDeliveryId;
     private UUID patientId;
+    private String patientName;
     private UUID staffId;
+    private String staffName;
     private String content;
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
@@ -22,10 +25,16 @@ public class DailyNoteResponseDTO {
     // getters and setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+    public UUID getServiceDeliveryId() { return serviceDeliveryId; }
+    public void setServiceDeliveryId(UUID serviceDeliveryId) { this.serviceDeliveryId = serviceDeliveryId; }
     public UUID getPatientId() { return patientId; }
     public void setPatientId(UUID patientId) { this.patientId = patientId; }
+    public String getPatientName() { return patientName; }
+    public void setPatientName(String patientName) { this.patientName = patientName; }
     public UUID getStaffId() { return staffId; }
     public void setStaffId(UUID staffId) { this.staffId = staffId; }
+    public String getStaffName() { return staffName; }
+    public void setStaffName(String staffName) { this.staffName = staffName; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
     public LocalDateTime getCheckInTime() { return checkInTime; }

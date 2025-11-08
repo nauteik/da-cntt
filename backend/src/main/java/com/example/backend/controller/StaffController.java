@@ -82,7 +82,7 @@ public class StaffController {
      * Example: GET /api/staff/select
      */
     @GetMapping("/select")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<StaffSelectDTO>>> getActiveStaffForSelect() {
         log.info("GET /api/staff/select - Fetching active staff for select");
         List<StaffSelectDTO> staffList = staffService.getActiveStaffForSelect();

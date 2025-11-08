@@ -1,31 +1,40 @@
 package com.example.backend.controller;
 
-import com.example.backend.model.ApiResponse;
-import com.example.backend.model.dto.schedule.CreateScheduleTemplateDTO;
-import com.example.backend.model.dto.schedule.AuthorizationSelectDTO;
-import com.example.backend.model.dto.schedule.ScheduleEventDTO;
-import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
-import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
-import com.example.backend.model.dto.schedule.TemplateEventDTO;
-import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
-import com.example.backend.model.dto.schedule.GenerateScheduleRequest;
-import com.example.backend.model.dto.StaffSelectDTO;
-import com.example.backend.model.dto.PatientSelectDTO;
-import com.example.backend.service.ScheduleService;
-import com.example.backend.repository.AuthorizationRepository;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import com.example.backend.model.ApiResponse;
+import com.example.backend.model.dto.PatientSelectDTO;
+import com.example.backend.model.dto.StaffSelectDTO;
+import com.example.backend.model.dto.schedule.AuthorizationSelectDTO;
+import com.example.backend.model.dto.schedule.CreateScheduleTemplateDTO;
+import com.example.backend.model.dto.schedule.GenerateScheduleRequest;
+import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
+import com.example.backend.model.dto.schedule.ScheduleEventDTO;
+import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
+import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
+import com.example.backend.model.dto.schedule.TemplateEventDTO;
+import com.example.backend.repository.AuthorizationRepository;
+import com.example.backend.service.ScheduleService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/patients/{id}/schedule")
@@ -73,7 +82,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/template")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','DSP')")
     public ResponseEntity<ApiResponse<ScheduleTemplateWeeksDTO>> getTemplate(
             @PathVariable UUID id) {
         ScheduleTemplateWeeksDTO template = scheduleService.getTemplateWithWeeks(id);
@@ -84,7 +93,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/authorizations/select")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','DSP')")
     public ResponseEntity<ApiResponse<List<AuthorizationSelectDTO>>> getAuthorizationsForSelect(
             @PathVariable UUID id
     ) {
@@ -132,7 +141,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/events")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','DSP')")
     public ResponseEntity<ApiResponse<List<ScheduleEventDTO>>> getScheduleEvents(
             @PathVariable UUID id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -143,7 +152,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/events/paginated")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','DSP')")
     public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ScheduleEventDTO>>> getScheduleEventsPaginated(
             @PathVariable UUID id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -173,7 +182,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/related-staff")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','DSP')")
     public ResponseEntity<ApiResponse<List<StaffSelectDTO>>> getRelatedStaff(
             @PathVariable UUID id) {
         log.info("Fetching related staff for patient ID: {}", id);
@@ -191,7 +200,7 @@ class StaffScheduleController {
     private final ScheduleService scheduleService;
 
     @GetMapping("/events")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','DSP')")
     public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ScheduleEventDTO>>> getStaffScheduleEvents(
             @PathVariable UUID id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -213,7 +222,7 @@ class StaffScheduleController {
     }
 
     @GetMapping("/related-patients")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','DSP')")
     public ResponseEntity<ApiResponse<List<PatientSelectDTO>>> getRelatedPatients(
             @PathVariable UUID id) {
         log.info("Fetching related patients for staff ID: {}", id);

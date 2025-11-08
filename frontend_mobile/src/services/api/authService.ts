@@ -46,6 +46,7 @@ export class AuthService {
       // Map backend UserInfoResponse to frontend User type
       const user: User = {
         id: userInfo.userId,
+        staffId: userInfo.staffId, // Staff ID for DSP role - use this for Schedule API
         name: userInfo.displayName,
         employeeId: userInfo.userId, // Use userId as employeeId for now
         email: userInfo.email,

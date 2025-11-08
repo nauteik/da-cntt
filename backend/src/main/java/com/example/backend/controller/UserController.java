@@ -52,10 +52,14 @@ public class UserController {
         AppUser user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
-        // Get display name and office from the associated Staff entity
+        // Get display name, staff ID, and office from the associated Staff entity
         String displayName = Optional.ofNullable(user.getStaff())
                 .map(Staff::getFullName)
                 .orElse(user.getEmail());
+
+        String staffId = Optional.ofNullable(user.getStaff())
+                .map(staff -> staff.getId().toString())
+                .orElse(null);
 
         String officeId = Optional.ofNullable(user.getStaff())
                 .map(staff -> staff.getOffice().getId().toString())
@@ -69,6 +73,7 @@ public class UserController {
 
         UserInfoResponse userInfo = new UserInfoResponse(
                 user.getId().toString(),
+                staffId, // Add staff ID
                 displayName,
                 user.getEmail(),
                 roles,

@@ -1,10 +1,10 @@
 package com.example.backend.model.dto.schedule;
 
-import lombok.Data;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+
+import lombok.Data;
 
 @Data
 public class ScheduleEventDTO {
@@ -23,6 +23,9 @@ public class ScheduleEventDTO {
     private String employeeName;
     private UUID supervisorId;
     private String supervisorName;
+    private UUID authorizationId; // Required for creating Service Delivery
+    private UUID serviceDeliveryId; // Current Service Delivery (if exists)
+    private String serviceDeliveryStatus; // Service Delivery status (PENDING, IN_PROGRESS, COMPLETED)
     private String serviceCode;
     private String eventCode;
     private OffsetDateTime checkInTime;

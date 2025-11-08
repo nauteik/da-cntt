@@ -1,16 +1,5 @@
 package com.example.backend.data;
 
-import com.example.backend.model.entity.*;
-import com.example.backend.model.enums.Gender;
-import com.example.backend.model.enums.PatientStatus;
-import com.example.backend.model.enums.AddressType;
-import com.example.backend.repository.*;
-import com.example.backend.service.BulkInsertService;
-import com.github.javafaker.Faker;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -18,6 +7,36 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.stereotype.Component;
+
+import com.example.backend.model.entity.Address;
+import com.example.backend.model.entity.Authorization;
+import com.example.backend.model.entity.ISP;
+import com.example.backend.model.entity.ISPGoal;
+import com.example.backend.model.entity.Office;
+import com.example.backend.model.entity.Patient;
+import com.example.backend.model.entity.PatientAddress;
+import com.example.backend.model.entity.PatientContact;
+import com.example.backend.model.entity.PatientPayer;
+import com.example.backend.model.entity.PatientProgram;
+import com.example.backend.model.entity.PatientService;
+import com.example.backend.model.entity.Payer;
+import com.example.backend.model.entity.Program;
+import com.example.backend.model.entity.ServiceType;
+import com.example.backend.model.enums.AddressType;
+import com.example.backend.model.enums.Gender;
+import com.example.backend.model.enums.PatientStatus;
+import com.example.backend.repository.OfficeRepository;
+import com.example.backend.repository.PatientRepository;
+import com.example.backend.repository.PayerRepository;
+import com.example.backend.repository.ProgramRepository;
+import com.example.backend.repository.ServiceTypeRepository;
+import com.example.backend.service.BulkInsertService;
+import com.github.javafaker.Faker;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -144,7 +163,22 @@ public class PatientDataLoader {
 
     private List<Address> loadAddressData(Faker faker) {
         List<Address> addresses = new ArrayList<>();
-        log.info("Generating 1000 addresses...");
+        log.info("Generating 1000 addresses with GPS coordinates...");
+        
+        // Define GPS coordinates for different districts in Ho Chi Minh City
+        double[][] districtCenters = {
+            {10.762622, 106.660172},  // District 1 (100 addresses)
+            {10.786945, 106.678413},  // District 3 (100 addresses)
+            {10.801182, 106.702892},  // Binh Thanh (100 addresses)
+            {10.794800, 106.678520},  // Phu Nhuan (100 addresses)
+            {10.734920, 106.717580},  // District 7 (100 addresses)
+            {10.771995, 106.666340},  // District 10 (100 addresses)
+            {10.852140, 106.762510},  // Thu Duc City (100 addresses)
+            {10.799440, 106.653030},  // Tan Binh (100 addresses)
+            {10.837500, 106.667490},  // Go Vap (100 addresses)
+            {10.772432, 106.698089}   // District 1 Center (remaining)
+        };
+        
         for (int i = 0; i < 1000; i++) {
             Address address = new Address();
             // Set UUID manually for bulk insert
@@ -158,15 +192,32 @@ public class PatientDataLoader {
             address.setType(type);
             address.setLabel(type.getLabel() + " Address");
             
+            // Assign GPS coordinates based on district (100 addresses per district)
+            int districtIndex = i / 100;
+            if (districtIndex >= districtCenters.length) {
+                districtIndex = 0; // Fallback to District 1
+            }
+            
+            double centerLat = districtCenters[districtIndex][0];
+            double centerLon = districtCenters[districtIndex][1];
+            
+            // Add random offset within ~1km radius (0.01 degree ≈ 1.1km)
+            // Using ±0.009 to stay within 1km
+            double latOffset = (faker.random().nextDouble() - 0.5) * 0.018; // ±0.009
+            double lonOffset = (faker.random().nextDouble() - 0.5) * 0.018; // ±0.009
+            
+            address.setLatitude(BigDecimal.valueOf(centerLat + latOffset));
+            address.setLongitude(BigDecimal.valueOf(centerLon + lonOffset));
+            
             addresses.add(address);
             
             if ((i + 1) % 100 == 0) {
-                log.info("Generated {} addresses...", i + 1);
+                log.info("Generated {} addresses with GPS coordinates...", i + 1);
             }
         }
         
         // Bulk insert addresses using JDBC batch processing for maximum performance
-        log.info("Bulk inserting 1000 addresses to database using JDBC batch processing...");
+        log.info("Bulk inserting 1000 addresses with GPS coordinates to database using JDBC batch processing...");
         bulkInsertService.bulkInsertAddresses(addresses);
         
         return addresses;
@@ -174,13 +225,23 @@ public class PatientDataLoader {
 
     private void loadPatientAddressData(Faker faker, List<Patient> patients, List<Address> addresses) {
         List<PatientAddress> patientAddresses = new ArrayList<>();
-        log.info("Linking {} patients to addresses...", patients.size());
+        log.info("Linking {} patients to addresses with GPS coordinates...", patients.size());
         for (int i = 0; i < patients.size(); i++) {
             PatientAddress patientAddress = new PatientAddress();
             // Set UUID manually for bulk insert
             patientAddress.setId(java.util.UUID.randomUUID());
             patientAddress.setPatient(patients.get(i));
-            patientAddress.setAddress(addresses.get(i));
+            
+            Address address = addresses.get(i);
+            patientAddress.setAddress(address);
+            
+            // Copy GPS coordinates from Address to PatientAddress
+            // This is required because check-in service validates PatientAddress.latitude/longitude
+            if (address.getLatitude() != null && address.getLongitude() != null) {
+                patientAddress.setLatitude(address.getLatitude().doubleValue());
+                patientAddress.setLongitude(address.getLongitude().doubleValue());
+            }
+            
             String rawPhone = faker.phoneNumber().cellPhone();
             // Remove non-digits
             String digits = rawPhone.replaceAll("\\D", "");
@@ -200,7 +261,7 @@ public class PatientDataLoader {
         }
         
         // Bulk insert patient addresses using JDBC batch processing for maximum performance
-        log.info("Bulk inserting {} patient-address links to database using JDBC batch processing...", patientAddresses.size());
+        log.info("Bulk inserting {} patient-address links with GPS coordinates to database using JDBC batch processing...", patientAddresses.size());
         bulkInsertService.bulkInsertPatientAddresses(patientAddresses);
     }
 

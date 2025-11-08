@@ -1,15 +1,9 @@
 package com.example.backend.config;
 
-import com.example.backend.service.CustomUserDetailsService;
-import com.example.backend.service.JwtService;
-import io.jsonwebtoken.JwtException;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Optional;
+
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,9 +12,17 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Optional;
+import com.example.backend.service.CustomUserDetailsService;
+import com.example.backend.service.JwtService;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * JWT Authentication Filter - Extracts JWT from HttpOnly cookie and authenticates the user
@@ -41,19 +43,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         log.info("Processing request: {} {}", request.getMethod(), request.getRequestURI());
-        
-        // Log all cookies for debugging
-        if (request.getCookies() == null) {
-            log.warn("No cookies received for request: {} {}", request.getMethod(), request.getRequestURI());
-        }
 
         try {
-            // Extract JWT from cookie
-            Optional<Cookie> jwtCookie = extractJwtCookie(request);
+            // Extract JWT from Authorization header or cookie
+            String token = extractJwtFromRequest(request);
 
-            if (jwtCookie.isPresent()) {
-                log.info("JWT cookie found: {}", jwtCookie.get().getName());
-                String token = jwtCookie.get().getValue();
+            if (token != null) {
+                log.info("JWT token found");
 
                 // Extract user email and office ID from token
                 String userEmail = jwtService.extractUserEmail(token);
@@ -92,7 +88,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.info("User already authenticated: {}", userEmail);
                 }
             } else {
-                log.warn("No JWT cookie found for request: {} {}", request.getMethod(), request.getRequestURI());
+                log.warn("No JWT token found for request: {} {}", request.getMethod(), request.getRequestURI());
             }
         } catch (JwtException e) {
             log.error("JWT validation error: {}", e.getMessage());
@@ -104,15 +100,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extract JWT token from 'accessToken' cookie
+     * Extract JWT token from Authorization header (Bearer token) or cookie
+     * Priority: Authorization header > Cookie
      */
-    private Optional<Cookie> extractJwtCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) {
-            return Optional.empty();
+    private String extractJwtFromRequest(HttpServletRequest request) {
+        // 1. Try to extract from Authorization header (for mobile/API clients)
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            log.info("JWT found in Authorization header");
+            return authHeader.substring(7);
         }
 
-        return Arrays.stream(request.getCookies())
-                .filter(cookie -> "accessToken".equals(cookie.getName()))
-                .findFirst();
+        // 2. Try to extract from cookie (for web clients)
+        if (request.getCookies() != null) {
+            Optional<Cookie> jwtCookie = Arrays.stream(request.getCookies())
+                    .filter(cookie -> "accessToken".equals(cookie.getName()))
+                    .findFirst();
+            
+            if (jwtCookie.isPresent()) {
+                log.info("JWT found in cookie");
+                return jwtCookie.get().getValue();
+            }
+        }
+
+        log.debug("No JWT token found in request");
+        return null;
     }
 }

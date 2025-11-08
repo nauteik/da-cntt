@@ -1,43 +1,5 @@
 package com.example.backend.service.impl;
 
-import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.exception.ConflictException;
-import com.example.backend.model.dto.schedule.CreateScheduleTemplateDTO;
-import com.example.backend.model.dto.schedule.ScheduleEventDTO;
-import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
-import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
-import com.example.backend.model.dto.schedule.TemplateEventDTO;
-import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
-import com.example.backend.model.dto.schedule.WeekWithEventsDTO;
-import com.example.backend.model.entity.CheckEvent;
-import com.example.backend.model.entity.ScheduleEvent;
-import com.example.backend.model.entity.ScheduleTemplate;
-import com.example.backend.model.entity.ScheduleTemplateEvent;
-import com.example.backend.model.entity.ScheduleTemplateWeek;
-import com.example.backend.model.entity.Authorization;
-import com.example.backend.model.entity.Staff;
-import com.example.backend.model.enums.CheckEventType;
-import com.example.backend.repository.CheckEventRepository;
-import com.example.backend.repository.PatientProgramRepository;
-import com.example.backend.repository.PatientRepository;
-import com.example.backend.repository.AppUserRepository;
-import com.example.backend.repository.ScheduleEventRepository;
-import com.example.backend.repository.ScheduleTemplateEventRepository;
-import com.example.backend.repository.ScheduleTemplateRepository;
-import com.example.backend.repository.ScheduleTemplateWeekRepository;
-import com.example.backend.repository.AuthorizationRepository;
-import com.example.backend.repository.StaffRepository;
-import com.example.backend.model.entity.Patient;
-import com.example.backend.model.entity.Office;
-import com.example.backend.model.entity.AppUser;
-import com.example.backend.model.dto.StaffSelectDTO;
-import com.example.backend.model.dto.PatientSelectDTO;
-import com.example.backend.service.ScheduleService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -47,6 +9,47 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.backend.exception.ConflictException;
+import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.model.dto.PatientSelectDTO;
+import com.example.backend.model.dto.StaffSelectDTO;
+import com.example.backend.model.dto.schedule.CreateScheduleTemplateDTO;
+import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
+import com.example.backend.model.dto.schedule.ScheduleEventDTO;
+import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
+import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
+import com.example.backend.model.dto.schedule.TemplateEventDTO;
+import com.example.backend.model.dto.schedule.WeekWithEventsDTO;
+import com.example.backend.model.entity.AppUser;
+import com.example.backend.model.entity.Authorization;
+import com.example.backend.model.entity.CheckEvent;
+import com.example.backend.model.entity.Office;
+import com.example.backend.model.entity.Patient;
+import com.example.backend.model.entity.ScheduleEvent;
+import com.example.backend.model.entity.ScheduleTemplate;
+import com.example.backend.model.entity.ScheduleTemplateEvent;
+import com.example.backend.model.entity.ScheduleTemplateWeek;
+import com.example.backend.model.entity.Staff;
+import com.example.backend.model.enums.CheckEventType;
+import com.example.backend.repository.AppUserRepository;
+import com.example.backend.repository.AuthorizationRepository;
+import com.example.backend.repository.CheckEventRepository;
+import com.example.backend.repository.PatientProgramRepository;
+import com.example.backend.repository.PatientRepository;
+import com.example.backend.repository.ScheduleEventRepository;
+import com.example.backend.repository.ScheduleTemplateEventRepository;
+import com.example.backend.repository.ScheduleTemplateRepository;
+import com.example.backend.repository.ScheduleTemplateWeekRepository;
+import com.example.backend.repository.ServiceDeliveryRepository;
+import com.example.backend.repository.StaffRepository;
+import com.example.backend.service.ScheduleService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +65,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final PatientRepository patientRepository;
     private final AppUserRepository appUserRepository;
     private final AuthorizationRepository authorizationRepository;
+    private final ServiceDeliveryRepository serviceDeliveryRepository;
     private final StaffRepository staffRepository;
 
     @Override
@@ -621,8 +625,12 @@ public class ScheduleServiceImpl implements ScheduleService {
             String staffName = (e.getStaff().getLastName() != null ? e.getStaff().getLastName() : "") + ", " + (e.getStaff().getFirstName() != null ? e.getStaff().getFirstName() : "");
             dto.setEmployeeName(staffName.trim().replaceAll(", $", ""));
         }
-        if (e.getAuthorization() != null && e.getAuthorization().getPatientService() != null && e.getAuthorization().getPatientService().getServiceType() != null) {
-            dto.setServiceCode(e.getAuthorization().getPatientService().getServiceType().getCode());
+        // Authorization mapping
+        if (e.getAuthorization() != null) {
+            dto.setAuthorizationId(e.getAuthorization().getId());
+            if (e.getAuthorization().getPatientService() != null && e.getAuthorization().getPatientService().getServiceType() != null) {
+                dto.setServiceCode(e.getAuthorization().getPatientService().getServiceType().getCode());
+            }
         }
         dto.setEventCode(e.getEventCode());
         if (e.getActualUnits() != null) {
@@ -636,6 +644,14 @@ public class ScheduleServiceImpl implements ScheduleService {
         checkEventRepository.findFirstByScheduleEvent_IdAndEventTypeOrderByOccurredAtDesc(e.getId(), CheckEventType.CHECK_OUT)
                 .map(CheckEvent::getOccurredAt)
                 .ifPresent(t -> dto.setCheckOutTime(t.atOffset(e.getEndAt() != null ? e.getEndAt().getOffset() : java.time.ZoneOffset.UTC)));
+        
+        // Service Delivery mapping (get latest active service delivery for this schedule event)
+        serviceDeliveryRepository.findFirstByScheduleEvent_IdOrderByCreatedAtDesc(e.getId())
+                .ifPresent(sd -> {
+                    dto.setServiceDeliveryId(sd.getId());
+                    dto.setServiceDeliveryStatus(sd.getStatus() != null ? sd.getStatus() : null);
+                });
+        
         return dto;
     }
 

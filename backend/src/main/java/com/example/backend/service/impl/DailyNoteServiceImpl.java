@@ -17,8 +17,6 @@ import com.example.backend.model.entity.DailyNote;
 import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.Staff;
 import com.example.backend.repository.DailyNoteRepository;
-import com.example.backend.repository.PatientRepository;
-import com.example.backend.repository.StaffRepository;
 import com.example.backend.service.DailyNoteService;
 
 import lombok.RequiredArgsConstructor;
@@ -30,29 +28,30 @@ import lombok.extern.slf4j.Slf4j;
 public class DailyNoteServiceImpl implements DailyNoteService {
 
     private final DailyNoteRepository dailyNoteRepository;
-    private final PatientRepository patientRepository;
-    private final StaffRepository staffRepository;
+    private final com.example.backend.repository.ServiceDeliveryRepository serviceDeliveryRepository;
 
     @Override
     @Transactional
     public DailyNoteResponseDTO create(DailyNoteRequestDTO dto) {
-        Patient patient = patientRepository.findById(dto.getPatientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Patient", dto.getPatientId()));
+        // Get ServiceDelivery first
+        com.example.backend.model.entity.ServiceDelivery serviceDelivery = 
+            serviceDeliveryRepository.findById(dto.getServiceDeliveryId())
+                .orElseThrow(() -> new ResourceNotFoundException("ServiceDelivery", dto.getServiceDeliveryId()));
 
-        Staff staff = null;
-        if (dto.getStaffId() != null) {
-            staff = staffRepository.findById(dto.getStaffId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Staff", dto.getStaffId()));
+        // Get Patient and Staff from ServiceDelivery's ScheduleEvent
+        Patient patient = serviceDelivery.getPatient();
+        Staff staff = serviceDelivery.getStaff();
+        
+        if (patient == null) {
+            throw new ResourceNotFoundException("Patient not found in ServiceDelivery");
         }
 
         DailyNote note = new DailyNote();
+        note.setServiceDelivery(serviceDelivery);
+        note.setAuthorStaff(staff); // Staff who creates the note
         note.setPatient(patient);
         note.setStaff(staff);
         note.setContent(dto.getContent());
-        note.setCheckInTime(dto.getCheckInTime());
-        note.setCheckOutTime(dto.getCheckOutTime());
-        note.setCheckInLocation(dto.getCheckInLocation());
-        note.setCheckOutLocation(dto.getCheckOutLocation());
         note.setMealInfo(dto.getMealInfo() == null ? List.of() : List.copyOf(dto.getMealInfo()));
         note.setPatientSignature(dto.getPatientSignature());
         note.setStaffSignature(dto.getStaffSignature());
@@ -60,6 +59,9 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         note.setCancelReason(dto.getCancelReason());
 
         DailyNote saved = dailyNoteRepository.save(note);
+        log.info("Created DailyNote {} for ServiceDelivery {} - Patient: {}, Staff: {}", 
+            saved.getId(), serviceDelivery.getId(), patient.getFullName(), 
+            staff != null ? staff.getFirstName() + " " + staff.getLastName() : "N/A");
         return toDto(saved);
     }
 
@@ -77,27 +79,24 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         DailyNote note = dailyNoteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("DailyNote", id));
 
-        if (!note.getPatient().getId().equals(dto.getPatientId())) {
-            Patient patient = patientRepository.findById(dto.getPatientId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Patient", dto.getPatientId()));
+        // Update ServiceDelivery if changed
+        if (!note.getServiceDelivery().getId().equals(dto.getServiceDeliveryId())) {
+            com.example.backend.model.entity.ServiceDelivery serviceDelivery = 
+                serviceDeliveryRepository.findById(dto.getServiceDeliveryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("ServiceDelivery", dto.getServiceDeliveryId()));
+            
+            note.setServiceDelivery(serviceDelivery);
+            
+            // Update patient and staff from new ServiceDelivery
+            Patient patient = serviceDelivery.getPatient();
+            Staff staff = serviceDelivery.getStaff();
+            
             note.setPatient(patient);
-        }
-
-        if (dto.getStaffId() != null) {
-            if (note.getStaff() == null || !note.getStaff().getId().equals(dto.getStaffId())) {
-                Staff staff = staffRepository.findById(dto.getStaffId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Staff", dto.getStaffId()));
-                note.setStaff(staff);
-            }
-        } else {
-            note.setStaff(null);
+            note.setStaff(staff);
+            note.setAuthorStaff(staff);
         }
 
         note.setContent(dto.getContent());
-        note.setCheckInTime(dto.getCheckInTime());
-        note.setCheckOutTime(dto.getCheckOutTime());
-        note.setCheckInLocation(dto.getCheckInLocation());
-        note.setCheckOutLocation(dto.getCheckOutLocation());
         note.setMealInfo(dto.getMealInfo() == null ? List.of() : List.copyOf(dto.getMealInfo()));
         note.setPatientSignature(dto.getPatientSignature());
         note.setStaffSignature(dto.getStaffSignature());
@@ -105,6 +104,7 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         note.setCancelReason(dto.getCancelReason());
 
         DailyNote saved = dailyNoteRepository.save(note);
+        log.info("Updated DailyNote {} for ServiceDelivery {}", saved.getId(), saved.getServiceDelivery().getId());
         return toDto(saved);
     }
 
@@ -128,14 +128,27 @@ public class DailyNoteServiceImpl implements DailyNoteService {
     private DailyNoteResponseDTO toDto(DailyNote note) {
         DailyNoteResponseDTO dto = new DailyNoteResponseDTO();
         dto.setId(note.getId());
-        dto.setPatientId(note.getPatient() != null ? note.getPatient().getId() : null);
-        dto.setStaffId(note.getStaff() != null ? note.getStaff().getId() : null);
+        dto.setServiceDeliveryId(note.getServiceDelivery() != null ? note.getServiceDelivery().getId() : null);
+        
+        // Patient info
+        if (note.getPatient() != null) {
+            dto.setPatientId(note.getPatient().getId());
+            dto.setPatientName(note.getPatient().getFullName());
+        }
+        
+        // Staff info
+        if (note.getStaff() != null) {
+            dto.setStaffId(note.getStaff().getId());
+            dto.setStaffName(note.getStaff().getFirstName() + " " + note.getStaff().getLastName());
+        }
+        
         dto.setContent(note.getContent());
+        dto.setMealInfo(note.getMealInfo() == null ? List.of() : List.copyOf(note.getMealInfo()));
+        
+        // Get check-in/check-out from ServiceDelivery
         dto.setCheckInTime(note.getCheckInTime());
         dto.setCheckOutTime(note.getCheckOutTime());
-        dto.setCheckInLocation(note.getCheckInLocation());
-        dto.setCheckOutLocation(note.getCheckOutLocation());
-        dto.setMealInfo(note.getMealInfo() == null ? List.of() : List.copyOf(note.getMealInfo()));
+        
         dto.setPatientSignature(note.getPatientSignature());
         dto.setStaffSignature(note.getStaffSignature());
         dto.setCancelled(note.getCancelled());

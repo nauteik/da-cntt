@@ -12,6 +12,7 @@ export interface LoginRequest {
 
 export interface UserInfoResponse {
   userId: string;
+  staffId?: string | null; // Staff ID for DSP role
   displayName: string;
   email: string;
   roles: string[];
@@ -23,6 +24,7 @@ export interface UserInfoResponse {
 
 export interface User {
   id: string;
+  staffId?: string | null; // Staff ID for DSP role - use this for Schedule API
   name: string;
   employeeId: string;
   email: string;
@@ -54,6 +56,7 @@ export interface Schedule {
   patientId: string;
   patient: Patient;
   employeeId: string;
+  employeeName?: string;
   startTime: string;
   endTime: string;
   date: string;
@@ -61,6 +64,16 @@ export interface Schedule {
   notes?: string;
   location: string;
   serviceType: string;
+  // Additional backend fields
+  scheduleId?: string;
+  officeId?: string;
+  officeName?: string;
+  authorizationId?: string;
+  serviceDeliveryId?: string;
+  serviceDeliveryStatus?: string;
+  checkInTime?: string; // ISO datetime string when checked in
+  checkOutTime?: string; // ISO datetime string when checked out
+  recurrenceType?: string;
 }
 
 // Daily Care Note Types

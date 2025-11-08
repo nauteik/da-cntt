@@ -22,13 +22,14 @@ import lombok.ToString;
 
 /**
  * Daily note entity for post-shift reports with eSign support
+ * Check-in/check-out information is now stored in ServiceDelivery
  */
 @Entity
 @Table(name = "daily_note")
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"serviceDelivery", "authorStaff", "attachmentFile"})
+@ToString(exclude = {"serviceDelivery", "authorStaff", "patient", "staff", "attachmentFile"})
 public class DailyNote extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -44,7 +45,7 @@ public class DailyNote extends BaseEntity {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    // Link to patient and staff responsible for the note (explicit IDs via relation)
+    // Link to patient and staff for convenience (can also get from serviceDelivery.scheduleEvent)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
@@ -56,46 +57,6 @@ public class DailyNote extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "checklist", columnDefinition = "jsonb")
     private List<Object> checklist = new ArrayList<>();
-
-    // Check-in / Check-out times and locations with GPS validation
-    @Column(name = "check_in_time")
-    private LocalDateTime checkInTime;
-
-    @Column(name = "check_in_latitude")
-    private Double checkInLatitude;
-
-    @Column(name = "check_in_longitude")
-    private Double checkInLongitude;
-
-    @Column(name = "check_in_location")
-    private String checkInLocation;
-
-    @Column(name = "check_in_distance_meters")
-    private Double checkInDistanceMeters;
-
-    @Column(name = "check_in_valid")
-    private Boolean checkInValid;
-
-    @Column(name = "check_out_time")
-    private LocalDateTime checkOutTime;
-
-    @Column(name = "check_out_latitude")
-    private Double checkOutLatitude;
-
-    @Column(name = "check_out_longitude")
-    private Double checkOutLongitude;
-
-    @Column(name = "check_out_location")
-    private String checkOutLocation;
-
-    @Column(name = "check_out_distance_meters")
-    private Double checkOutDistanceMeters;
-
-    @Column(name = "check_out_valid")
-    private Boolean checkOutValid;
-
-    @Column(name = "total_hours")
-    private Double totalHours;
 
     @Column(name = "patient_signed", nullable = false)
     private Boolean patientSigned = false;
@@ -176,63 +137,25 @@ public class DailyNote extends BaseEntity {
     }
 
     /**
-     * Check if check-in/check-out is completed
+     * Get check-in/check-out information from serviceDelivery
      */
+    public LocalDateTime getCheckInTime() {
+        return serviceDelivery != null ? serviceDelivery.getCheckInTime() : null;
+    }
+
+    public LocalDateTime getCheckOutTime() {
+        return serviceDelivery != null ? serviceDelivery.getCheckOutTime() : null;
+    }
+
+    public Double getTotalHours() {
+        return serviceDelivery != null ? serviceDelivery.getTotalHours() : null;
+    }
+
     public boolean isCheckInCheckOutCompleted() {
-        return checkInTime != null && checkOutTime != null;
+        return serviceDelivery != null && serviceDelivery.isCheckInCheckOutCompleted();
     }
 
-    /**
-     * Check if both check-in and check-out are valid (within 1km)
-     */
     public boolean isCheckInCheckOutFullyValid() {
-        return Boolean.TRUE.equals(checkInValid) && Boolean.TRUE.equals(checkOutValid);
-    }
-
-    /**
-     * Process check-out and calculate total hours
-     * @param checkOutTime Check-out time
-     * @param latitude Check-out latitude
-     * @param longitude Check-out longitude
-     * @param address Check-out address
-     * @param distanceMeters Distance from patient address in meters
-     * @param isValid Whether check-out is within valid range (1km)
-     */
-    public void checkOut(LocalDateTime checkOutTime, Double latitude, Double longitude, 
-                        String address, Double distanceMeters, Boolean isValid) {
-        this.checkOutTime = checkOutTime;
-        this.checkOutLatitude = latitude;
-        this.checkOutLongitude = longitude;
-        this.checkOutLocation = address;
-        this.checkOutDistanceMeters = distanceMeters;
-        this.checkOutValid = isValid;
-        
-        // Calculate total hours if check-in time exists
-        if (this.checkInTime != null && checkOutTime != null) {
-            long seconds = java.time.Duration.between(this.checkInTime, checkOutTime).getSeconds();
-            this.totalHours = seconds / 3600.0;
-        }
-    }
-
-    /**
-     * Get formatted distance for check-in
-     */
-    public String getCheckInDistanceFormatted() {
-        if (checkInDistanceMeters == null) return "N/A";
-        if (checkInDistanceMeters < 1000) {
-            return String.format("%.0f m", checkInDistanceMeters);
-        }
-        return String.format("%.2f km", checkInDistanceMeters / 1000.0);
-    }
-
-    /**
-     * Get formatted distance for check-out
-     */
-    public String getCheckOutDistanceFormatted() {
-        if (checkOutDistanceMeters == null) return "N/A";
-        if (checkOutDistanceMeters < 1000) {
-            return String.format("%.0f m", checkOutDistanceMeters);
-        }
-        return String.format("%.2f km", checkOutDistanceMeters / 1000.0);
+        return serviceDelivery != null && serviceDelivery.isCheckInCheckOutFullyValid();
     }
 }

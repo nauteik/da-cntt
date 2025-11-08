@@ -57,7 +57,7 @@ public class OfficeController {
      * GET /api/office/active
      */
     @GetMapping("/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<OfficeDTO>>> getActiveOffices() {
         log.info("Request to get active offices");
         List<OfficeDTO> offices = officeService.getActiveOffices();
@@ -69,7 +69,7 @@ public class OfficeController {
      * GET /api/office/{id}
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<OfficeDetailResponse>> getOfficeById(@PathVariable UUID id) {
         log.info("Request to get office by ID: {}", id);
         OfficeDetailResponse office = officeService.getOfficeById(id);
@@ -81,7 +81,7 @@ public class OfficeController {
      * GET /api/office/code/{code}
      */
     @GetMapping("/code/{code}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<OfficeDetailResponse>> getOfficeByCode(@PathVariable String code) {
         log.info("Request to get office by code: {}", code);
         OfficeDetailResponse office = officeService.getOfficeByCode(code);
@@ -157,7 +157,7 @@ public class OfficeController {
      * GET /api/office/{id}/staff?activeOnly=true
      */
     @GetMapping("/{id}/staff")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<OfficeStaffDTO>>> getOfficeStaff(
             @PathVariable UUID id,
             @RequestParam(required = false, defaultValue = "false") Boolean activeOnly) {
@@ -171,7 +171,7 @@ public class OfficeController {
      * GET /api/office/{id}/patients?activeOnly=true
      */
     @GetMapping("/{id}/patients")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<OfficePatientDTO>>> getOfficePatients(
             @PathVariable UUID id,
             @RequestParam(required = false, defaultValue = "false") Boolean activeOnly) {

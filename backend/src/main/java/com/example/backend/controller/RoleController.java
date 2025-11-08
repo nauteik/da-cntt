@@ -30,7 +30,7 @@ public class RoleController {
      * Example: GET /api/role/active
      */
     @GetMapping("/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<RoleDTO>>> getActiveRoles() {
         log.info("GET /api/role/active - Fetching active roles for select");
         List<RoleDTO> roles = roleService.getActiveRoles();

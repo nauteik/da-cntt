@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -9,27 +9,14 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 
-interface Patient {
-  id: string;
-  name: string;
-  patientId: string;
-  address: string;
-  time: string;
-  date: string;
-  status: 'upcoming' | 'completed' | 'in-progress' | 'cancelled';
-  notes?: string;
-  // Progress tracking
-  checkedIn?: boolean;
-  checkInTime?: string;
-  checkedOut?: boolean;
-  checkOutTime?: string;
-  dailyNoteCompleted?: boolean;
-  // Cancel info
-  cancelReason?: string;
-  cancelledAt?: string;
-}
+import { useAuth } from '../../store/authStore';
+import { ScheduleService } from '../../services/api/scheduleService';
+import serviceDeliveryService from '../../services/api/serviceDeliveryService';
+import { Schedule } from '../../types';
+import { useCustomAlert } from '../../components/common/CustomAlert';
 
 // Helper to format date as YYYY-MM-DD
 const formatDate = (date: Date): string => {
@@ -39,130 +26,75 @@ const formatDate = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-// Generate dates relative to today for easier testing
-const today = new Date();
-const yesterday = new Date(today);
-yesterday.setDate(today.getDate() - 1);
-const tomorrow = new Date(today);
-tomorrow.setDate(today.getDate() + 1);
-const twoDaysAgo = new Date(today);
-twoDaysAgo.setDate(today.getDate() - 2);
-const threeDaysLater = new Date(today);
-threeDaysLater.setDate(today.getDate() + 3);
-
-const mockSchedule: Patient[] = [
-  {
-    id: '1',
-    name: 'John Smith',
-    patientId: 'P001',
-    address: '123 Main St, Downtown',
-    time: '09:00 AM - 11:00 AM',
-    date: formatDate(twoDaysAgo), // 2 days ago
-    status: 'completed',
-    notes: 'Regular checkup and medication review',
-    checkedIn: true,
-    checkInTime: '09:05 AM',
-    checkedOut: true,
-    checkOutTime: '11:10 AM',
-    dailyNoteCompleted: true,
-  },
-  {
-    id: '2',
-    name: 'Mary Johnson',
-    patientId: 'P002',
-    address: '456 Oak Ave, Uptown',
-    time: '02:00 PM - 04:00 PM',
-    date: formatDate(yesterday), // Yesterday
-    status: 'completed',
-    notes: 'Physical therapy session',
-    checkedIn: true,
-    checkInTime: '02:00 PM',
-    checkedOut: true,
-    checkOutTime: '04:15 PM',
-    dailyNoteCompleted: true,
-  },
-  {
-    id: '3',
-    name: 'Robert Wilson',
-    patientId: 'P003',
-    address: '789 Pine St, Midtown',
-    time: '08:00 AM - 09:30 AM',
-    date: formatDate(today), // TODAY
-    status: 'completed',
-    notes: 'Daily care assistance',
-    checkedIn: true,
-    checkInTime: '08:00 AM',
-    checkedOut: true,
-    checkOutTime: '09:30 AM',
-    dailyNoteCompleted: true,
-  },
-  {
-    id: '4',
-    name: 'Sarah Davis',
-    patientId: 'P004',
-    address: '321 Elm St, Eastside',
-    time: '10:00 AM - 12:00 PM',
-    date: formatDate(today), // TODAY
-    status: 'in-progress',
-    notes: 'Weekly health check',
-    checkedIn: true,
-    checkInTime: '10:05 AM',
-    checkedOut: false,
-    dailyNoteCompleted: false,
-  },
-  {
-    id: '5',
-    name: 'Emily Brown',
-    patientId: 'P005',
-    address: '555 Maple Dr, Westside',
-    time: '02:00 PM - 04:00 PM',
-    date: formatDate(today), // TODAY
-    status: 'upcoming',
-    notes: 'Follow-up visit',
-    checkedIn: false,
-    checkedOut: false,
-    dailyNoteCompleted: false,
-  },
-  {
-    id: '6',
-    name: 'Michael Lee',
-    patientId: 'P006',
-    address: '777 Cedar Ln, Northside',
-    time: '03:00 PM - 05:00 PM',
-    date: formatDate(tomorrow), // Tomorrow
-    status: 'upcoming',
-    notes: 'Medication administration',
-    checkedIn: false,
-    checkedOut: false,
-    dailyNoteCompleted: false,
-  },
-  {
-    id: '7',
-    name: 'David Chen',
-    patientId: 'P007',
-    address: '999 Oak St, Southside',
-    time: '09:00 AM - 11:00 AM',
-    date: formatDate(threeDaysLater), // 3 days later
-    status: 'cancelled',
-    notes: 'Routine check',
-    checkedIn: false,
-    checkedOut: false,
-    dailyNoteCompleted: false,
-    cancelReason: 'Patient feeling better, cancelled appointment',
-    cancelledAt: new Date().toISOString(),
-  },
-];
-
 export default function ScheduleScreen() {
+  const { state: authState } = useAuth();
+  const { showAlert, AlertComponent } = useCustomAlert();
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [schedule, setSchedule] = useState(mockSchedule);
+  const [schedule, setSchedule] = useState<Schedule[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Debug: Log initial date
-  console.log('=== ScheduleScreen Render ===');
-  console.log('Current Date:', new Date().toDateString());
-  console.log('Selected Date:', selectedDate.toDateString());
-  console.log('Total Mock Schedule Items:', mockSchedule.length);
+  // Fetch schedule events from backend
+  useEffect(() => {
+    if (authState.user?.staffId) {
+      console.log('[ScheduleScreen] Current user:', {
+        userId: authState.user.id,
+        staffId: authState.user.staffId,
+        name: authState.user.name,
+        role: authState.user.role,
+      });
+      fetchScheduleEvents();
+    } else {
+      console.warn('[ScheduleScreen] No staff ID available for user');
+    }
+  }, [selectedDate, authState.user?.staffId]);
+
+  // Refresh data when screen comes into focus (after check-in, check-out, daily note)
+  useFocusEffect(
+    useCallback(() => {
+      if (authState.user?.staffId) {
+        console.log('[ScheduleScreen] Screen focused - refreshing schedule data');
+        fetchScheduleEvents();
+      }
+    }, [selectedDate, authState.user?.staffId])
+  );
+
+  const fetchScheduleEvents = async () => {
+    if (!authState.user?.staffId) {
+      console.error('[ScheduleScreen] No staff ID available');
+      showAlert(
+        'Error',
+        'Staff ID not found. Please login again.',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const from = formatDate(selectedDate);
+      const to = formatDate(selectedDate);
+      
+      console.log('[ScheduleScreen] Fetching events for staff:', authState.user.staffId, 'on date:', from);
+      
+      const events = await ScheduleService.getStaffScheduleEvents(
+        authState.user.staffId,
+        from,
+        to
+      );
+      
+      console.log('[ScheduleScreen] Received', events.length, 'events');
+      setSchedule(events);
+    } catch (error) {
+      console.error('[ScheduleScreen] Error fetching schedule:', error);
+      // Don't show alert for now since we're using mock data
+      // Alert.alert('Error', 'Failed to fetch schedule events');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get week dates (7 days starting from selected date's week start)
   const getWeekDates = () => {
@@ -221,16 +153,105 @@ export default function ScheduleScreen() {
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  }, []);
+    fetchScheduleEvents().finally(() => setRefreshing(false));
+  }, [selectedDate, authState.user?.staffId]);
 
-  const handleCancelSchedule = (patient: Patient) => {
-    Alert.alert(
+  // Create Service Delivery (Start Shift)
+  const handleStartShift = async (scheduleEvent: Schedule) => {
+    if (!scheduleEvent.id) {
+      showAlert(
+        'Error',
+        'Schedule Event ID not found',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+      return;
+    }
+
+    if (!scheduleEvent.authorizationId) {
+      showAlert(
+        'Error',
+        'Authorization ID not found. Cannot start shift.',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('[ScheduleScreen] Creating Service Delivery for:', {
+        scheduleEventId: scheduleEvent.id,
+        authorizationId: scheduleEvent.authorizationId,
+        patientName: scheduleEvent.patient.name,
+      });
+      
+      const serviceDelivery = await serviceDeliveryService.create({
+        scheduleEventId: scheduleEvent.id,
+        authorizationId: scheduleEvent.authorizationId,
+      });
+      
+      console.log('[ScheduleScreen] Service Delivery created:', serviceDelivery);
+      
+      // Update local state immediately for better UX
+      setSchedule(prevSchedule => 
+        prevSchedule.map(event => 
+          event.id === scheduleEvent.id 
+            ? { 
+                ...event, 
+                serviceDeliveryId: serviceDelivery.id,
+                serviceDeliveryStatus: 'PENDING' // Initial status
+              } 
+            : event
+        )
+      );
+      
+      showAlert(
+        'Success',
+        'Shift started! You can now check in.',
+        [
+          {
+            text: 'Check In Now',
+            onPress: () => {
+              // Update the event with new service delivery info before navigation
+              const updatedEvent = {
+                ...scheduleEvent,
+                serviceDeliveryId: serviceDelivery.id,
+                serviceDeliveryStatus: 'PENDING'
+              };
+              handleCheckIn(updatedEvent, serviceDelivery.id);
+            },
+            style: 'default',
+          },
+          { text: 'Later', style: 'cancel' },
+        ],
+        'checkmark-circle',
+        '#4CAF50'
+      );
+
+      // Also refresh from backend to get any other updates
+      await fetchScheduleEvents();
+    } catch (error) {
+      console.error('Error creating service delivery:', error);
+      showAlert(
+        'Error',
+        'Failed to start shift. Please try again.',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSchedule = (scheduleEvent: Schedule) => {
+    showAlert(
       'Cancel Schedule',
-      `Are you sure you want to cancel the appointment with ${patient.name}?`,
+      `Are you sure you want to cancel the appointment with ${scheduleEvent.patient.name}?`,
       [
         { text: 'No', style: 'cancel' },
         { 
@@ -241,53 +262,91 @@ export default function ScheduleScreen() {
             router.push('/cancel-schedule');
           }
         }
-      ]
+      ],
+      'warning',
+      '#FF9800'
     );
   };
 
-  const handleCheckIn = (patient: Patient) => {
-    // Navigate to check-in screen with patient params
+  const handleCheckIn = (scheduleEvent: Schedule, serviceDeliveryId?: string) => {
+    const sdId = serviceDeliveryId || scheduleEvent.serviceDeliveryId;
+    
+    if (!sdId) {
+      showAlert(
+        'Error',
+        'Please start shift first before checking in',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+      return;
+    }
+
+    // Navigate to check-in screen with params
     router.push({
       pathname: '/check-in',
       params: {
-        scheduleId: patient.id,
-        patientId: patient.patientId,
-        patientName: patient.name,
+        scheduleEventId: scheduleEvent.id,
+        serviceDeliveryId: sdId,
+        patientId: scheduleEvent.patientId,
+        patientName: scheduleEvent.patient.name,
       },
     });
   };
 
-  const handleCheckOut = (patient: Patient) => {
-    // Navigate to check-out screen with patient params
+  const handleCheckOut = (scheduleEvent: Schedule) => {
+    if (!scheduleEvent.serviceDeliveryId) {
+      showAlert(
+        'Error',
+        'Service Delivery not found',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+      return;
+    }
+
+    // Navigate to check-out screen with params
     router.push({
       pathname: '/check-out',
       params: {
-        scheduleId: patient.id,
-        patientId: patient.patientId,
-        patientName: patient.name,
-        checkInTime: patient.checkInTime || new Date().toISOString(),
+        serviceDeliveryId: scheduleEvent.serviceDeliveryId,
+        patientId: scheduleEvent.patientId,
+        patientName: scheduleEvent.patient.name,
       },
     });
   };
 
-  const handleDailyNote = (patient: Patient) => {
-    // Navigate to daily note screen with patient params
+  const handleDailyNote = (scheduleEvent: Schedule) => {
+    if (!scheduleEvent.serviceDeliveryId) {
+      showAlert(
+        'Error',
+        'Service Delivery not found',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+      return;
+    }
+
+    // Navigate to daily note screen with params
     router.push({
       pathname: '/daily-note',
       params: {
-        scheduleId: patient.id,
-        patientId: patient.patientId,
-        patientName: patient.name,
-        checkInTime: patient.checkInTime || new Date().toISOString(),
+        serviceDeliveryId: scheduleEvent.serviceDeliveryId,
+        patientId: scheduleEvent.patientId,
+        patientName: scheduleEvent.patient.name,
       },
     });
   };
 
-  const handleDetails = (patient: Patient) => {
-    Alert.alert(
+  const handleDetails = (scheduleEvent: Schedule) => {
+    showAlert(
       'Patient Details',
-      `Name: ${patient.name}\nID: ${patient.patientId}\nAddress: ${patient.address}\nTime: ${patient.time}\nStatus: ${patient.status}${patient.notes ? `\nNotes: ${patient.notes}` : ''}`,
-      [{ text: 'OK' }]
+      `Name: ${scheduleEvent.patient.name}\nID: ${scheduleEvent.patientId}\nAddress: ${scheduleEvent.location}\nTime: ${scheduleEvent.startTime} - ${scheduleEvent.endTime}\nStatus: ${scheduleEvent.status}${scheduleEvent.notes ? `\nNotes: ${scheduleEvent.notes}` : ''}`,
+      [{ text: 'OK', style: 'default' }],
+      'information-circle',
+      '#2196F3'
     );
   };
 
@@ -401,6 +460,13 @@ export default function ScheduleScreen() {
         </View>
       </View>
 
+      {loading && !refreshing && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2196F3" />
+          <Text style={styles.loadingText}>Loading schedule...</Text>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -409,14 +475,12 @@ export default function ScheduleScreen() {
       >
         {(() => {
           // Filter schedules by selected date
-          const filteredSchedule = schedule.filter((patient) => {
-            const [year, month, day] = patient.date.split('-').map(Number);
-            const patientDate = new Date(year, month - 1, day);
-            return patientDate.toDateString() === selectedDate.toDateString();
+          const filteredSchedule = schedule.filter((event) => {
+            return event.date === formatDate(selectedDate);
           });
           
           // Show empty state if no schedules
-          if (filteredSchedule.length === 0) {
+          if (filteredSchedule.length === 0 && !loading) {
             return (
               <View style={styles.emptyContainer}>
                 <Ionicons name="calendar-outline" size={64} color="#ccc" />
@@ -429,24 +493,40 @@ export default function ScheduleScreen() {
           }
           
           // Render schedule items
-          return filteredSchedule.map((patient) => {
+          return filteredSchedule.map((event) => {
+          // Determine progress from actual check-in/check-out data
+          const hasServiceDelivery = !!event.serviceDeliveryId;
           const progress = {
-            checkedIn: patient.checkedIn || false,
-            checkedOut: patient.checkedOut || false,
-            dailyNoteCompleted: patient.dailyNoteCompleted || false,
+            checkedIn: !!event.checkInTime, // Check if CHECK_IN event exists
+            checkedOut: !!event.checkOutTime, // Check if CHECK_OUT event exists
+            dailyNoteCompleted: false, // TODO: Get this from Daily Note API
           };
-          const allCompleted = progress.checkedIn && progress.checkedOut && progress.dailyNoteCompleted;
-          const isCancelled = patient.status === 'cancelled';
+          
+          // Debug logging
+          if (hasServiceDelivery) {
+            console.log('[ScheduleScreen] Event progress:', {
+              eventId: event.id,
+              patientName: event.patient.name,
+              serviceDeliveryId: event.serviceDeliveryId,
+              serviceDeliveryStatus: event.serviceDeliveryStatus,
+              checkInTime: event.checkInTime,
+              checkOutTime: event.checkOutTime,
+              progress,
+            });
+          }
+          
+          const allCompleted = event.status === 'completed';
+          const isCancelled = event.status === 'cancelled';
 
           return (
-            <View key={patient.id} style={[styles.patientCard, isCancelled && styles.cancelledCard]}>
+            <View key={event.id} style={[styles.patientCard, isCancelled && styles.cancelledCard]}>
               <View style={styles.cardHeader}>
                 <View style={styles.patientInfo}>
                   <Text style={[styles.patientName, isCancelled && styles.cancelledText]}>
-                    {patient.name}
+                    {event.patient.name}
                   </Text>
                   <Text style={[styles.patientId, isCancelled && styles.cancelledText]}>
-                    ID: {patient.patientId}
+                    ID: {event.patientId}
                   </Text>
                 </View>
                 {allCompleted ? (
@@ -460,13 +540,13 @@ export default function ScheduleScreen() {
                     <Text style={styles.cancelledBadgeText}>Cancelled</Text>
                   </View>
                 ) : (
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(patient.status) }]}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status) }]}>
                     <Ionicons
-                      name={getStatusIcon(patient.status) as any}
+                      name={getStatusIcon(event.status) as any}
                       size={12}
                       color="white"
                     />
-                    <Text style={styles.statusText}>{formatStatus(patient.status)}</Text>
+                    <Text style={styles.statusText}>{formatStatus(event.status)}</Text>
                   </View>
                 )}
               </View>
@@ -475,126 +555,124 @@ export default function ScheduleScreen() {
                 <View style={styles.infoRow}>
                   <Ionicons name="time-outline" size={16} color={isCancelled ? "#999" : "#666"} />
                   <Text style={[styles.infoText, isCancelled && styles.cancelledText]}>
-                    {patient.time}
+                    {event.startTime} - {event.endTime}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
                   <Ionicons name="location-outline" size={16} color={isCancelled ? "#999" : "#666"} />
                   <Text style={[styles.infoText, isCancelled && styles.cancelledText]}>
-                    {patient.address}
+                    {event.location}
                   </Text>
                 </View>
-                {patient.notes && (
+                {event.notes && (
                   <View style={styles.infoRow}>
                     <Ionicons name="document-text-outline" size={16} color={isCancelled ? "#999" : "#666"} />
                     <Text style={[styles.infoText, isCancelled && styles.cancelledText]}>
-                      {patient.notes}
+                      {event.notes}
                     </Text>
                   </View>
                 )}
               </View>
 
-              {/* Show cancel info for cancelled schedules */}
-              {isCancelled && patient.cancelReason && (
-                <View style={styles.cancelInfoContainer}>
-                  <View style={styles.cancelInfoHeader}>
-                    <Ionicons name="information-circle" size={18} color="#f44336" />
-                    <Text style={styles.cancelInfoTitle}>Cancellation Details</Text>
-                  </View>
-                  <Text style={styles.cancelReason}>{patient.cancelReason}</Text>
-                  {patient.cancelledAt && (
-                    <Text style={styles.cancelTime}>
-                      Cancelled at: {patient.cancelledAt}
-                    </Text>
-                  )}
-                </View>
-              )}
-
-              {/* Only show progress for non-cancelled schedules */}
+              {/* Only show actions for non-cancelled schedules */}
               {!isCancelled && (
                 <>
-                  {/* Progress Steps */}
-                  <View style={styles.progressContainer}>
-                {/* Check-In Step */}
-                <View style={styles.stepContainer}>
-                  <View style={styles.stepHeader}>
-                    <Ionicons 
-                      name={progress.checkedIn ? "checkmark-circle" : "ellipse-outline"} 
-                      size={18} 
-                      color={progress.checkedIn ? "#4CAF50" : "#ccc"} 
-                    />
-                    <Text style={[styles.stepLabel, progress.checkedIn && styles.stepLabelCompleted]}>
-                      {progress.checkedIn ? "✓ Checked In" : "Not Checked In"}
-                    </Text>
-                  </View>
-                  {!progress.checkedIn && (
+                  {/* Start Shift Button - only if Service Delivery doesn't exist */}
+                  {!hasServiceDelivery && (
                     <TouchableOpacity 
-                      style={styles.stepButton}
-                      onPress={() => handleCheckIn(patient)}
+                      style={styles.startShiftButton}
+                      onPress={() => handleStartShift(event)}
+                      disabled={loading}
                     >
-                      <Ionicons name="log-in" size={14} color="white" />
-                      <Text style={styles.stepButtonText}>Check-In</Text>
+                      <Ionicons name="play-circle" size={18} color="white" />
+                      <Text style={styles.startShiftText}>Start Shift</Text>
                     </TouchableOpacity>
                   )}
-                </View>
 
-                {/* Daily Note Step */}
-                <View style={styles.stepContainer}>
-                  <View style={styles.stepHeader}>
-                    <Ionicons 
-                      name={progress.dailyNoteCompleted ? "checkmark-circle" : "ellipse-outline"} 
-                      size={18} 
-                      color={progress.dailyNoteCompleted ? "#4CAF50" : "#ccc"} 
-                    />
-                    <Text style={[styles.stepLabel, progress.dailyNoteCompleted && styles.stepLabelCompleted]}>
-                      {progress.dailyNoteCompleted ? "✓ Daily Note Completed" : "Daily Note Pending"}
-                    </Text>
-                  </View>
-                  {!progress.dailyNoteCompleted && progress.checkedIn && (
+                  {/* Progress Steps - only if Service Delivery exists */}
+                  {hasServiceDelivery && (
+                    <View style={styles.progressContainer}>
+                      {/* Check-In Step */}
+                      <View style={styles.stepContainer}>
+                        <View style={styles.stepHeader}>
+                          <Ionicons 
+                            name={progress.checkedIn ? "checkmark-circle" : "ellipse-outline"} 
+                            size={18} 
+                            color={progress.checkedIn ? "#4CAF50" : "#ccc"} 
+                          />
+                          <Text style={[styles.stepLabel, progress.checkedIn && styles.stepLabelCompleted]}>
+                            {progress.checkedIn ? "✓ Checked In" : "Not Checked In"}
+                          </Text>
+                        </View>
+                        {!progress.checkedIn && (
+                          <TouchableOpacity 
+                            style={styles.stepButton}
+                            onPress={() => handleCheckIn(event)}
+                          >
+                            <Ionicons name="log-in" size={14} color="white" />
+                            <Text style={styles.stepButtonText}>Check-In</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {/* Daily Note Step */}
+                      <View style={styles.stepContainer}>
+                        <View style={styles.stepHeader}>
+                          <Ionicons 
+                            name={progress.dailyNoteCompleted ? "checkmark-circle" : "ellipse-outline"} 
+                            size={18} 
+                            color={progress.dailyNoteCompleted ? "#4CAF50" : "#ccc"} 
+                          />
+                          <Text style={[styles.stepLabel, progress.dailyNoteCompleted && styles.stepLabelCompleted]}>
+                            {progress.dailyNoteCompleted ? "✓ Daily Note Completed" : "Daily Note Pending"}
+                          </Text>
+                        </View>
+                        {!progress.dailyNoteCompleted && progress.checkedIn && (
+                          <TouchableOpacity 
+                            style={styles.stepButton}
+                            onPress={() => handleDailyNote(event)}
+                          >
+                            <Ionicons name="document-text" size={14} color="white" />
+                            <Text style={styles.stepButtonText}>Add Note</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {/* Check-Out Step */}
+                      <View style={styles.stepContainer}>
+                        <View style={styles.stepHeader}>
+                          <Ionicons 
+                            name={progress.checkedOut ? "checkmark-circle" : "ellipse-outline"} 
+                            size={18} 
+                            color={progress.checkedOut ? "#4CAF50" : "#ccc"} 
+                          />
+                          <Text style={[styles.stepLabel, progress.checkedOut && styles.stepLabelCompleted]}>
+                            {progress.checkedOut ? "✓ Checked Out" : "Not Checked Out"}
+                          </Text>
+                        </View>
+                        {!progress.checkedOut && progress.checkedIn && (
+                          <TouchableOpacity 
+                            style={styles.stepButton}
+                            onPress={() => handleCheckOut(event)}
+                          >
+                            <Ionicons name="log-out" size={14} color="white" />
+                            <Text style={styles.stepButtonText}>Check-Out</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Cancel Button - only for non-completed schedules */}
+                  {!allCompleted && (
                     <TouchableOpacity 
-                      style={styles.stepButton}
-                      onPress={() => handleDailyNote(patient)}
+                      style={styles.cancelScheduleButton} 
+                      onPress={() => handleCancelSchedule(event)}
                     >
-                      <Ionicons name="document-text" size={14} color="white" />
-                      <Text style={styles.stepButtonText}>Add Note</Text>
+                      <Ionicons name="close-circle-outline" size={18} color="#f44336" />
+                      <Text style={styles.cancelScheduleText}>Cancel Schedule</Text>
                     </TouchableOpacity>
                   )}
-                </View>
-
-                {/* Check-Out Step */}
-                <View style={styles.stepContainer}>
-                  <View style={styles.stepHeader}>
-                    <Ionicons 
-                      name={progress.checkedOut ? "checkmark-circle" : "ellipse-outline"} 
-                      size={18} 
-                      color={progress.checkedOut ? "#4CAF50" : "#ccc"} 
-                    />
-                    <Text style={[styles.stepLabel, progress.checkedOut && styles.stepLabelCompleted]}>
-                      {progress.checkedOut ? "✓ Checked Out" : "Not Checked Out"}
-                    </Text>
-                  </View>
-                  {!progress.checkedOut && progress.checkedIn && (
-                    <TouchableOpacity 
-                      style={styles.stepButton}
-                      onPress={() => handleCheckOut(patient)}
-                    >
-                      <Ionicons name="log-out" size={14} color="white" />
-                      <Text style={styles.stepButtonText}>Check-Out</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
-              {/* Cancel Button - only for non-cancelled and non-completed schedules */}
-              {!isCancelled && !allCompleted && (
-                <TouchableOpacity 
-                  style={styles.cancelScheduleButton} 
-                  onPress={() => handleCancelSchedule(patient)}
-                >
-                  <Ionicons name="close-circle-outline" size={18} color="#f44336" />
-                  <Text style={styles.cancelScheduleText}>Cancel Schedule</Text>
-                </TouchableOpacity>
-              )}
                 </>
               )}
             </View>
@@ -602,6 +680,7 @@ export default function ScheduleScreen() {
         });
         })()}
       </ScrollView>
+      <AlertComponent />
     </View>
   );
 }
@@ -922,6 +1001,34 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: '#f44336',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  startShiftButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  startShiftText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   emptyContainer: {
     alignItems: 'center',

@@ -30,7 +30,7 @@ public class ProgramController {
      * Example: GET /api/program/select
      */
     @GetMapping("/select")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<ProgramSelectDTO>>> getActiveProgramsForSelect() {
         log.info("GET /api/program/select - Fetching active programs for select");
         List<ProgramSelectDTO> programList = programService.getActiveProgramsForSelect();

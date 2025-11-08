@@ -1,27 +1,29 @@
 package com.example.backend.service;
 
-import com.example.backend.model.entity.Address;
-import com.example.backend.model.entity.Patient;
-import com.example.backend.model.entity.PatientAddress;
-import com.example.backend.model.entity.PatientContact;
-import com.example.backend.model.entity.PatientProgram;
-import com.example.backend.model.entity.PatientPayer;
-import com.example.backend.model.entity.PatientService;
-import com.example.backend.model.entity.ISP;
-import com.example.backend.model.entity.Authorization;
-import com.example.backend.model.entity.ISPGoal;
-import com.example.backend.model.entity.Permission;
-import com.example.backend.model.entity.RolePermission;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
+
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.List;
+import com.example.backend.model.entity.Address;
+import com.example.backend.model.entity.Authorization;
+import com.example.backend.model.entity.ISP;
+import com.example.backend.model.entity.ISPGoal;
+import com.example.backend.model.entity.Patient;
+import com.example.backend.model.entity.PatientAddress;
+import com.example.backend.model.entity.PatientContact;
+import com.example.backend.model.entity.PatientPayer;
+import com.example.backend.model.entity.PatientProgram;
+import com.example.backend.model.entity.PatientService;
+import com.example.backend.model.entity.Permission;
+import com.example.backend.model.entity.RolePermission;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service for optimized bulk insert operations using JDBC batch processing
@@ -125,8 +127,8 @@ public class BulkInsertService {
         
         String sql = """
             INSERT INTO patient_address (
-                id, patient_id, address_id, phone, is_main, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+                id, patient_id, address_id, phone, is_main, latitude, longitude, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             """;
 
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
@@ -138,6 +140,17 @@ public class BulkInsertService {
                 ps.setObject(3, patientAddress.getAddress().getId());
                 ps.setString(4, patientAddress.getPhone());
                 ps.setBoolean(5, patientAddress.getIsMain());
+                // Set GPS coordinates (can be null)
+                if (patientAddress.getLatitude() != null) {
+                    ps.setDouble(6, patientAddress.getLatitude());
+                } else {
+                    ps.setNull(6, java.sql.Types.DOUBLE);
+                }
+                if (patientAddress.getLongitude() != null) {
+                    ps.setDouble(7, patientAddress.getLongitude());
+                } else {
+                    ps.setNull(7, java.sql.Types.DOUBLE);
+                }
             }
 
             @Override
@@ -146,7 +159,7 @@ public class BulkInsertService {
             }
         });
 
-        log.info("Successfully bulk inserted {} patient addresses", patientAddresses.size());
+        log.info("Successfully bulk inserted {} patient addresses with GPS coordinates", patientAddresses.size());
     }
 
     /**

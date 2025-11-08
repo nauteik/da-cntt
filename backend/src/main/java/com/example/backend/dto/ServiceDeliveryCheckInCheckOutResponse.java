@@ -6,10 +6,10 @@ import java.util.UUID;
 import lombok.Data;
 
 /**
- * Response DTO for daily note check-in/check-out operations
+ * Response DTO for service delivery check-in/check-out operations
  */
 @Data
-public class DailyNoteCheckInCheckOutResponse {
+public class ServiceDeliveryCheckInCheckOutResponse {
 
     private UUID id;
     private UUID serviceDeliveryId;

@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,9 @@ import {
   View,
 } from 'react-native';
 import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
+import { useAuth } from '../../store/authStore';
+import { CustomAlert, AlertButton } from '../../components/common/CustomAlert';
+import { DailyNoteService } from '../../services/api/dailyNoteService';
 
 interface LocationData {
   latitude: number;
@@ -31,6 +33,17 @@ interface MealEntry {
   time: string;
   whatHad: string;
   whatOffered: string;
+}
+
+// Match backend DailyNoteRequestDTO structure
+interface DailyNoteFormData {
+  serviceDeliveryId: string;
+  content: string; // careContent
+  mealInfo: MealEntry[]; // breakfast, lunch, dinner as array
+  patientSignature?: string;
+  staffSignature?: string;
+  cancelled?: boolean;
+  cancelReason?: string;
 }
 
 interface DailyNoteForm {
@@ -53,10 +66,28 @@ interface DailyNoteForm {
 
 export default function DailyNoteScreen() {
   const params = useLocalSearchParams();
+  const serviceDeliveryId = params.serviceDeliveryId as string;
   const visitId = params.visitId as string;
   const patientId = params.patientId as string;
   const patientName = params.patientName as string;
   const checkInTime = params.checkInTime as string;
+  
+  // Get logged-in staff info
+  const { state: authState } = useAuth();
+  const currentUser = authState.user;
+  
+  // Custom Alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    icon?: keyof typeof Ionicons.glyphMap;
+    iconColor?: string;
+    buttons?: AlertButton[];
+  }>({
+    title: '',
+    message: '',
+  });
   
   const [form, setForm] = useState<DailyNoteForm>({
     employeeName: '',
@@ -73,12 +104,22 @@ export default function DailyNoteScreen() {
     employeeSignature: '',
     patientSignature: '',
     checkInLocation: undefined,
-    isCheckedIn: true, // Force false để test UI check-in
+    isCheckedIn: true,
   });
 
-  // Check if user has checked in (would normally come from navigation params or global state)
+  // Initialize form with staff and patient info
   useEffect(() => {
-    // Get data from navigation params
+    // Set employee info from logged-in user
+    if (currentUser) {
+      setForm(prev => ({
+        ...prev,
+        employeeName: currentUser.name || '',
+        employeeId: currentUser.staffId || currentUser.id || '',
+        employeeSignature: currentUser.name || '',
+      }));
+    }
+    
+    // Set patient info from navigation params
     if (patientId && patientName) {
       setForm(prev => ({
         ...prev,
@@ -88,7 +129,7 @@ export default function DailyNoteScreen() {
         checkInTime: checkInTime ? new Date(checkInTime).toLocaleTimeString() : '',
       }));
     }
-  }, [patientId, patientName, checkInTime]);
+  }, [currentUser, patientId, patientName, checkInTime]);
 
   // Calculate if user should see checkout reminder (after 30 minutes)
   const shouldShowCheckoutReminder = () => {
@@ -101,38 +142,44 @@ export default function DailyNoteScreen() {
 
   const handleCheckIn = () => {
     // Navigate to check-in screen
-    Alert.alert(
-      'Check In Required',
-      'You need to check in at the care location before creating a daily note.',
-      [
+    setAlertConfig({
+      title: 'Check In Required',
+      message: 'You need to check in at the care location before creating a daily note.',
+      icon: 'location',
+      iconColor: '#FF9800',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Check Inn', 
+          text: 'Check In', 
+          style: 'default',
           onPress: () => {
-            // Navigate to CheckInScreen
             router.push('/check-in');
           }
         }
       ]
-    );
+    });
+    setAlertVisible(true);
   };
 
   const handleCheckOut = () => {
     // Navigate to check-out screen
-    Alert.alert(
-      'Complete Check Out',
-      'Are you ready to check out and complete your care visit?',
-      [
+    setAlertConfig({
+      title: 'Complete Check Out',
+      message: 'Are you ready to check out and complete your care visit?',
+      icon: 'log-out',
+      iconColor: '#f44336',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Check Out', 
+          text: 'Check Out',
+          style: 'default',
           onPress: () => {
-            // Navigate to CheckOutScreen
             router.push('/check-out');
           }
         }
       ]
-    );
+    });
+    setAlertVisible(true);
   };
 
   const updateMealEntry = (meal: 'breakfast' | 'lunch' | 'dinner', field: keyof MealEntry, value: string) => {
@@ -147,59 +194,126 @@ export default function DailyNoteScreen() {
 
   const handleSave = async () => {
     // Basic validation
-    if (!form.employeeName || !form.patientName || !form.careContent) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!form.careContent) {
+      setAlertConfig({
+        title: 'Validation Error',
+        message: 'Please fill in the care content field.',
+        icon: 'alert-circle',
+        iconColor: '#FF9800',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
+      return;
+    }
+
+    if (!serviceDeliveryId) {
+      setAlertConfig({
+        title: 'Error',
+        message: 'Service Delivery ID not found.',
+        icon: 'alert-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
+      setAlertVisible(true);
       return;
     }
     
-    // Update visit status if this is from unscheduled visit
-    if (visitId) {
-      try {
-        // Get current visit to check if checkout is done
-        const visitResponse = await UnscheduledVisitService.getById(visitId);
-        const isCheckedOut = visitResponse.data?.checkedOut || false;
-        
-        const updates: any = {
-          dailyNoteCompleted: true,
-        };
-        
-        // Only mark as completed if checkout is also done
-        if (isCheckedOut) {
-          updates.status = 'completed';
-        }
-        
-        await UnscheduledVisitService.update(visitId, updates);
-      } catch (error) {
-        console.error('Error updating visit:', error);
+    try {
+      // Prepare meal info array (backend expects List<Object>)
+      const mealInfo: MealEntry[] = [];
+      if (form.breakfast.time || form.breakfast.whatHad || form.breakfast.whatOffered) {
+        mealInfo.push({ ...form.breakfast, mealType: 'breakfast' } as any);
       }
+      if (form.lunch.time || form.lunch.whatHad || form.lunch.whatOffered) {
+        mealInfo.push({ ...form.lunch, mealType: 'lunch' } as any);
+      }
+      if (form.dinner.time || form.dinner.whatHad || form.dinner.whatOffered) {
+        mealInfo.push({ ...form.dinner, mealType: 'dinner' } as any);
+      }
+
+      // Call backend API matching DailyNoteRequestDTO
+      const dailyNoteData: DailyNoteFormData = {
+        serviceDeliveryId: serviceDeliveryId,
+        content: form.careContent,
+        mealInfo: mealInfo,
+        patientSignature: form.patientSignature || undefined,
+        staffSignature: form.employeeSignature || undefined,
+        cancelled: false,
+      };
+
+      console.log('[DailyNoteScreen] Saving daily note:', dailyNoteData);
+      
+      // TODO: Uncomment when backend is ready
+      // const response = await DailyNoteService.createDailyNote(dailyNoteData);
+      // if (!response.success) {
+      //   throw new Error(response.error || 'Failed to save daily note');
+      // }
+      
+      // Update visit status if this is from unscheduled visit
+      if (visitId) {
+        try {
+          const visitResponse = await UnscheduledVisitService.getById(visitId);
+          const isCheckedOut = visitResponse.data?.checkedOut || false;
+          
+          const updates: any = {
+            dailyNoteCompleted: true,
+          };
+          
+          // Only mark as completed if checkout is also done
+          if (isCheckedOut) {
+            updates.status = 'completed';
+          }
+          
+          await UnscheduledVisitService.update(visitId, updates);
+        } catch (error) {
+          console.error('[DailyNoteScreen] Error updating visit:', error);
+        }
+      }
+      
+      // Show success message
+      setAlertConfig({
+        title: 'Daily Note Saved!',
+        message: 'Your daily care note has been saved successfully.',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50',
+        buttons: [
+          { 
+            text: 'Back to Schedule',
+            style: 'default',
+            onPress: () => router.back(),
+          },
+        ]
+      });
+      setAlertVisible(true);
+    } catch (error: any) {
+      console.error('[DailyNoteScreen] Error saving daily note:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to save daily note.';
+      setAlertConfig({
+        title: 'Save Failed',
+        message: errorMessage,
+        icon: 'close-circle',
+        iconColor: '#f44336',
+        buttons: [{ text: 'OK', style: 'cancel' }]
+      });
+      setAlertVisible(true);
     }
-    
-    // Show success message
-    Alert.alert(
-      '✅ Daily Note Saved!',
-      'Your daily care note has been saved successfully.',
-      [
-        { 
-          text: 'Back to List', 
-          onPress: () => router.back(),
-        },
-      ]
-    );
   };
 
   const handleClear = () => {
-    Alert.alert(
-      'Clear Form',
-      'Are you sure you want to clear all data?',
-      [
+    setAlertConfig({
+      title: 'Clear Form',
+      message: 'Are you sure you want to clear all data?',
+      icon: 'trash',
+      iconColor: '#f44336',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Clear',
           style: 'destructive',
           onPress: () => {
             setForm({
-              employeeName: '',
-              employeeId: '',
+              employeeName: currentUser?.name || '',
+              employeeId: currentUser?.staffId || currentUser?.id || '',
               patientName: patientName || '',
               patientId: patientId || '',
               careLocation: '',
@@ -209,7 +323,7 @@ export default function DailyNoteScreen() {
               breakfast: { time: '', whatHad: '', whatOffered: '' },
               lunch: { time: '', whatHad: '', whatOffered: '' },
               dinner: { time: '', whatHad: '', whatOffered: '' },
-              employeeSignature: '',
+              employeeSignature: currentUser?.name || '',
               patientSignature: '',
               checkInLocation: undefined,
               isCheckedIn: true,
@@ -217,14 +331,15 @@ export default function DailyNoteScreen() {
           },
         },
       ]
-    );
+    });
+    setAlertVisible(true);
   };
 
   const handleAutoFill = () => {
     const now = new Date();
     setForm({
-      employeeName: 'John Smith',
-      employeeId: 'EMP001',
+      employeeName: currentUser?.name || 'John Smith',
+      employeeId: currentUser?.staffId || currentUser?.id || 'EMP001',
       patientName: patientName || 'Jane Doe',
       patientId: patientId || 'PT001',
       careLocation: '123 Care Street, Medical City',
@@ -246,17 +361,20 @@ export default function DailyNoteScreen() {
         whatHad: 'Baked salmon, mixed green salad with vinaigrette, sweet potato, herbal tea. Patient consumed approximately 85% of meal.',
         whatOffered: 'Offered salmon, turkey, or pasta with salad, choice of sides, and various beverages.',
       },
-      employeeSignature: 'John Smith',
+      employeeSignature: currentUser?.name || 'John Smith',
       patientSignature: patientName || 'Jane Doe',
       checkInLocation: undefined,
       isCheckedIn: true,
     });
     
-    Alert.alert(
-      '✨ Auto Fill Complete',
-      'Sample data has been filled in all fields. You can now review and modify as needed.',
-      [{ text: 'OK' }]
-    );
+    setAlertConfig({
+      title: 'Auto Fill Complete',
+      message: 'Sample data has been filled in all fields. You can now review and modify as needed.',
+      icon: 'sparkles',
+      iconColor: '#2196F3',
+      buttons: [{ text: 'OK', style: 'default' }]
+    });
+    setAlertVisible(true);
   };
 
   const renderMealSection = (title: string, meal: 'breakfast' | 'lunch' | 'dinner') => (
@@ -317,7 +435,11 @@ export default function DailyNoteScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Employee Information */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Employee Information</Text>
@@ -448,11 +570,22 @@ export default function DailyNoteScreen() {
             <Text style={styles.clearButtonText}>Clear</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Ionicons name="save-outline" size={20} color="white" />
-            <Text style={styles.saveButtonText}>Save Note</Text>
+            <Ionicons name="checkmark-circle" size={20} color="white" />
+            <Text style={styles.saveButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        iconColor={alertConfig.iconColor}
+        buttons={alertConfig.buttons}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -505,7 +638,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
     padding: 16,
+    paddingBottom: 40,
   },
   sectionContainer: {
     backgroundColor: 'white',

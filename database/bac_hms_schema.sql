@@ -611,23 +611,21 @@ CREATE INDEX idx_event_assignment_staff ON event_assignment (staff_id);
 
 CREATE TABLE service_delivery (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    schedule_event_id uuid REFERENCES schedule_event(id) ON DELETE SET NULL,
-    office_id uuid REFERENCES office(id) ON DELETE SET NULL,
-    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE SET NULL,
+    schedule_event_id uuid NOT NULL REFERENCES schedule_event(id) ON DELETE CASCADE,
     authorization_id uuid REFERENCES authorizations(id) ON DELETE SET NULL,
     start_at timestamptz NOT NULL,
     end_at timestamptz NOT NULL,
     units integer NOT NULL CHECK (units >= 0),
     status text NOT NULL DEFAULT 'in_progress',
     approval_status text NOT NULL DEFAULT 'pending',
+    total_hours double precision,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK (end_at > start_at)
 );
 
-CREATE INDEX idx_service_delivery_patient ON service_delivery (patient_id, start_at);
-CREATE INDEX idx_service_delivery_staff ON service_delivery (staff_id, start_at);
+CREATE INDEX idx_service_delivery_schedule_event ON service_delivery (schedule_event_id);
+CREATE INDEX idx_service_delivery_authorization ON service_delivery (authorization_id);
 
 CREATE TABLE daily_note (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -637,21 +635,6 @@ CREATE TABLE daily_note (
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     checklist jsonb NOT NULL DEFAULT '[]'::jsonb,
-
-    -- check-in / check-out timestamps and optional locations
-    check_in_time timestamptz,
-    check_in_latitude double precision,
-    check_in_longitude double precision,
-    check_in_location text,
-    check_in_distance_meters double precision,
-    check_in_valid boolean,
-    check_out_time timestamptz,
-    check_out_latitude double precision,
-    check_out_longitude double precision,
-    check_out_location text,
-    check_out_distance_meters double precision,
-    check_out_valid boolean,
-    total_hours double precision,
 
     patient_signed boolean NOT NULL DEFAULT false,
     patient_signer_name text,
@@ -670,9 +653,7 @@ CREATE TABLE daily_note (
     cancel_reason text,
 
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-
-    CHECK (check_in_time IS NULL OR check_out_time IS NULL OR check_out_time > check_in_time)
+    updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- Useful indexes for lookups
@@ -771,7 +752,7 @@ CREATE TABLE check_event (
     occurred_at timestamptz NOT NULL,
     latitude numeric(9,6),
     longitude numeric(9,6),
-    accuracy_m numeric(6,2),
+    accuracy_m numeric(10,2),
     method text NOT NULL DEFAULT 'mobile',
     status text NOT NULL DEFAULT 'ok',
     created_at timestamptz NOT NULL DEFAULT now(),

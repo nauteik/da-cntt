@@ -35,7 +35,7 @@ public class ServiceTypeController {
      * ]
      */
     @GetMapping("/select")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<ServiceTypeSelectDTO>>> getServiceTypesForSelect() {
         log.info("GET /api/services/select - Fetching service types for select");
         List<ServiceTypeSelectDTO> serviceTypes = serviceTypeService.getServiceTypesForSelect();

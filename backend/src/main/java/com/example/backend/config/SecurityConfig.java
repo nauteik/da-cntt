@@ -54,11 +54,18 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
+                // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/patients/**").permitAll()
-                .requestMatchers("/api/office/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                
+                // Authenticated endpoints (role-based security via @PreAuthorize in controllers)
+                .requestMatchers("/api/patients/**").authenticated()
+                .requestMatchers("/api/office/**").authenticated()
+                .requestMatchers("/api/service-delivery/**").authenticated()
+                .requestMatchers("/api/daily-notes/**").authenticated()
                 .requestMatchers("/api/user/**").authenticated()
+                
+                // Default: require authentication
                 .anyRequest().authenticated()
             );
 

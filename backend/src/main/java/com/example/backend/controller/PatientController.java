@@ -1,41 +1,51 @@
 package com.example.backend.controller;
 
-import com.example.backend.model.ApiResponse;
-import com.example.backend.model.dto.PatientHeaderDTO;
-import com.example.backend.model.dto.PatientPersonalDTO;
-import com.example.backend.model.dto.PatientSummaryDTO;
-import com.example.backend.model.dto.PatientCreatedDTO;
-import com.example.backend.model.dto.PatientFilterOptionsDTO;
-import com.example.backend.model.dto.CreatePatientDTO;
-import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
-import com.example.backend.model.dto.UpdatePatientPersonalDTO;
-import com.example.backend.model.dto.UpdatePatientAddressDTO;
-import com.example.backend.model.dto.UpdatePatientContactDTO;
-import com.example.backend.model.dto.PatientProgramDTO;
-import com.example.backend.model.dto.UpdatePatientProgramDTO;
-import com.example.backend.model.dto.CreatePatientServiceDTO;
-import com.example.backend.model.dto.UpdatePatientServiceDTO;
-import com.example.backend.model.dto.PayerAuthorizationDTO;
-import com.example.backend.model.dto.CreatePatientPayerDTO;
-import com.example.backend.model.dto.UpdatePatientPayerDTO;
-import com.example.backend.model.dto.CreateAuthorizationDTO;
-import com.example.backend.model.dto.UpdateAuthorizationDTO;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.backend.model.ApiResponse;
+import com.example.backend.model.dto.CreateAuthorizationDTO;
+import com.example.backend.model.dto.CreatePatientDTO;
+import com.example.backend.model.dto.CreatePatientPayerDTO;
+import com.example.backend.model.dto.CreatePatientServiceDTO;
+import com.example.backend.model.dto.PatientCreatedDTO;
+import com.example.backend.model.dto.PatientFilterOptionsDTO;
+import com.example.backend.model.dto.PatientHeaderDTO;
+import com.example.backend.model.dto.PatientPersonalDTO;
+import com.example.backend.model.dto.PatientProgramDTO;
+import com.example.backend.model.dto.PatientSummaryDTO;
+import com.example.backend.model.dto.PayerAuthorizationDTO;
+import com.example.backend.model.dto.UpdateAuthorizationDTO;
+import com.example.backend.model.dto.UpdatePatientAddressDTO;
+import com.example.backend.model.dto.UpdatePatientContactDTO;
+import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
+import com.example.backend.model.dto.UpdatePatientPayerDTO;
+import com.example.backend.model.dto.UpdatePatientPersonalDTO;
+import com.example.backend.model.dto.UpdatePatientProgramDTO;
+import com.example.backend.model.dto.UpdatePatientServiceDTO;
 import com.example.backend.service.PatientService;
+
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * REST Controller for patient management
@@ -585,7 +595,7 @@ public class PatientController {
      * Example: GET /api/patients/123e4567-e89b-12d3-a456-426614174000/payers/550e8400-e29b-41d4-a716-446655440000/authorizations
      */
     @GetMapping("/{id}/payers/{patientPayerId}/authorizations")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<PayerAuthorizationDTO>>> getPatientPayerAuthorizations(
             @PathVariable UUID id,
             @PathVariable UUID patientPayerId) {
