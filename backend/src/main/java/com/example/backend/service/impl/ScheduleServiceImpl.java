@@ -66,6 +66,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final AppUserRepository appUserRepository;
     private final AuthorizationRepository authorizationRepository;
     private final ServiceDeliveryRepository serviceDeliveryRepository;
+    private final com.example.backend.repository.DailyNoteRepository dailyNoteRepository;
     private final StaffRepository staffRepository;
 
     @Override
@@ -650,6 +651,10 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .ifPresent(sd -> {
                     dto.setServiceDeliveryId(sd.getId());
                     dto.setServiceDeliveryStatus(sd.getStatus() != null ? sd.getStatus() : null);
+                    
+                    // Check if Daily Note exists for this Service Delivery
+                    dailyNoteRepository.findFirstByServiceDelivery_IdOrderByCreatedAtDesc(sd.getId())
+                            .ifPresent(dn -> dto.setDailyNoteId(dn.getId()));
                 });
         
         return dto;

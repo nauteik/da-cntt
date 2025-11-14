@@ -25,6 +25,7 @@ interface ScheduleEventResponse {
   eventCode?: string;
   checkInTime?: string;
   checkOutTime?: string;
+  dailyNoteId?: string; // Daily Note ID if exists
 }
 
 export class ScheduleService {
@@ -102,6 +103,7 @@ export class ScheduleService {
         serviceDeliveryStatus: event.serviceDeliveryStatus, // Service Delivery status
         checkInTime: event.checkInTime, // Check-in timestamp from CheckEvent
         checkOutTime: event.checkOutTime, // Check-out timestamp from CheckEvent
+        dailyNoteId: event.dailyNoteId, // Daily Note ID if completed
         startTime: new Date(event.startAt).toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
@@ -337,6 +339,70 @@ export class ScheduleService {
     return apiClient.get<Schedule[]>(
       `/schedules?startDate=${startDate}&endDate=${endDate}`
     );
+  }
+
+  /**
+   * Get schedule events for a specific patient
+   * @param patientId - Patient UUID
+   * @param from - Start date (YYYY-MM-DD)
+   * @param to - End date (YYYY-MM-DD)
+   * @param status - Filter by status (optional)
+   */
+  static async getPatientScheduleEvents(
+    patientId: string,
+    from: string,
+    to: string,
+    status?: string
+  ): Promise<Schedule[]> {
+    try {
+      let url = `/patients/${patientId}/schedule/events?from=${from}&to=${to}`;
+      if (status) {
+        url += `&status=${status}`;
+      }
+
+      console.log('[ScheduleService] Fetching patient schedule:', url);
+      
+      const response = await apiClient.get<any>(url);
+      
+      if (!response.success || !response.data) {
+        console.error('[ScheduleService] Failed to load patient schedule:', response);
+        return [];
+      }
+
+      // Backend returns: { success: true, data: [...], message: "..." }
+      // apiClient wraps it: { success: true, data: <backend response> }
+      // So we need: response.data.data
+      const backendResponse = response.data;
+      const events: ScheduleEventResponse[] = backendResponse.data || [];
+      
+      console.log('[ScheduleService] Found', events.length, 'schedule events for patient');
+      
+      return events.map((event) => ({
+        id: event.id,
+        patientId: event.patientId,
+        patient: {
+          id: event.patientId,
+          name: event.patientName,
+          clientId: event.patientClientId,
+        } as any,
+        employeeId: event.employeeId,
+        employeeName: event.employeeName,
+        date: event.eventDate,
+        startTime: event.startAt,
+        endTime: event.endAt,
+        status: event.status as Schedule['status'],
+        location: 'Patient Home',
+        serviceType: event.serviceCode || 'Unknown',
+        authorizationId: event.authorizationId,
+        serviceDeliveryId: event.serviceDeliveryId,
+        serviceDeliveryStatus: event.serviceDeliveryStatus,
+        checkInTime: event.checkInTime,
+        checkOutTime: event.checkOutTime,
+      }));
+    } catch (error) {
+      console.error('[ScheduleService] Error fetching patient schedule:', error);
+      throw error;
+    }
   }
 }
 

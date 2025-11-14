@@ -14,23 +14,29 @@ import {
   View
 } from 'react-native';
 import { useAuth } from '../../store/authStore';
-import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
-import { UnscheduledVisit } from '../../types';
+import serviceDeliveryService from '../../services/api/serviceDeliveryService';
+import { Schedule } from '../../types';
+import PatientSearchModal from '../../components/schedule/PatientSearchModal';
 
 /**
  * Unscheduled Visit Screen
  * Shows list of user's unscheduled visits and allows creating new ones
  * Works like regular schedule - can check-in/out and create daily notes
  */
+// Interface for unscheduled visit display
+interface UnscheduledVisitDisplay extends Schedule {
+  serviceDeliveryId: string;
+  unscheduledReason?: string;
+  actualStaffName?: string;
+  scheduledStaffName?: string;
+}
+
 export default function UnscheduledVisitScreen() {
   const { state } = useAuth();
-  const [visits, setVisits] = useState<UnscheduledVisit[]>([]);
+  const [visits, setVisits] = useState<UnscheduledVisitDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [patientId, setPatientId] = useState('');
-  const [location, setLocation] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const [showPatientSearchModal, setShowPatientSearchModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Get week dates (7 days starting from selected date's week start)
@@ -101,20 +107,55 @@ export default function UnscheduledVisitScreen() {
   );
 
   const loadVisits = async () => {
+    if (!state.user?.staffId) {
+      console.error('[UnscheduledVisitScreen] No staff ID available');
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await UnscheduledVisitService.list({
-        createdBy: state.user?.id,
-        // Show both active and completed visits (hide only cancelled)
-      });
+      // Get all service deliveries for this staff
+      const allServiceDeliveries = await serviceDeliveryService.getByStaff(state.user.staffId);
 
-      if (response.success && response.data) {
-        // Filter out cancelled, show active and completed
-        const filteredVisits = response.data.filter(v => v.status !== 'cancelled');
-        setVisits(filteredVisits);
-      }
+      // Filter only unscheduled visits (where actualStaffId is set and different from scheduledStaffId)
+      const unscheduledServiceDeliveries = allServiceDeliveries.filter(
+        (sd) => sd.isUnscheduled === true && sd.actualStaffId === state.user?.staffId
+      );
+
+      console.log('[UnscheduledVisitScreen] Loaded', unscheduledServiceDeliveries.length, 'unscheduled visits');
+
+      // Transform ServiceDeliveryResponse to UnscheduledVisitDisplay
+      const unscheduledVisits: UnscheduledVisitDisplay[] = unscheduledServiceDeliveries.map((sd) => ({
+        id: sd.scheduleEventId, // Use schedule event ID as the main ID
+        serviceDeliveryId: sd.id,
+        patientId: sd.patientId || '',
+        patient: {
+          id: sd.patientId || '',
+          name: sd.patientName || 'Unknown Patient',
+          clientId: '',
+        } as any,
+        employeeId: sd.actualStaffId || state.user?.staffId || '',
+        employeeName: sd.actualStaffName || state.user?.name || '',
+        date: new Date(sd.createdAt).toISOString().split('T')[0],
+        startTime: sd.startAt || '',
+        endTime: sd.endAt || '',
+        status: sd.status === 'COMPLETED' ? 'completed' : 
+                sd.status === 'CANCELLED' ? 'cancelled' : 'in-progress',
+        location: 'Patient Home',
+        serviceType: 'Unscheduled Visit',
+        authorizationId: sd.authorizationId,
+        checkInTime: sd.checkInTime,
+        checkOutTime: sd.checkOutTime,
+        unscheduledReason: sd.unscheduledReason,
+        actualStaffName: sd.actualStaffName,
+        scheduledStaffName: sd.scheduledStaffName,
+      }));
+
+      setVisits(unscheduledVisits);
     } catch (error) {
-      console.error('Load visits error:', error);
+      console.error('[UnscheduledVisitScreen] Load visits error:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -126,104 +167,100 @@ export default function UnscheduledVisitScreen() {
     loadVisits();
   };
 
-  const handleCreateVisit = async () => {
-    if (!patientId.trim()) {
-      Alert.alert('Error', 'Please enter patient ID');
+  const handleCreateUnscheduledVisit = async (
+    selectedSchedule: Schedule,
+    reason: string
+  ) => {
+    if (!state.user?.staffId) {
+      Alert.alert('Error', 'Staff ID not found');
       return;
     }
 
-    setIsCreating(true);
-
     try {
-      console.log('Creating unscheduled visit with data:', {
-        patientId: patientId.trim(),
-        location: location.trim() || 'Patient Home',
-        requestedBy: state.user?.id,
+      console.log('[UnscheduledVisitScreen] Creating unscheduled visit:', {
+        scheduleEventId: selectedSchedule.id,
+        patientName: selectedSchedule.patient.name,
+        actualStaffId: state.user.staffId,
+        reason: reason,
       });
 
-      const response = await UnscheduledVisitService.create({
-        patientId: patientId.trim(),
-        location: location.trim() || 'Patient Home',
-        requestedBy: state.user?.id || 'unknown',
-        requestedAt: new Date().toISOString(),
+      const serviceDelivery = await serviceDeliveryService.create({
+        scheduleEventId: selectedSchedule.id,
+        authorizationId: selectedSchedule.authorizationId,
+        isUnscheduled: true,
+        actualStaffId: state.user.staffId,
+        unscheduledReason: reason,
       });
 
-      console.log('Create response:', response);
+      console.log('[UnscheduledVisitScreen] Service Delivery created:', serviceDelivery);
 
-      if (response.success && response.data) {
-        // Add new visit to list
-        setVisits([response.data, ...visits]);
-        
-        // Close modal and reset form
-        setShowCreateModal(false);
-        setPatientId('');
-        setLocation('');
+      // Close modal
+      setShowPatientSearchModal(false);
 
-        // Show success message
-        Alert.alert(
-          'Success',
-          'Unscheduled visit created! You can now check-in.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {},
-            },
-          ]
-        );
-      } else {
-        console.error('Create failed:', response.error);
-        Alert.alert('Error', response.error || 'Failed to create visit');
-      }
+      // Reload visits to show new one
+      await loadVisits();
+
+      // Automatically navigate to check-in
+      router.push({
+        pathname: '/check-in',
+        params: {
+          scheduleEventId: selectedSchedule.id,
+          serviceDeliveryId: serviceDelivery.id,
+          patientId: selectedSchedule.patientId,
+          patientName: selectedSchedule.patient.name,
+        },
+      });
     } catch (error) {
-      console.error('Create error:', error);
+      console.error('[UnscheduledVisitScreen] Create error:', error);
       Alert.alert('Error', 'Failed to create unscheduled visit: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      setIsCreating(false);
     }
   };
 
-  const handleVisitPress = (visit: UnscheduledVisit) => {
+  const handleVisitPress = (visit: UnscheduledVisitDisplay) => {
     // Determine action based on visit status
-    if (visit.status === 'active') {
+    if (visit.status === 'in-progress') {
       router.push({
         pathname: '/check-in',
         params: { 
-          scheduleId: visit.scheduleId || visit.id,
+          scheduleEventId: visit.id,
+          serviceDeliveryId: visit.serviceDeliveryId,
           patientId: visit.patientId,
-          patientName: visit.patientName || 'Unknown Patient',
-          visitId: visit.id,
+          patientName: visit.patient.name,
         },
       });
     } else {
       // View details for completed/cancelled visits
-      Alert.alert('Visit Details', `Status: ${visit.status}\nPatient: ${visit.patientName || visit.patientId}`);
+      Alert.alert(
+        'Visit Details',
+        `Status: ${visit.status}\nPatient: ${visit.patient.name}\nReason: ${visit.unscheduledReason || 'N/A'}\nScheduled Staff: ${visit.scheduledStaffName || 'N/A'}`
+      );
     }
   };
 
-  const getVisitProgress = (visit: any) => {
-    // Mock progress tracking - will be replaced with actual data from backend
+  const getVisitProgress = (visit: UnscheduledVisitDisplay) => {
+    // Use actual check-in/check-out times from service delivery
     return {
-      checkedIn: visit.checkedIn || false,
-      checkedOut: visit.checkedOut || false,
-      dailyNoteCompleted: visit.dailyNoteCompleted || false,
+      checkedIn: !!visit.checkInTime,
+      checkedOut: !!visit.checkOutTime,
+      dailyNoteCompleted: !!visit.dailyNoteId, // Daily note exists if dailyNoteId is present
     };
   };
 
-  const handleCheckIn = (visit: UnscheduledVisit) => {
+  const handleCheckIn = (visit: UnscheduledVisitDisplay) => {
     router.push({
       pathname: '/check-in',
       params: { 
-        scheduleId: visit.scheduleId || visit.id,
+        scheduleEventId: visit.id,
+        serviceDeliveryId: visit.serviceDeliveryId,
         patientId: visit.patientId,
-        patientName: visit.patientName || 'Unknown Patient',
-        visitId: visit.id,
+        patientName: visit.patient.name,
       },
     });
   };
 
-  const handleCheckOut = (visit: UnscheduledVisit) => {
+  const handleCheckOut = (visit: UnscheduledVisitDisplay) => {
     // Check if checked in first
-    if (!visit.checkedIn) {
+    if (!visit.checkInTime) {
       Alert.alert('Not Checked In', 'Please check in before checking out');
       return;
     }
@@ -231,50 +268,69 @@ export default function UnscheduledVisitScreen() {
     router.push({
       pathname: '/check-out',
       params: { 
-        scheduleId: visit.scheduleId || visit.id,
+        serviceDeliveryId: visit.serviceDeliveryId,
         patientId: visit.patientId,
-        patientName: visit.patientName || 'Unknown Patient',
-        visitId: visit.id,
-        checkInTime: visit.checkInTime || new Date().toISOString(),
+        patientName: visit.patient.name,
       },
     });
   };
 
-  const handleDailyNote = (visit: UnscheduledVisit) => {
-    // Navigate to daily note form
+  const handleDailyNote = (visit: UnscheduledVisitDisplay) => {
     router.push({
       pathname: '/daily-note',
       params: { 
-        scheduleId: visit.scheduleId || visit.id,
+        serviceDeliveryId: visit.serviceDeliveryId,
         patientId: visit.patientId,
-        patientName: visit.patientName || 'Unknown Patient',
-        visitId: visit.id,
-        checkInTime: visit.checkInTime || new Date().toISOString(),
+        patientName: visit.patient.name,
       },
     });
   };
 
-  const renderVisitItem = ({ item }: { item: UnscheduledVisit }) => {
+  const renderVisitItem = ({ item }: { item: UnscheduledVisitDisplay }) => {
     const progress = getVisitProgress(item);
     const allCompleted = progress.checkedIn && progress.checkedOut && progress.dailyNoteCompleted;
+    const isCancelled = item.status === 'cancelled';
 
     return (
-      <View style={styles.visitCard}>
+      <View style={[styles.visitCard, isCancelled && styles.cancelledCard]}>
         {/* Header */}
         <View style={styles.visitHeader}>
           <View style={styles.visitInfo}>
+            <Text style={[styles.patientName, isCancelled && styles.cancelledText]}>
+              {item.patient.name}
+            </Text>
             <Text style={styles.patientId}>Patient ID: {item.patientId}</Text>
-            {item.patientName && (
-              <Text style={styles.patientName}>{item.patientName}</Text>
-            )}
           </View>
-          {allCompleted && (
+          {allCompleted && !isCancelled && (
             <View style={styles.completedBadge}>
               <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
               <Text style={styles.completedText}>Completed</Text>
             </View>
           )}
+          {isCancelled && (
+            <View style={styles.cancelledBadge}>
+              <Ionicons name="close-circle" size={20} color="#f44336" />
+              <Text style={styles.cancelledBadgeText}>Cancelled</Text>
+            </View>
+          )}
         </View>
+
+        {/* Replacement Info */}
+        {item.unscheduledReason && (
+          <View style={styles.reasonContainer}>
+            <Ionicons name="information-circle" size={16} color="#FF9800" />
+            <Text style={styles.reasonText}>Reason: {item.unscheduledReason}</Text>
+          </View>
+        )}
+
+        {item.scheduledStaffName && (
+          <View style={styles.scheduledStaffContainer}>
+            <Ionicons name="person-outline" size={16} color="#666" />
+            <Text style={styles.scheduledStaffText}>
+              Originally scheduled: {item.scheduledStaffName}
+            </Text>
+          </View>
+        )}
 
         {/* Location & Time */}
         <View style={styles.visitDetails}>
@@ -285,12 +341,7 @@ export default function UnscheduledVisitScreen() {
           <View style={styles.detailRow}>
             <Ionicons name="calendar" size={16} color="#666" />
             <Text style={styles.detailText}>
-              {new Date(item.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {item.date} • {item.startTime || 'Not started'} - {item.endTime || 'Not ended'}
             </Text>
           </View>
         </View>
@@ -379,7 +430,7 @@ export default function UnscheduledVisitScreen() {
       </Text>
       <TouchableOpacity
         style={styles.emptyButton}
-        onPress={() => setShowCreateModal(true)}
+        onPress={() => setShowPatientSearchModal(true)}
       >
         <Ionicons name="add-circle" size={20} color="white" />
         <Text style={styles.emptyButtonText}>Create First Visit</Text>
@@ -393,10 +444,19 @@ export default function UnscheduledVisitScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Unscheduled Visits</Text>
-          <TouchableOpacity style={styles.todayButton} onPress={goToToday}>
-            <Ionicons name="calendar" size={16} color="white" />
-            <Text style={styles.todayButtonText}>Today</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity 
+              style={styles.createUnscheduledButton} 
+              onPress={() => setShowPatientSearchModal(true)}
+            >
+              <Ionicons name="add-circle" size={16} color="white" />
+              <Text style={styles.createUnscheduledButtonText}>Create</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.todayButton} onPress={goToToday}>
+              <Ionicons name="calendar" size={16} color="white" />
+              <Text style={styles.todayButtonText}>Today</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.headerDate}>
           {selectedDate.toLocaleDateString('en-US', { 
@@ -461,9 +521,9 @@ export default function UnscheduledVisitScreen() {
 
       {/* Info Banner */}
       <View style={styles.infoBanner}>
-        <Ionicons name="information-circle" size={20} color="#2196F3" />
+        <Ionicons name="information-circle" size={20} color="#4CAF50" />
         <Text style={styles.infoText}>
-          Create unscheduled visits for emergency care. After check-in, you can complete daily note and check-out in any order.
+          Replacement visits: These are schedules where you're replacing another staff member. Tap "Create" button above or the + button to create a new unscheduled visit.
         </Text>
       </View>
 
@@ -471,14 +531,12 @@ export default function UnscheduledVisitScreen() {
       <FlatList
         data={visits.filter((visit) => {
           // Filter by selected date
-          const visitDate = new Date(visit.createdAt);
-          return visitDate.toDateString() === selectedDate.toDateString();
+          return visit.date === selectedDate.toISOString().split('T')[0];
         })}
         renderItem={renderVisitItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.serviceDeliveryId}
         contentContainerStyle={visits.filter((visit) => {
-          const visitDate = new Date(visit.createdAt);
-          return visitDate.toDateString() === selectedDate.toDateString();
+          return visit.date === selectedDate.toISOString().split('T')[0];
         }).length === 0 ? styles.emptyContainer : styles.listContent}
         ListEmptyComponent={!isLoading ? renderEmptyState : null}
         refreshControl={
@@ -489,69 +547,17 @@ export default function UnscheduledVisitScreen() {
       {/* Floating Create Button */}
       <TouchableOpacity
         style={styles.floatingButton}
-        onPress={() => setShowCreateModal(true)}
+        onPress={() => setShowPatientSearchModal(true)}
       >
         <Ionicons name="add" size={32} color="white" />
       </TouchableOpacity>
 
-      {/* Create Modal */}
-      <Modal
-        visible={showCreateModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCreateModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Unscheduled Visit</Text>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-                <Ionicons name="close-circle" size={28} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>
-                  Patient ID <Text style={styles.required}>*</Text>
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter patient ID (e.g. PT001)"
-                  value={patientId}
-                  onChangeText={setPatientId}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  autoFocus={true}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Location (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Patient home (default)"
-                  value={location}
-                  onChangeText={setLocation}
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-
-              <TouchableOpacity
-                style={[styles.createButton, isCreating && styles.createButtonDisabled]}
-                onPress={handleCreateVisit}
-                disabled={isCreating}
-              >
-                <Ionicons name="add-circle" size={20} color="white" style={{ marginRight: 8 }} />
-                <Text style={styles.createButtonText}>
-                  {isCreating ? 'Creating...' : 'Create Visit'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Patient Search Modal */}
+      <PatientSearchModal
+        visible={showPatientSearchModal}
+        onClose={() => setShowPatientSearchModal(false)}
+        onSelectSchedule={handleCreateUnscheduledVisit}
+      />
     </View>
   );
 }
@@ -576,6 +582,25 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  createUnscheduledButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  createUnscheduledButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   todayButton: {
     flexDirection: 'row',
@@ -759,6 +784,56 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     marginLeft: 4,
   },
+  cancelledCard: {
+    backgroundColor: '#FAFAFA',
+    opacity: 0.85,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  cancelledText: {
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  cancelledBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  cancelledBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#f44336',
+    marginLeft: 4,
+  },
+  reasonContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF3E0',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  reasonText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 13,
+    color: '#E65100',
+    lineHeight: 18,
+  },
+  scheduledStaffContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  scheduledStaffText: {
+    marginLeft: 8,
+    fontSize: 13,
+    color: '#666',
+    fontStyle: 'italic',
+  },
   status_active: {
     backgroundColor: '#E8F5E9',
   },
@@ -840,71 +915,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2196F3',
     fontWeight: '500',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#555',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#f44336',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    color: '#333',
-    backgroundColor: '#fff',
-  },
-  createButton: {
-    backgroundColor: '#2196F3',
-    borderRadius: 8,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  createButtonDisabled: {
-    backgroundColor: '#BBDEFB',
-  },
-  createButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   floatingButton: {
     position: 'absolute',

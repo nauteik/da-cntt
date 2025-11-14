@@ -83,11 +83,13 @@ public class DailyNote extends BaseEntity {
     @Column(name = "meal_info", columnDefinition = "jsonb")
     private List<Object> mealInfo = new ArrayList<>();
 
-    @Column(name = "patient_signature")
-    private String patientSignature; // could store signer name or base64 signature reference
+    // Patient signature stored as base64 string (from signature pad drawing)
+    @Column(name = "patient_signature", columnDefinition = "TEXT")
+    private String patientSignature;
 
-    @Column(name = "staff_signature")
-    private String staffSignature; // staff signature (name or reference)
+    // Staff signature stored as base64 string (from signature pad drawing)
+    @Column(name = "staff_signature", columnDefinition = "TEXT")
+    private String staffSignature;
 
     public DailyNote(ServiceDelivery serviceDelivery, Staff authorStaff, String content) {
         this.serviceDelivery = serviceDelivery;
@@ -151,5 +153,26 @@ public class DailyNote extends BaseEntity {
 
     public boolean isCheckInCheckOutFullyValid() {
         return serviceDelivery != null && serviceDelivery.isCheckInCheckOutFullyValid();
+    }
+
+    /**
+     * Check if patient has provided signature
+     */
+    public boolean hasPatientSignature() {
+        return patientSignature != null && !patientSignature.trim().isEmpty();
+    }
+
+    /**
+     * Check if staff has provided signature
+     */
+    public boolean hasStaffSignature() {
+        return staffSignature != null && !staffSignature.trim().isEmpty();
+    }
+
+    /**
+     * Check if both signatures are provided
+     */
+    public boolean hasBothSignatures() {
+        return hasPatientSignature() && hasStaffSignature();
     }
 }

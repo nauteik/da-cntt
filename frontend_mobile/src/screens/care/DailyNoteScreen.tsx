@@ -14,7 +14,9 @@ import {
 import UnscheduledVisitService from '../../services/api/unscheduledVisitService';
 import { useAuth } from '../../store/authStore';
 import { CustomAlert, AlertButton } from '../../components/common/CustomAlert';
-import { DailyNoteService } from '../../services/api/dailyNoteService';
+import { DailyNoteService, type DailyNoteRequest, type MealEntry } from '../../services/api/dailyNoteService';
+import SignaturePad from '../../components/common/SignaturePad';
+import { Image } from 'react-native';
 
 interface LocationData {
   latitude: number;
@@ -29,23 +31,6 @@ interface CheckInData {
   type: 'check_in';
 }
 
-interface MealEntry {
-  time: string;
-  whatHad: string;
-  whatOffered: string;
-}
-
-// Match backend DailyNoteRequestDTO structure
-interface DailyNoteFormData {
-  serviceDeliveryId: string;
-  content: string; // careContent
-  mealInfo: MealEntry[]; // breakfast, lunch, dinner as array
-  patientSignature?: string;
-  staffSignature?: string;
-  cancelled?: boolean;
-  cancelReason?: string;
-}
-
 interface DailyNoteForm {
   employeeName: string;
   employeeId: string;
@@ -55,11 +40,11 @@ interface DailyNoteForm {
   checkInTime: string;
   checkOutTime: string;
   careContent: string;
-  breakfast: MealEntry;
-  lunch: MealEntry;
-  dinner: MealEntry;
-  employeeSignature: string;
-  patientSignature: string;
+  breakfast: { time: string; whatHad: string; whatOffered: string };
+  lunch: { time: string; whatHad: string; whatOffered: string };
+  dinner: { time: string; whatHad: string; whatOffered: string };
+  employeeSignature: string; // base64
+  patientSignature: string; // base64
   checkInLocation?: LocationData;
   isCheckedIn: boolean;
 }
@@ -88,6 +73,10 @@ export default function DailyNoteScreen() {
     title: '',
     message: '',
   });
+  
+  // Signature pad states
+  const [showStaffSignaturePad, setShowStaffSignaturePad] = useState(false);
+  const [showPatientSignaturePad, setShowPatientSignaturePad] = useState(false);
   
   const [form, setForm] = useState<DailyNoteForm>({
     employeeName: '',
@@ -182,7 +171,7 @@ export default function DailyNoteScreen() {
     setAlertVisible(true);
   };
 
-  const updateMealEntry = (meal: 'breakfast' | 'lunch' | 'dinner', field: keyof MealEntry, value: string) => {
+  const updateMealEntry = (meal: 'breakfast' | 'lunch' | 'dinner', field: 'time' | 'whatHad' | 'whatOffered', value: string) => {
     setForm(prev => ({
       ...prev,
       [meal]: {
@@ -222,17 +211,17 @@ export default function DailyNoteScreen() {
       // Prepare meal info array (backend expects List<Object>)
       const mealInfo: MealEntry[] = [];
       if (form.breakfast.time || form.breakfast.whatHad || form.breakfast.whatOffered) {
-        mealInfo.push({ ...form.breakfast, mealType: 'breakfast' } as any);
+        mealInfo.push({ ...form.breakfast, mealType: 'breakfast' });
       }
       if (form.lunch.time || form.lunch.whatHad || form.lunch.whatOffered) {
-        mealInfo.push({ ...form.lunch, mealType: 'lunch' } as any);
+        mealInfo.push({ ...form.lunch, mealType: 'lunch' });
       }
       if (form.dinner.time || form.dinner.whatHad || form.dinner.whatOffered) {
-        mealInfo.push({ ...form.dinner, mealType: 'dinner' } as any);
+        mealInfo.push({ ...form.dinner, mealType: 'dinner' });
       }
 
       // Call backend API matching DailyNoteRequestDTO
-      const dailyNoteData: DailyNoteFormData = {
+      const dailyNoteData: DailyNoteRequest = {
         serviceDeliveryId: serviceDeliveryId,
         content: form.careContent,
         mealInfo: mealInfo,
@@ -243,11 +232,11 @@ export default function DailyNoteScreen() {
 
       console.log('[DailyNoteScreen] Saving daily note:', dailyNoteData);
       
-      // TODO: Uncomment when backend is ready
-      // const response = await DailyNoteService.createDailyNote(dailyNoteData);
-      // if (!response.success) {
-      //   throw new Error(response.error || 'Failed to save daily note');
-      // }
+      // Call backend API
+      const response = await DailyNoteService.createDailyNote(dailyNoteData);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to save daily note');
+      }
       
       // Update visit status if this is from unscheduled visit
       if (visitId) {
@@ -270,17 +259,20 @@ export default function DailyNoteScreen() {
         }
       }
       
-      // Show success message
+      // Show success message and navigate back
       setAlertConfig({
         title: 'Daily Note Saved!',
-        message: 'Your daily care note has been saved successfully.',
+        message: 'Your daily care note has been saved successfully. The visit has been marked as completed.',
         icon: 'checkmark-circle',
         iconColor: '#4CAF50',
         buttons: [
           { 
             text: 'Back to Schedule',
             style: 'default',
-            onPress: () => router.back(),
+            onPress: () => {
+              // Navigate back and trigger refresh
+              router.back();
+            },
           },
         ]
       });
@@ -514,23 +506,63 @@ export default function DailyNoteScreen() {
         {/* Signatures */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Signatures</Text>
+          
+          {/* Staff Signature */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Employee Signature</Text>
-            <TextInput
-              style={styles.input}
-              value={form.employeeSignature}
-              onChangeText={(text) => setForm(prev => ({ ...prev, employeeSignature: text }))}
-              placeholder="Employee digital signature"
-            />
+            <Text style={styles.label}>Employee Signature *</Text>
+            {form.employeeSignature ? (
+              <View style={styles.signaturePreview}>
+                <Image
+                  source={{ uri: form.employeeSignature }}
+                  style={styles.signatureImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.changeSignatureButton}
+                  onPress={() => setShowStaffSignaturePad(true)}
+                >
+                  <Ionicons name="create" size={16} color="#2196F3" />
+                  <Text style={styles.changeSignatureText}>Change</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.signatureButton}
+                onPress={() => setShowStaffSignaturePad(true)}
+              >
+                <Ionicons name="create-outline" size={24} color="#2196F3" />
+                <Text style={styles.signatureButtonText}>Tap to Sign</Text>
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* Patient Signature */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Patient Signature</Text>
-            <TextInput
-              style={styles.input}
-              value={form.patientSignature}
-              onChangeText={(text) => setForm(prev => ({ ...prev, patientSignature: text }))}
-              placeholder="Patient digital signature"
-            />
+            <Text style={styles.label}>Patient Signature *</Text>
+            {form.patientSignature ? (
+              <View style={styles.signaturePreview}>
+                <Image
+                  source={{ uri: form.patientSignature }}
+                  style={styles.signatureImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.changeSignatureButton}
+                  onPress={() => setShowPatientSignaturePad(true)}
+                >
+                  <Ionicons name="create" size={16} color="#2196F3" />
+                  <Text style={styles.changeSignatureText}>Change</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.signatureButton}
+                onPress={() => setShowPatientSignaturePad(true)}
+              >
+                <Ionicons name="create-outline" size={24} color="#2196F3" />
+                <Text style={styles.signatureButtonText}>Tap to Sign</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -556,6 +588,28 @@ export default function DailyNoteScreen() {
         iconColor={alertConfig.iconColor}
         buttons={alertConfig.buttons}
         onDismiss={() => setAlertVisible(false)}
+      />
+
+      {/* Staff Signature Pad */}
+      <SignaturePad
+        visible={showStaffSignaturePad}
+        onClose={() => setShowStaffSignaturePad(false)}
+        onSave={(signature) => {
+          setForm(prev => ({ ...prev, employeeSignature: signature }));
+          setShowStaffSignaturePad(false);
+        }}
+        title="Staff Signature"
+      />
+
+      {/* Patient Signature Pad */}
+      <SignaturePad
+        visible={showPatientSignaturePad}
+        onClose={() => setShowPatientSignaturePad(false)}
+        onSave={(signature) => {
+          setForm(prev => ({ ...prev, patientSignature: signature }));
+          setShowPatientSignaturePad(false);
+        }}
+        title="Patient Signature"
       />
     </KeyboardAvoidingView>
   );
@@ -848,5 +902,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
+  },
+  // Signature styles
+  signatureButton: {
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  signatureButtonText: {
+    color: '#2196F3',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  signaturePreview: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: 'white',
+    position: 'relative',
+  },
+  signatureImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: 'white',
+  },
+  changeSignatureButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  changeSignatureText: {
+    color: '#2196F3',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });

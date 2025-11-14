@@ -104,8 +104,33 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         serviceDelivery.setStatus(dto.getStatus() != null ? dto.getStatus() : "in_progress");
         serviceDelivery.setApprovalStatus(dto.getApprovalStatus() != null ? dto.getApprovalStatus() : "pending");
 
+        // Handle unscheduled visit (staff replacement)
+        if (Boolean.TRUE.equals(dto.getIsUnscheduled())) {
+            // Validate actualStaffId is provided
+            if (dto.getActualStaffId() == null) {
+                throw new ValidationException("Actual staff ID is required for unscheduled visits");
+            }
+            
+            // Validate actualStaff exists
+            Staff actualStaff = staffRepository.findById(dto.getActualStaffId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Actual staff not found"));
+            
+            // Set unscheduled visit fields
+            serviceDelivery.setIsUnscheduled(true);
+            serviceDelivery.setActualStaff(actualStaff);
+            serviceDelivery.setUnscheduledReason(dto.getUnscheduledReason());
+            
+            log.info("Creating unscheduled service delivery - Scheduled staff: {}, Actual staff: {}, Reason: {}", 
+                    scheduleEvent.getStaff().getId(), actualStaff.getId(), dto.getUnscheduledReason());
+        } else {
+            // Normal scheduled visit - actualStaff is same as scheduled staff
+            serviceDelivery.setIsUnscheduled(false);
+            serviceDelivery.setActualStaff(scheduleEvent.getStaff());
+        }
+
         ServiceDelivery saved = serviceDeliveryRepository.save(serviceDelivery);
-        log.info("Service delivery created with ID: {} (initial units: {})", saved.getId(), units);
+        log.info("Service delivery created with ID: {} (initial units: {}, unscheduled: {})", 
+                saved.getId(), units, saved.getIsUnscheduled());
 
         return toDto(saved);
     }
@@ -367,6 +392,24 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
                 serviceDelivery.getCancelledByStaff().getFirstName() + " " + 
                 serviceDelivery.getCancelledByStaff().getLastName()
             );
+        }
+        
+        // Unscheduled visit (staff replacement) information
+        dto.setIsUnscheduled(serviceDelivery.getIsUnscheduled());
+        dto.setUnscheduledReason(serviceDelivery.getUnscheduledReason());
+        
+        // Actual staff (who performs the service)
+        if (serviceDelivery.getActualStaff() != null) {
+            Staff actualStaff = serviceDelivery.getActualStaff();
+            dto.setActualStaffId(actualStaff.getId());
+            dto.setActualStaffName(actualStaff.getFirstName() + " " + actualStaff.getLastName());
+        }
+        
+        // Scheduled staff (from schedule event)
+        if (serviceDelivery.getScheduledStaff() != null) {
+            Staff scheduledStaff = serviceDelivery.getScheduledStaff();
+            dto.setScheduledStaffId(scheduledStaff.getId());
+            dto.setScheduledStaffName(scheduledStaff.getFirstName() + " " + scheduledStaff.getLastName());
         }
         
         // Metadata

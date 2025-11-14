@@ -44,6 +44,14 @@ public class ServiceDeliveryResponseDTO {
     private UUID cancelledByStaffId;
     private String cancelledByStaffName;
 
+    // Unscheduled visit (staff replacement) information
+    private Boolean isUnscheduled;
+    private UUID actualStaffId;
+    private String actualStaffName;
+    private UUID scheduledStaffId;
+    private String scheduledStaffName;
+    private String unscheduledReason;
+
     // Metadata
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -56,6 +56,20 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         note.setPatientSignature(dto.getPatientSignature());
         note.setStaffSignature(dto.getStaffSignature());
         DailyNote saved = dailyNoteRepository.save(note);
+        
+        // Update both ScheduleEvent and ServiceDelivery status to COMPLETED if check-out is also done
+        if (serviceDelivery.getScheduleEvent() != null && serviceDelivery.getCheckOutTime() != null) {
+            var scheduleEvent = serviceDelivery.getScheduleEvent();
+            scheduleEvent.setStatus(com.example.backend.model.enums.ScheduleEventStatus.COMPLETED);
+            
+            // Also update ServiceDelivery status to completed
+            serviceDelivery.setStatus("completed");
+            serviceDeliveryRepository.save(serviceDelivery);
+            
+            log.info("Updated ScheduleEvent {} and ServiceDelivery {} status to COMPLETED", 
+                    scheduleEvent.getId(), serviceDelivery.getId());
+        }
+        
         log.info("Created DailyNote {} for ServiceDelivery {} - Patient: {}, Staff: {}", 
             saved.getId(), serviceDelivery.getId(), patient.getFullName(), 
             staff != null ? staff.getFirstName() + " " + staff.getLastName() : "N/A");

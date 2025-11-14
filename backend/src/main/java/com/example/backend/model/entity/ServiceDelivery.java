@@ -70,6 +70,30 @@ public class ServiceDelivery extends BaseEntity {
     @JoinColumn(name = "cancelled_by_staff_id")
     private Staff cancelledByStaff;
 
+    // === Unscheduled Visit Support ===
+    /**
+     * Flag indicating if this is an unscheduled visit (staff replacement)
+     * When true, actualStaff is the replacement staff who performs the shift
+     * instead of the originally scheduled staff in ScheduleEvent
+     */
+    @Column(name = "is_unscheduled", nullable = false)
+    private Boolean isUnscheduled = false;
+
+    /**
+     * The actual staff who performs this service delivery
+     * - For scheduled visits: same as scheduleEvent.getStaff()
+     * - For unscheduled visits: the replacement/backup staff
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "actual_staff_id")
+    private Staff actualStaff;
+
+    /**
+     * Reason for unscheduled visit (e.g., "Original staff unavailable", "Emergency replacement")
+     */
+    @Column(name = "unscheduled_reason", length = 500)
+    private String unscheduledReason;
+
     // Relationships
     @OneToMany(mappedBy = "serviceDelivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<DailyNote> dailyNotes = new HashSet<>();
@@ -82,6 +106,22 @@ public class ServiceDelivery extends BaseEntity {
 
     public ServiceDelivery(ScheduleEvent scheduleEvent, LocalDateTime startAt, LocalDateTime endAt, Integer units) {
         this.scheduleEvent = scheduleEvent;
+        this.startAt = startAt;
+        this.endAt = endAt;
+        this.units = units;
+        this.isUnscheduled = false;
+        this.actualStaff = scheduleEvent.getStaff(); // Default to scheduled staff
+    }
+
+    /**
+     * Constructor for unscheduled visit (staff replacement)
+     */
+    public ServiceDelivery(ScheduleEvent scheduleEvent, Staff actualStaff, String reason, 
+                          LocalDateTime startAt, LocalDateTime endAt, Integer units) {
+        this.scheduleEvent = scheduleEvent;
+        this.actualStaff = actualStaff;
+        this.isUnscheduled = true;
+        this.unscheduledReason = reason;
         this.startAt = startAt;
         this.endAt = endAt;
         this.units = units;
@@ -131,9 +171,24 @@ public class ServiceDelivery extends BaseEntity {
     }
 
     /**
-     * Get staff from schedule event
+     * Get staff who performs this service delivery
+     * For unscheduled visits, returns the actual/replacement staff
+     * For scheduled visits, returns the scheduled staff from ScheduleEvent
      */
     public Staff getStaff() {
+        // If unscheduled visit, return the actual staff (replacement)
+        if (Boolean.TRUE.equals(isUnscheduled) && actualStaff != null) {
+            return actualStaff;
+        }
+        // For scheduled visits, return staff from schedule event
+        return scheduleEvent != null ? scheduleEvent.getStaff() : null;
+    }
+
+    /**
+     * Get the originally scheduled staff (from ScheduleEvent)
+     * Useful for reporting when staff replacement occurs
+     */
+    public Staff getScheduledStaff() {
         return scheduleEvent != null ? scheduleEvent.getStaff() : null;
     }
 

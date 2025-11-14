@@ -73,6 +73,7 @@ export interface Schedule {
   serviceDeliveryStatus?: string;
   checkInTime?: string; // ISO datetime string when checked in
   checkOutTime?: string; // ISO datetime string when checked out
+  dailyNoteId?: string; // Daily Note ID if daily note has been completed
   recurrenceType?: string;
 }
 
@@ -124,7 +125,74 @@ export interface CancelCategory {
   icon: string;
 }
 
-// ============= Unscheduled Visit Types =============
+// ============= Service Delivery Types =============
+/**
+ * Request to create a service delivery
+ * Can be scheduled or unscheduled (staff replacement)
+ */
+export interface ServiceDeliveryRequest {
+  scheduleEventId: string;
+  authorizationId?: string;
+  startAt?: string;
+  endAt?: string;
+  units?: number;
+  status?: string;
+  approvalStatus?: string;
+  
+  // Unscheduled visit (staff replacement) fields
+  isUnscheduled?: boolean;
+  actualStaffId?: string;
+  unscheduledReason?: string;
+}
+
+/**
+ * Service delivery response
+ * Contains both scheduled and actual staff information for unscheduled visits
+ */
+export interface ServiceDeliveryResponse {
+  id: string;
+  scheduleEventId: string;
+  authorizationId?: string;
+  officeId: string;
+  officeName: string;
+  patientId: string;
+  patientName: string;
+  staffId: string;
+  staffName: string;
+  
+  startAt: string;
+  endAt: string;
+  units: number;
+  status: string;
+  approvalStatus: string;
+  totalHours?: number;
+  
+  // Check-in/check-out summary
+  checkInTime?: string;
+  checkOutTime?: string;
+  isCheckInCheckOutCompleted?: boolean;
+  isCheckInCheckOutFullyValid?: boolean;
+  
+  // Cancel information
+  cancelled: boolean;
+  cancelReason?: string;
+  cancelledAt?: string;
+  cancelledByStaffId?: string;
+  cancelledByStaffName?: string;
+  
+  // Unscheduled visit (staff replacement) information
+  isUnscheduled?: boolean;
+  actualStaffId?: string;
+  actualStaffName?: string;
+  scheduledStaffId?: string;
+  scheduledStaffName?: string;
+  unscheduledReason?: string;
+  
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============= Unscheduled Visit Types (Legacy - can be removed after migration) =============
 /**
  * Request to create an unscheduled/emergency visit
  * No approval needed - creates schedule immediately

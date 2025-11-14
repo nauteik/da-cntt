@@ -34,4 +34,7 @@ public interface DailyNoteRepository extends JpaRepository<DailyNote, UUID> {
     // Find daily notes by patient ordered by creation date
     @Query("SELECT dn FROM DailyNote dn WHERE dn.patient.id = :patientId ORDER BY dn.createdAt DESC")
     List<DailyNote> findByPatientIdOrderByCreatedAtDesc(@Param("patientId") UUID patientId);
+    
+    // Find first daily note by service delivery ID (to check if daily note exists for a service delivery)
+    java.util.Optional<DailyNote> findFirstByServiceDelivery_IdOrderByCreatedAtDesc(UUID serviceDeliveryId);
 }

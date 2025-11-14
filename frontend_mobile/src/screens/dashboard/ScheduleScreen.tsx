@@ -17,6 +17,7 @@ import { ScheduleService } from '../../services/api/scheduleService';
 import serviceDeliveryService from '../../services/api/serviceDeliveryService';
 import { Schedule } from '../../types';
 import { useCustomAlert } from '../../components/common/CustomAlert';
+import PatientSearchModal from '../../components/schedule/PatientSearchModal';
 
 // Helper to format date as YYYY-MM-DD
 const formatDate = (date: Date): string => {
@@ -491,7 +492,7 @@ export default function ScheduleScreen() {
           const progress = {
             checkedIn: !!event.checkInTime, // Check if CHECK_IN event exists
             checkedOut: !!event.checkOutTime, // Check if CHECK_OUT event exists
-            dailyNoteCompleted: false, // TODO: Get this from Daily Note API
+            dailyNoteCompleted: !!event.dailyNoteId, // Daily note exists if dailyNoteId is present
           };
           
           // Debug logging

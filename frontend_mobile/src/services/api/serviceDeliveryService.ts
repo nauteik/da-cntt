@@ -8,6 +8,10 @@ export interface ServiceDeliveryRequest {
   units?: number;
   status?: string;
   approvalStatus?: string;
+  // Unscheduled visit fields
+  isUnscheduled?: boolean;
+  actualStaffId?: string;
+  unscheduledReason?: string;
 }
 
 export interface ServiceDeliveryResponse {
@@ -32,6 +36,13 @@ export interface ServiceDeliveryResponse {
   isCheckInCheckOutFullyValid: boolean;
   createdAt: string;
   updatedAt: string;
+  // Unscheduled visit fields
+  isUnscheduled?: boolean;
+  actualStaffId?: string;
+  actualStaffName?: string;
+  scheduledStaffId?: string;
+  scheduledStaffName?: string;
+  unscheduledReason?: string;
 }
 
 const serviceDeliveryService = {

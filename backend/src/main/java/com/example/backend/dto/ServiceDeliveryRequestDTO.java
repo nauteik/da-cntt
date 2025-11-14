@@ -18,6 +18,16 @@ public class ServiceDeliveryRequestDTO {
     // Optional: Nếu không cung cấp, sẽ lấy từ ScheduleEvent
     private UUID authorizationId;
 
+    // === Unscheduled visit (staff replacement) fields ===
+    // Set to true if this is an unscheduled visit where a different staff replaces the scheduled one
+    private Boolean isUnscheduled = false;
+
+    // Required for unscheduled visits: the actual staff who performs the service
+    private UUID actualStaffId;
+
+    // Required for unscheduled visits: reason for replacement
+    private String unscheduledReason;
+
     // Optional: Nếu không cung cấp, sẽ lấy từ ScheduleEvent
     // Thời gian DỰ KIẾN, sẽ được cập nhật thành thời gian THỰC TẾ sau check-in/check-out
     private LocalDateTime startAt;

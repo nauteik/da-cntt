@@ -4,9 +4,13 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScheduleEventDTO {
     private UUID id;
     private UUID patientId;
@@ -30,6 +34,7 @@ public class ScheduleEventDTO {
     private String eventCode;
     private OffsetDateTime checkInTime;
     private OffsetDateTime checkOutTime;
+    private UUID dailyNoteId; // Daily Note ID if exists (indicates daily note completed)
 }
 
 
