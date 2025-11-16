@@ -160,6 +160,11 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         
         dto.setPatientSignature(note.getPatientSignature());
         dto.setStaffSignature(note.getStaffSignature());
+        
+        // Set timestamps from BaseEntity
+        dto.setCreatedAt(note.getCreatedAt());
+        dto.setUpdatedAt(note.getUpdatedAt());
+        
         return dto;
     }
 }

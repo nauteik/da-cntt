@@ -495,6 +495,9 @@ export default function ScheduleScreen() {
             dailyNoteCompleted: !!event.dailyNoteId, // Daily note exists if dailyNoteId is present
           };
           
+          // Check if all steps are completed
+          const allStepsCompleted = progress.checkedIn && progress.checkedOut && progress.dailyNoteCompleted;
+          
           // Debug logging
           if (hasServiceDelivery) {
             console.log('[ScheduleScreen] Event progress:', {
@@ -504,11 +507,16 @@ export default function ScheduleScreen() {
               serviceDeliveryStatus: event.serviceDeliveryStatus,
               checkInTime: event.checkInTime,
               checkOutTime: event.checkOutTime,
+              dailyNoteId: event.dailyNoteId,
               progress,
+              allStepsCompleted,
             });
           }
           
-          const allCompleted = event.status === 'completed';
+          // Consider completed if: status is 'completed' OR serviceDeliveryStatus is 'completed' OR all steps are done
+          const allCompleted = event.status === 'completed' || 
+                               event.serviceDeliveryStatus?.toLowerCase() === 'completed' ||
+                               allStepsCompleted;
           const isCancelled = event.status === 'cancelled';
 
           return (

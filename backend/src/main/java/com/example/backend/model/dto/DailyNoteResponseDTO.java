@@ -21,6 +21,8 @@ public class DailyNoteResponseDTO {
     private String staffSignature;
     private Boolean cancelled;
     private String cancelReason;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // getters and setters
     public UUID getId() { return id; }
@@ -55,4 +57,8 @@ public class DailyNoteResponseDTO {
     public void setCancelled(Boolean cancelled) { this.cancelled = cancelled; }
     public String getCancelReason() { return cancelReason; }
     public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -7,6 +7,7 @@ import { useStaffHeader, useStaffPersonal } from "@/hooks/useStaffDetail";
 import StaffHeader from "@/components/employees/StaffHeader";
 import StaffPersonal from "@/components/employees/StaffPersonal";
 import StaffSchedule from "@/components/employees/StaffSchedule";
+import StaffServiceDeliveries from "@/components/employees/StaffServiceDeliveries";
 import TabLoading from "@/components/common/TabLoading";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import InlineError from "@/components/common/InlineError";
@@ -62,7 +63,7 @@ export default function StaffDetailClient({
       children: personalData ? (
         <StaffPersonal staff={personalData} />
       ) : personalLoading ? (
-        <TabLoading message="Loading personal information..." />
+        <TabLoading />
       ) : personalError ? (
         <InlineError
           title="Error Loading Personal Information"
@@ -78,6 +79,11 @@ export default function StaffDetailClient({
       key: "schedules",
       label: "Schedules",
       children: <StaffSchedule staffId={staffId} />,
+    },
+    {
+      key: "service-deliveries",
+      label: "Service Deliveries",
+      children: <StaffServiceDeliveries staffId={staffId} />,
     },
   ];
 
