@@ -19,6 +19,7 @@ import com.example.backend.model.dto.CreatePatientPayerDTO;
 import com.example.backend.model.dto.UpdatePatientPayerDTO;
 import com.example.backend.model.dto.CreateAuthorizationDTO;
 import com.example.backend.model.dto.UpdateAuthorizationDTO;
+import com.example.backend.model.dto.PatientSelectDTO;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -28,6 +29,14 @@ import java.util.UUID;
  * Service for patient management operations
  */
 public interface PatientService {
+    
+    /**
+     * Get active patients for select dropdown.
+     * Returns list of active patients with formatted display names.
+     * 
+     * @return list of active patient select DTOs
+     */
+    List<PatientSelectDTO> getActivePatientsForSelect();
     
     /**
      * Get paginated list of patient summaries with optional filtering and sorting.

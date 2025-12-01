@@ -52,7 +52,7 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
     if (pathname.startsWith("/clients")) return "client-management";
     if (pathname.startsWith("/employees")) return "employees";
     if (pathname.startsWith("/offices")) return "offices";
-    if (pathname.startsWith("/scheduling")) return "scheduling";
+    if (pathname.startsWith("/schedule")) return "schedule";
     if (pathname.startsWith("/visit-maintenance")) return "visit-maintenance";
     if (pathname.startsWith("/reports")) return "reports";
     if (pathname.startsWith("/authorizations")) return "authorizations";
@@ -116,10 +116,10 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
         onClick: () => handleNavigate("/offices"),
       },
       {
-        key: "scheduling",
+        key: "schedule",
         icon: <CalendarOutlined />,
         label: "Scheduling",
-        onClick: () => handleNavigate("/scheduling"),
+        onClick: () => handleNavigate("/schedule"),
       },
       {
         key: "visit-maintenance",

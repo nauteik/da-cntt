@@ -20,6 +20,7 @@ import GenerateScheduleForm from "@/components/patients/schedule/GenerateSchedul
 import dayjs from "dayjs";
 import AddEventForm from "./schedule/AddEventForm";
 import ScheduleEventsTable from "./schedule/ScheduleEventsTable";
+import CreateScheduleForm from "@/components/schedule/CreateScheduleForm";
 import buttonStyles from "@/styles/buttons.module.css";
 import { usePatientTemplateWithWeeks, usePatientScheduleEventsPaginated, useCreateTemplate, useAddWeek, useDeleteWeek, useDeleteTemplate, useCreateTemplateEvent, useGenerateSchedule, useRelatedStaffForPatient } from "@/hooks/usePatientSchedule";
 import { useQueryClient } from "@tanstack/react-query";
@@ -175,6 +176,7 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
   // Modal states
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
+  const [isCreateScheduleOpen, setIsCreateScheduleOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TemplateEventDTO | null>(
     null
   );
@@ -442,6 +444,7 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
                 type="primary"
                 icon={<PlusOutlined />}
                 className={buttonStyles.btnPrimary}
+                onClick={() => setIsCreateScheduleOpen(true)}
               >
                 CREATE SCHEDULE
               </Button>
@@ -538,9 +541,6 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
               onEdit={() => {
                 // TODO: implement edit
               }}
-              onDelete={() => {
-                // TODO: implement delete
-              }}
             />
           </div>
         </Card>
@@ -566,6 +566,16 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
           patientId={patientId}
           mutationError={createTemplateEventMutation.error}
           mutationIsSuccess={createTemplateEventMutation.isSuccess}
+        />
+
+        <CreateScheduleForm
+          open={isCreateScheduleOpen}
+          onCancel={() => setIsCreateScheduleOpen(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["patient-schedule-events", patientId] });
+            setIsCreateScheduleOpen(false);
+          }}
+          preselectedPatientId={patientId}
         />
       </div>
     {/* Apply custom styles to Ant Design Card */}

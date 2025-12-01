@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Table, Tag, Space } from "antd";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import { Table, Tag } from "antd";
+import { EditOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import type { ScheduleEventDTO, ScheduleEventStatus } from "@/types/schedule";
@@ -12,7 +13,6 @@ interface ScheduleEventsTableProps {
   data: ScheduleEventDTO[];
   loading?: boolean;
   onEdit?: (event: ScheduleEventDTO) => void;
-  onDelete?: (eventId: string) => void;
   pagination?: {
     current: number;
     pageSize: number;
@@ -20,25 +20,25 @@ interface ScheduleEventsTableProps {
     onChange: (page: number, pageSize: number) => void;
   };
   onSortChange?: (sortBy: string, sortDir: string) => void;
-  context?: "patient" | "staff"; // "patient" shows EMPLOYEE/SUPERVISOR, "staff" shows CLIENT/CLIENT SUPERVISOR
+  context?: "patient" | "staff" | "global"; // "patient" shows EMPLOYEE/SUPERVISOR, "staff" shows CLIENT/CLIENT SUPERVISOR, "global" shows all 4 columns
 }
 
 export default function ScheduleEventsTable({
   data,
   loading = false,
   onEdit,
-  onDelete,
   pagination,
   onSortChange,
   context = "patient",
 }: ScheduleEventsTableProps) {
+  const router = useRouter();
   const getStatusColor = (status: ScheduleEventStatus): string => {
     const colorMap: Record<ScheduleEventStatus, string> = {
-      CONFIRMED: "green",
-      CANCELLED: "red",
-      PLANNED: "blue",
-      IN_PROGRESS: "orange",
+      PLANNED: "orange",
+      CONFIRMED: "gold",
+      IN_PROGRESS: "blue",
       COMPLETED: "green",
+      CANCELLED: "red",
     };
     return colorMap[status] || "default";
   };
@@ -58,12 +58,21 @@ export default function ScheduleEventsTable({
   const formatTime = (datetime?: string): string => {
     if (!datetime) return "-";
     try {
-      const date = new Date(datetime);
-      return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
+      // Parse ISO string (e.g. "2023-11-24T14:00:00Z") and extract time part directly
+      // We treat the stored time as the intended display time, ignoring browser timezone
+      const timePart = datetime.split('T')[1]; // "14:00:00Z" or "14:00:00+00:00"
+      if (!timePart) return "-";
+      
+      const [hoursStr, minutesStr] = timePart.split(':');
+      let hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
+      
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // the hour '0' should be '12'
+      
+      const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+      return `${hours}:${strMinutes} ${ampm}`;
     } catch {
       return "-";
     }
@@ -74,7 +83,7 @@ export default function ScheduleEventsTable({
       title: "DATE",
       dataIndex: "eventDate",
       key: "eventDate",
-      width: 110,
+      width: 100,
       render: (date: string) => formatDate(date),
       sorter: (a, b) => a.eventDate.localeCompare(b.eventDate),
     },
@@ -82,118 +91,185 @@ export default function ScheduleEventsTable({
       title: "PROGRAM",
       dataIndex: "programIdentifier",
       key: "programIdentifier",
-      width: 100,
+      width: 90,
       render: (program: string) => program || "ODP",
     },
-    ...(context === "staff"
+    ...(context === "global"
       ? [
           {
             title: "CLIENT",
             dataIndex: "patientName",
             key: "patientName",
-            width: 150,
-            render: (name: string, record: ScheduleEventDTO) => (
-              <div className="text-[13px] text-[var(--text-primary)]">
-                {name || record.patientClientId || "-"}
-              </div>
-            ),
+            width: 135,
+            render: (name: string, record: ScheduleEventDTO) => {
+              const displayName = name || record.patientClientId || "-";
+              if (displayName === "-" || !record.patientId) {
+                return <div className="text-[13px] text-[var(--text-primary)]">{displayName}</div>;
+              }
+              return (
+                <span
+                  className="text-[13px] text-[var(--primary)] cursor-pointer font-medium transition-colors hover:text-[var(--primary-hover)] hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/clients/${record.patientId}`);
+                  }}
+                >
+                  {displayName}
+                </span>
+              );
+            },
           },
           {
             title: "CLIENT SUPERVISOR",
             dataIndex: "supervisorName",
             key: "supervisorName",
-            width: 150,
+            width: 125,
+            render: (name: string) => (
+              <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+            ),
+          },
+          {
+            title: "EMPLOYEE",
+            dataIndex: "employeeName",
+            key: "employeeName",
+            width: 135,
+            render: (name: string, record: ScheduleEventDTO) => {
+              if (!name || name === "-" || !record.employeeId) {
+                return <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>;
+              }
+              return (
+                <span
+                  className="text-[13px] text-[var(--primary)] cursor-pointer font-medium transition-colors hover:text-[var(--primary-hover)] hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/employees/${record.employeeId}`);
+                  }}
+                >
+                  {name}
+                </span>
+              );
+            },
+          },
+          {
+            title: "EMPLOYEE SUPERVISOR",
+            dataIndex: "supervisorName",
+            key: "employeeSupervisorName",
+            width: 125,
             render: (name: string) => (
               <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
             ),
           },
         ]
-      : [
-          {
-            title: "EMPLOYEE",
-            dataIndex: "employeeName",
-            key: "employeeName",
-            width: 150,
-            render: (name: string) => (
-              <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
-            ),
-          },
-          {
-            title: "SUPERVISOR",
-            dataIndex: "supervisorName",
-            key: "supervisorName",
-            width: 150,
-            render: (name: string) => (
-              <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
-            ),
-          },
-        ]),
+      : context === "staff"
+        ? [
+            {
+              title: "CLIENT",
+              dataIndex: "patientName",
+              key: "patientName",
+              width: 150,
+              render: (name: string, record: ScheduleEventDTO) => (
+                <div className="text-[13px] text-[var(--text-primary)]">
+                  {name || record.patientClientId || "-"}
+                </div>
+              ),
+            },
+            {
+              title: "CLIENT SUPERVISOR",
+              dataIndex: "supervisorName",
+              key: "supervisorName",
+              width: 130,
+              render: (name: string) => (
+                <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+              ),
+            },
+          ]
+        : [
+            {
+              title: "EMPLOYEE",
+              dataIndex: "employeeName",
+              key: "employeeName",
+              width: 140,
+              render: (name: string) => (
+                <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+              ),
+            },
+            {
+              title: "SUPERVISOR",
+              dataIndex: "supervisorName",
+              key: "supervisorName",
+              width: 125,
+              render: (name: string) => (
+                <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
+              ),
+            },
+          ]),
     {
       title: "SERVICE",
       dataIndex: "serviceCode",
       key: "serviceCode",
-      width: 100,
+      width: 85,
       render: (code: string) => (
-        <div className="overflow-hidden text-ellipsis whitespace-nowrap">{code || "-"}</div>
+        <div className="text-[13px] overflow-hidden text-ellipsis whitespace-nowrap">{code || "-"}</div>
       ),
     },
     {
       title: "EVENT CODE",
       dataIndex: "eventCode",
       key: "eventCode",
-      width: 120,
-      render: (code: string) => code || "NONE",
+      width: 95,
+      render: (code: string) => <div className="text-[13px]">{code || "NONE"}</div>,
     },
     {
       title: "SCHEDULE IN / OUT",
       key: "scheduleInOut",
-      width: 150,
+      width: 140,
       render: (_: unknown, record: ScheduleEventDTO) => (
-        <div className="text-[13px]">
+        <div className="text-[13px] whitespace-nowrap">
           {formatTime(record.startAt)} - {formatTime(record.endAt)}
         </div>
       ),
     },
     {
-      title: "HRS (Scheduled)",
+      title: "HRS",
       key: "scheduledHrs",
-      width: 120,
+      width: 65,
       align: "center",
-      render: (_: unknown, record: ScheduleEventDTO) =>
-        calculateHours(record.startAt, record.endAt),
+      render: (_: unknown, record: ScheduleEventDTO) => (
+        <div className="text-[13px]">{calculateHours(record.startAt, record.endAt)}</div>
+      ),
     },
     {
       title: "CALL IN / OUT",
       key: "callInOut",
-      width: 150,
+      width: 140,
       render: (_: unknown, record: ScheduleEventDTO) => {
         if (!record.checkInTime || !record.checkOutTime) {
-          return <span className="text-[var(--text-secondary)]">-</span>;
+          return <span className="text-[13px] text-[var(--text-secondary)]">-</span>;
         }
         return (
-          <div className="text-[13px]">
+          <div className="text-[13px] whitespace-nowrap">
             {formatTime(record.checkInTime)} - {formatTime(record.checkOutTime)}
           </div>
         );
       },
     },
     {
-      title: "HRS (Actual)",
+      title: "HRS",
       key: "actualHrs",
-      width: 120,
+      width: 65,
       align: "center",
       render: (_: unknown, record: ScheduleEventDTO) => {
         if (!record.checkInTime || !record.checkOutTime) {
-          return "-";
+          return <div className="text-[13px]">-</div>;
         }
-        return calculateHours(record.checkInTime, record.checkOutTime);
+        return <div className="text-[13px]">{calculateHours(record.checkInTime, record.checkOutTime)}</div>;
       },
     },
     {
       title: "STATUS",
       dataIndex: "status",
       key: "status",
-      width: 110,
+      width: 95,
       render: (status: ScheduleEventStatus) => (
         <Tag color={getStatusColor(status)} className="text-xs">
           {status}
@@ -211,19 +287,13 @@ export default function ScheduleEventsTable({
     {
       title: "",
       key: "actions",
-      width: 80,
+      width: 50,
       fixed: "right",
       render: (_: unknown, record: ScheduleEventDTO) => (
-        <Space size="small">
-          <EditOutlined
-            className="text-[var(--text-secondary)] hover:text-[var(--primary)] cursor-pointer"
-            onClick={() => onEdit?.(record)}
-          />
-          <DeleteOutlined
-            className="text-[var(--text-secondary)] hover:text-red-500 cursor-pointer"
-            onClick={() => onDelete?.(record.id)}
-          />
-        </Space>
+        <EditOutlined
+          className="text-[var(--text-secondary)] hover:text-[var(--primary)] cursor-pointer text-base"
+          onClick={() => onEdit?.(record)}
+        />
       ),
     },
   ];
@@ -246,7 +316,14 @@ export default function ScheduleEventsTable({
       <Table
         columns={columns}
         dataSource={data}
-        rowKey="id"
+        rowKey={(record) => {
+          // Use id if available, otherwise create a unique key from record properties
+          if (record.id) {
+            return record.id;
+          }
+          // Fallback: create unique key from record properties
+          return `${record.patientId}-${record.eventDate}-${record.startAt}-${record.endAt}`;
+        }}
         loading={loading}
         pagination={
           pagination
@@ -271,7 +348,6 @@ export default function ScheduleEventsTable({
               }
         }
         onChange={handleTableChange}
-        scroll={{ x: 1400 }}
         size="small"
       />
     </div>

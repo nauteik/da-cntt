@@ -39,6 +39,7 @@ import com.example.backend.model.dto.UpdatePatientPayerDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
 import com.example.backend.model.dto.UpdatePatientProgramDTO;
 import com.example.backend.model.dto.UpdatePatientServiceDTO;
+import com.example.backend.model.dto.PatientSelectDTO;
 import com.example.backend.service.PatientService;
 
 import jakarta.validation.Valid;
@@ -91,6 +92,22 @@ public class PatientController {
         return ResponseEntity.ok(
             ApiResponse.success(patients, "Patients retrieved successfully")
         );
+    }
+
+    /**
+     * Get active patients for select dropdown.
+     * Returns list of active patients with formatted display names.
+     * 
+     * @return list of active patient select DTOs
+     * 
+     * Example: GET /api/patients/select
+     */
+    @GetMapping("/select")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    public ResponseEntity<ApiResponse<List<PatientSelectDTO>>> getActivePatientsForSelect() {
+        log.info("GET /api/patients/select - Fetching active patients for select");
+        List<PatientSelectDTO> patientList = patientService.getActivePatientsForSelect();
+        return ResponseEntity.ok(ApiResponse.success(patientList, "Active patients retrieved successfully"));
     }
 
     /**

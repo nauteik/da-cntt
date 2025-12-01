@@ -27,6 +27,7 @@ import com.example.backend.model.dto.CreatePatientPayerDTO;
 import com.example.backend.model.dto.UpdatePatientPayerDTO;
 import com.example.backend.model.dto.CreateAuthorizationDTO;
 import com.example.backend.model.dto.UpdateAuthorizationDTO;
+import com.example.backend.model.dto.PatientSelectDTO;
 import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.Address;
 import com.example.backend.model.entity.PatientContact;
@@ -68,6 +69,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -229,6 +231,42 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
         log.debug("Found {} programs and {} service types for filtering", programs.size(), serviceTypes.size());
         
         return new PatientFilterOptionsDTO(programs, serviceTypes);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientSelectDTO> getActivePatientsForSelect() {
+        log.info("Fetching active patients for select dropdown");
+        List<Patient> activePatients = patientRepository.findByStatusAndDeletedAtIsNull(
+                com.example.backend.model.enums.PatientStatus.ACTIVE);
+        
+        return activePatients.stream()
+                .sorted(Comparator.comparing(Patient::getLastName)
+                        .thenComparing(Patient::getFirstName))
+                .map(this::mapToPatientSelectDTO)
+                .collect(Collectors.toList());
+    }
+
+    private PatientSelectDTO mapToPatientSelectDTO(Patient patient) {
+        String fullName = (patient.getLastName() != null ? patient.getLastName() : "") + ", " + 
+                         (patient.getFirstName() != null ? patient.getFirstName() : "");
+        fullName = fullName.trim().replaceAll(", $", "");
+        
+        String displayName = fullName;
+        if (patient.getMedicaidId() != null && !patient.getMedicaidId().isEmpty()) {
+            displayName += " (" + patient.getMedicaidId() + ")";
+        } else if (patient.getClientId() != null && !patient.getClientId().isEmpty()) {
+            displayName += " (" + patient.getClientId() + ")";
+        }
+        
+        return PatientSelectDTO.builder()
+                .id(patient.getId())
+                .displayName(displayName)
+                .firstName(patient.getFirstName())
+                .lastName(patient.getLastName())
+                .medicaidId(patient.getMedicaidId())
+                .clientId(patient.getClientId())
+                .build();
     }
 
     @Override

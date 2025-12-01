@@ -10,14 +10,18 @@ import {
   ExportOutlined,
 } from "@ant-design/icons";
 import ScheduleEventsTable from "@/components/patients/schedule/ScheduleEventsTable";
+import CreateScheduleForm from "@/components/schedule/CreateScheduleForm";
 import buttonStyles from "@/styles/buttons.module.css";
 import { useStaffScheduleEventsPaginated, useRelatedPatientsForStaff } from "@/hooks/useStaffSchedule";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface StaffScheduleProps {
   staffId: string;
 }
 
 export default function StaffSchedule({ staffId }: StaffScheduleProps) {
+  const queryClient = useQueryClient();
+  
   // Filter state for schedule events
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs(),
@@ -30,6 +34,7 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
   const [sortBy, setSortBy] = useState<string>("eventDate");
   const [sortDir, setSortDir] = useState<string>("asc");
   const [searchText, setSearchText] = useState("");
+  const [isCreateScheduleOpen, setIsCreateScheduleOpen] = useState(false);
 
   // Fetch related patients list for dropdown (only patients with schedule events for this staff)
   const { data: patientsList = [] } = useRelatedPatientsForStaff(staffId);
@@ -79,6 +84,7 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
               type="primary"
               icon={<PlusOutlined />}
               className={buttonStyles.btnPrimary}
+              onClick={() => setIsCreateScheduleOpen(true)}
             >
               CREATE SCHEDULE
             </Button>
@@ -167,12 +173,20 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
             onEdit={() => {
               // TODO: implement edit
             }}
-            onDelete={() => {
-              // TODO: implement delete
-            }}
           />
         </div>
       </Card>
+
+      {/* Create Schedule Modal */}
+      <CreateScheduleForm
+        open={isCreateScheduleOpen}
+        onCancel={() => setIsCreateScheduleOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["staff-schedule-events", staffId] });
+          setIsCreateScheduleOpen(false);
+        }}
+        preselectedStaffId={staffId}
+      />
 
       {/* Apply custom styles to Ant Design Card */}
       <style jsx global>{`

@@ -197,6 +197,15 @@ export interface PatientProgramDTO {
 }
 
 // Select DTOs for form dropdowns
+export interface PatientSelectDTO {
+  id: string;
+  displayName: string;
+  firstName?: string;
+  lastName?: string;
+  medicaidId?: string;
+  clientId?: string;
+}
+
 export interface StaffSelectDTO {
   id: string;
   displayName: string; // Format: "fullName (employeeCode) - officeName"
@@ -212,6 +221,7 @@ export interface ServiceTypeSelectDTO {
   code: string;
   name: string;
 }
+
 
 export interface PayerSelectDTO {
   id: string;
