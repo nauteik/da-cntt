@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.backend.dto.ServiceDeliveryRequestDTO;
 import com.example.backend.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.model.ApiResponse;
+import com.example.backend.model.dto.VisitMaintenanceDTO;
+import com.example.backend.model.enums.VisitStatus;
 import com.example.backend.service.ServiceDeliveryService;
 
 import jakarta.validation.Valid;
@@ -202,15 +204,51 @@ public class ServiceDeliveryController {
 
     /**
      * Cancel service delivery
-     * POST /api/service-delivery/{id}/cancel
+     * PATCH /api/service-delivery/{id}/cancel
      */
-    @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<ServiceDeliveryResponseDTO>> cancel(
             @PathVariable UUID id,
             @RequestParam String reason) {
         log.info("Cancelling service delivery: {} with reason: {}", id, reason);
         ServiceDeliveryResponseDTO cancelled = serviceDeliveryService.cancel(id, reason);
         return ResponseEntity.ok(ApiResponse.success(cancelled, "Service delivery cancelled successfully"));
+    }
+
+    /**
+     * Get visit maintenance view with detailed information for billing verification
+     * GET /api/service-delivery/visit-maintenance
+     * 
+     * This endpoint provides a specialized view of service deliveries formatted
+     * for the Visit Maintenance screen, including calculated hours, units, and status.
+     */
+    @GetMapping("/visit-maintenance")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    public ResponseEntity<ApiResponse<Page<VisitMaintenanceDTO>>> getVisitMaintenance(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) UUID clientId,
+            @RequestParam(required = false) UUID employeeId,
+            @RequestParam(required = false) UUID officeId,
+            @RequestParam(required = false) VisitStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean cancelled,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size,
+            @RequestParam(defaultValue = "startAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        log.info("GET /api/service-delivery/visit-maintenance - startDate: {}, endDate: {}, clientId: {}, employeeId: {}, status: {}, search: {}",
+                startDate, endDate, clientId, employeeId, status, search);
+        
+        Page<VisitMaintenanceDTO> visits = serviceDeliveryService.getVisitMaintenance(
+                startDate, endDate, clientId, employeeId, officeId, status, search, cancelled,
+                page, size, sortBy, sortDir);
+        
+        log.info("Returning {} visits (page {}/{})", visits.getNumberOfElements(),
+                visits.getNumber() + 1, visits.getTotalPages());
+        
+        return ResponseEntity.ok(ApiResponse.success(visits, "Visit maintenance data retrieved successfully"));
     }
 }

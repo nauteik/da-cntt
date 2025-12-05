@@ -6,17 +6,19 @@ import { Card, Table, Tag, Space, Button, Input, message } from "antd";
 import {
   PlusOutlined,
   SearchOutlined,
-  TeamOutlined,
-  UserOutlined,
   EnvironmentOutlined,
   PhoneOutlined,
   MailOutlined,
+  ReloadOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { OfficeDTO } from "@/types/office";
 import Link from "next/link";
 import AdminLayout from "@/components/AdminLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import layoutStyles from "@/styles/table-layout.module.css";
+import buttonStyles from "@/styles/buttons.module.css";
 
 export default function OfficesClient() {
   const [searchText, setSearchText] = useState("");
@@ -120,36 +122,46 @@ export default function OfficesClient() {
   return (
     <ProtectedRoute>
       <AdminLayout>
-        <Card
-          title={
-            <Space>
-              <EnvironmentOutlined style={{ fontSize: "24px" }} />
-              <span style={{ fontSize: "20px", fontWeight: 600 }}>
-                Office Management
-              </span>
-            </Space>
-          }
-          extra={
-            <Button type="primary" icon={<PlusOutlined />} disabled>
-              Add Office
-            </Button>
-          }
-        >
-          <Space
-            direction="vertical"
-            size="large"
-            style={{ width: "100%", marginBottom: 16 }}
-          >
-            <Input
-              placeholder="Search by office name, code, county, or email..."
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-              size="large"
-              style={{ maxWidth: 600 }}
-            />
+        <div className={layoutStyles.pageContainer}>
+          <Card className={layoutStyles.controlBar} variant="borderless">
+            <div className={layoutStyles.controlsRow}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className={buttonStyles.btnPrimary}
+                disabled
+              >
+                ADD OFFICE
+              </Button>
 
+              <Space size="middle" className={layoutStyles.rightControls}>
+                <Input
+                  placeholder="Search by office name, code, county, or email..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className={layoutStyles.searchInput}
+                  allowClear
+                />
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => window.location.reload()}
+                  className={buttonStyles.btnSecondary}
+                >
+                  REFRESH
+                </Button>
+                <Button
+                  icon={<ExportOutlined />}
+                  disabled
+                  className={buttonStyles.btnSecondary}
+                >
+                  EXPORT
+                </Button>
+              </Space>
+            </div>
+          </Card>
+
+          <Card className={layoutStyles.tableCard} variant="borderless">
             <Table
               columns={columns}
               dataSource={filteredOffices || []}
@@ -159,11 +171,19 @@ export default function OfficesClient() {
                 pageSize: 10,
                 showSizeChanger: true,
                 showTotal: (total) => `Total ${total} offices`,
+                position: ["bottomCenter"],
               }}
-              scroll={{ x: 1000 }}
+              scroll={{
+                x: 1000,
+                y: "calc(100vh - 280px)",
+              }}
+              size="small"
+              sticky={{
+                offsetHeader: 0,
+              }}
             />
-          </Space>
-        </Card>
+          </Card>
+        </div>
       </AdminLayout>
     </ProtectedRoute>
   );

@@ -58,10 +58,7 @@ export class ScheduleService {
       
       if (!response.success) {
         console.error('[ScheduleService] Full error response:', JSON.stringify(response, null, 2));
-        
-        // TEMPORARY: Return mock data for testing UI
-        console.warn('[ScheduleService] Using mock data for testing...');
-        return this.getMockScheduleEvents(from);
+        throw new Error(response.error || 'Failed to fetch schedule events');
       }
 
       // Transform backend response to Schedule type
@@ -184,64 +181,6 @@ export class ScheduleService {
       console.error('Error fetching schedule event:', error);
       throw error;
     }
-  }
-
-  /**
-   * TEMPORARY: Mock schedule events for testing UI
-   */
-  private static getMockScheduleEvents(date: string): Schedule[] {
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (date !== today) {
-      return []; // Only return mock data for today
-    }
-
-    return [
-      {
-        id: 'mock-event-1',
-        patientId: 'mock-patient-1',
-        patient: {
-          id: 'mock-patient-1',
-          name: 'John Doe',
-          patientId: 'P001',
-          address: '123 Main St, Springfield',
-          phone: '(555) 123-4567',
-          dateOfBirth: '1950-01-15',
-        },
-        employeeId: 'mock-staff-1',
-        employeeName: 'Jane Smith',
-        authorizationId: 'mock-authorization-1', // Mock authorization for testing
-        startTime: '09:00',
-        endTime: '11:00',
-        date: today,
-        status: 'upcoming',
-        notes: 'Regular home visit',
-        location: '123 Main St, Springfield',
-        serviceType: 'Home Care',
-      },
-      {
-        id: 'mock-event-2',
-        patientId: 'mock-patient-2',
-        patient: {
-          id: 'mock-patient-2',
-          name: 'Mary Johnson',
-          patientId: 'P002',
-          address: '456 Oak Ave, Springfield',
-          phone: '(555) 234-5678',
-          dateOfBirth: '1945-06-20',
-        },
-        employeeId: 'mock-staff-1',
-        employeeName: 'Jane Smith',
-        authorizationId: 'mock-authorization-2', // Mock authorization for testing
-        startTime: '14:00',
-        endTime: '16:00',
-        date: today,
-        status: 'upcoming',
-        notes: 'Medication assistance',
-        location: '456 Oak Ave, Springfield',
-        serviceType: 'Medical Care',
-      },
-    ];
   }
 
   /**

@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 
 import com.example.backend.dto.ServiceDeliveryRequestDTO;
 import com.example.backend.dto.ServiceDeliveryResponseDTO;
+import com.example.backend.model.dto.VisitMaintenanceDTO;
+import com.example.backend.model.enums.VisitStatus;
 
 /**
  * Service interface for ServiceDelivery operations
@@ -78,4 +80,35 @@ public interface ServiceDeliveryService {
      * Cancel service delivery
      */
     ServiceDeliveryResponseDTO cancel(UUID id, String reason);
+    
+    /**
+     * Get visit maintenance view with detailed information for billing verification
+     * 
+     * @param startDate Filter by visit start date (inclusive)
+     * @param endDate Filter by visit end date (inclusive)
+     * @param clientId Filter by specific client
+     * @param employeeId Filter by specific employee
+     * @param officeId Filter by office
+     * @param status Filter by visit status
+     * @param search Search in client name, employee name, or service name
+     * @param cancelled Filter by cancelled status
+     * @param page Page number (0-based)
+     * @param size Page size
+     * @param sortBy Sort field
+     * @param sortDir Sort direction (asc/desc)
+     * @return Page of visit maintenance records
+     */
+    Page<VisitMaintenanceDTO> getVisitMaintenance(
+            LocalDate startDate,
+            LocalDate endDate,
+            UUID clientId,
+            UUID employeeId,
+            UUID officeId,
+            VisitStatus status,
+            String search,
+            Boolean cancelled,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir);
 }

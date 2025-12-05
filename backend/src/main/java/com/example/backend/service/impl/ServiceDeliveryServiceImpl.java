@@ -17,17 +17,20 @@ import com.example.backend.dto.ServiceDeliveryRequestDTO;
 import com.example.backend.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.ValidationException;
+import com.example.backend.model.dto.VisitMaintenanceDTO;
 import com.example.backend.model.entity.Authorization;
 import com.example.backend.model.entity.Office;
 import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.ScheduleEvent;
 import com.example.backend.model.entity.ServiceDelivery;
 import com.example.backend.model.entity.Staff;
+import com.example.backend.model.enums.VisitStatus;
 import com.example.backend.repository.AuthorizationRepository;
 import com.example.backend.repository.OfficeRepository;
 import com.example.backend.repository.PatientRepository;
 import com.example.backend.repository.ScheduleEventRepository;
 import com.example.backend.repository.ServiceDeliveryRepository;
+import com.example.backend.repository.ServiceTypeRepository;
 import com.example.backend.repository.StaffRepository;
 import com.example.backend.service.ServiceDeliveryService;
 
@@ -45,6 +48,7 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
     private final StaffRepository staffRepository;
     private final PatientRepository patientRepository;
     private final OfficeRepository officeRepository;
+    private final ServiceTypeRepository serviceTypeRepository;
 
     @Override
     @Transactional
@@ -417,5 +421,231 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         dto.setUpdatedAt(serviceDelivery.getUpdatedAt());
         
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<VisitMaintenanceDTO> getVisitMaintenance(
+            LocalDate startDate,
+            LocalDate endDate,
+            UUID clientId,
+            UUID employeeId,
+            UUID officeId,
+            VisitStatus status,
+            String search,
+            Boolean cancelled,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+
+        log.info("Getting visit maintenance data - page: {}, size: {}, sortBy: {}, sortDir: {}",
+                page, size, sortBy, sortDir);
+
+        // Build query filters
+        List<ServiceDelivery> allDeliveries;
+        
+        if (startDate != null && endDate != null) {
+            LocalDateTime start = startDate.atStartOfDay();
+            LocalDateTime end = endDate.atTime(LocalTime.MAX);
+            allDeliveries = serviceDeliveryRepository.findByDateRange(start, end);
+        } else {
+            allDeliveries = serviceDeliveryRepository.findAll();
+        }
+
+        // Apply filters
+        List<ServiceDelivery> filteredDeliveries = allDeliveries.stream()
+                .filter(delivery -> {
+                    // Client filter
+                    if (clientId != null && !delivery.getScheduleEvent().getPatient().getId().equals(clientId)) {
+                        return false;
+                    }
+                    
+                    // Employee filter (check both scheduled and actual staff)
+                    if (employeeId != null) {
+                        boolean matchesScheduled = delivery.getScheduleEvent().getStaff().getId().equals(employeeId);
+                        boolean matchesActual = delivery.getActualStaff() != null && 
+                                              delivery.getActualStaff().getId().equals(employeeId);
+                        if (!matchesScheduled && !matchesActual) {
+                            return false;
+                        }
+                    }
+                    
+                    // Office filter
+                    if (officeId != null && !delivery.getScheduleEvent().getOffice().getId().equals(officeId)) {
+                        return false;
+                    }
+                    
+                    // Cancelled filter
+                    if (cancelled != null && delivery.getCancelled() != cancelled) {
+                        return false;
+                    }
+                    
+                    // Search filter
+                    if (search != null && !search.trim().isEmpty()) {
+                        String searchLower = search.toLowerCase();
+                        Patient patient = delivery.getScheduleEvent().getPatient();
+                        String clientName = (patient.getFirstName() + " " + patient.getLastName()).toLowerCase();
+                        Staff actualStaff = delivery.getIsUnscheduled() && delivery.getActualStaff() != null
+                                ? delivery.getActualStaff()
+                                : delivery.getScheduleEvent().getStaff();
+                        String employeeName = (actualStaff.getFirstName() + " " + actualStaff.getLastName()).toLowerCase();
+                        
+                        // Get service name from event_code
+                        String serviceName = "";
+                        String eventCode = delivery.getScheduleEvent().getEventCode();
+                        if (eventCode != null) {
+                            serviceName = serviceTypeRepository.findByCode(eventCode)
+                                    .map(s -> s.getName().toLowerCase())
+                                    .orElse("");
+                        }
+                        
+                        if (!clientName.contains(searchLower) && 
+                            !employeeName.contains(searchLower) && 
+                            !serviceName.contains(searchLower)) {
+                            return false;
+                        }
+                    }
+                    
+                    return true;
+                })
+                .collect(Collectors.toList());
+
+        // Apply sorting
+        filteredDeliveries.sort((a, b) -> {
+            int comparison = 0;
+            if ("startAt".equals(sortBy) || "visitDate".equals(sortBy)) {
+                comparison = a.getStartAt().compareTo(b.getStartAt());
+            } else if ("clientName".equals(sortBy)) {
+                Patient patientA = a.getScheduleEvent().getPatient();
+                Patient patientB = b.getScheduleEvent().getPatient();
+                String nameA = patientA.getFirstName() + " " + patientA.getLastName();
+                String nameB = patientB.getFirstName() + " " + patientB.getLastName();
+                comparison = nameA.compareTo(nameB);
+            } else if ("employeeName".equals(sortBy)) {
+                Staff staffA = a.getIsUnscheduled() && a.getActualStaff() != null
+                        ? a.getActualStaff() : a.getScheduleEvent().getStaff();
+                Staff staffB = b.getIsUnscheduled() && b.getActualStaff() != null
+                        ? b.getActualStaff() : b.getScheduleEvent().getStaff();
+                String nameA = staffA.getFirstName() + " " + staffA.getLastName();
+                String nameB = staffB.getFirstName() + " " + staffB.getLastName();
+                comparison = nameA.compareTo(nameB);
+            }
+            return "desc".equalsIgnoreCase(sortDir) ? -comparison : comparison;
+        });
+
+        // Apply pagination
+        int start = page * size;
+        int end = Math.min(start + size, filteredDeliveries.size());
+        List<ServiceDelivery> pagedDeliveries = start < filteredDeliveries.size()
+                ? filteredDeliveries.subList(start, end)
+                : List.of();
+
+        // Convert to DTOs
+        List<VisitMaintenanceDTO> visitDTOs = pagedDeliveries.stream()
+                .map(this::mapToVisitMaintenanceDTO)
+                .collect(Collectors.toList());
+
+        // Filter by status if provided (done after mapping because status is calculated)
+        if (status != null) {
+            visitDTOs = visitDTOs.stream()
+                    .filter(dto -> dto.getVisitStatus() == status)
+                    .collect(Collectors.toList());
+        }
+
+        return new PageImpl<>(visitDTOs, PageRequest.of(page, size), filteredDeliveries.size());
+    }
+
+    /**
+     * Map ServiceDelivery entity to VisitMaintenanceDTO with calculated fields
+     */
+    private VisitMaintenanceDTO mapToVisitMaintenanceDTO(ServiceDelivery delivery) {
+        var schedule = delivery.getScheduleEvent();
+        var patient = schedule.getPatient();
+        
+        // Get service type from event_code
+        String serviceName = "Unknown";
+        String serviceCode = schedule.getEventCode();
+        if (serviceCode != null) {
+            var serviceType = serviceTypeRepository.findByCode(serviceCode);
+            if (serviceType.isPresent()) {
+                serviceName = serviceType.get().getName();
+            }
+        }
+        
+        // Determine actual staff (for unscheduled visits, use actualStaff; otherwise use scheduled staff)
+        var actualStaff = delivery.getIsUnscheduled() && delivery.getActualStaff() != null
+                ? delivery.getActualStaff()
+                : schedule.getStaff();
+
+        // Get check-in/check-out times
+        LocalDateTime callInTime = delivery.getCheckInTime();
+        LocalDateTime callOutTime = delivery.getCheckOutTime();
+
+        // Calculate scheduled hours
+        LocalDateTime scheduledIn = delivery.getStartAt();
+        LocalDateTime scheduledOut = delivery.getEndAt();
+        double scheduledHours = java.time.temporal.ChronoUnit.MINUTES.between(scheduledIn, scheduledOut) / 60.0;
+
+        // Calculate call hours
+        Double callHours = null;
+        if (callInTime != null && callOutTime != null) {
+            callHours = java.time.temporal.ChronoUnit.MINUTES.between(callInTime, callOutTime) / 60.0;
+        }
+
+        // Calculate adjusted hours (same as call hours for now; TODO: add manual adjustment support)
+        Double adjustedHours = callHours;
+
+        // Calculate pay and bill hours
+        Double payHours = adjustedHours != null ? adjustedHours : 0.0;
+        Double billHours = adjustedHours != null ? adjustedHours : 0.0;
+
+        // Convert to 15-minute units for billing
+        Integer units = billHours != null ? (int) Math.ceil(billHours * 4) : 0;
+
+        // Determine visit status
+        VisitStatus visitStatus = com.example.backend.model.enums.VisitStatus.determineStatus(
+                callInTime, callOutTime, scheduledOut, delivery.getCancelled(), false);
+
+        // Format dates and times
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
+        java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("hh:mm a");
+
+        return VisitMaintenanceDTO.builder()
+                .serviceDeliveryId(delivery.getId())
+                .scheduleEventId(schedule.getId())
+                .clientId(patient.getId())
+                .clientName(patient.getFirstName() + " " + patient.getLastName())
+                .clientMedicaidId(patient.getMedicaidId())
+                .employeeId(actualStaff.getId())
+                .employeeName(actualStaff.getFirstName() + " " + actualStaff.getLastName())
+                .employeeCode(actualStaff.getEmployeeId())
+                .serviceName(serviceName)
+                .serviceCode(serviceCode)
+                .visitDate(scheduledIn.format(dateFormatter))
+                .scheduledTimeIn(scheduledIn.format(timeFormatter))
+                .scheduledTimeOut(scheduledOut.format(timeFormatter))
+                .scheduledHours(scheduledHours)
+                .callIn(callInTime != null ? callInTime.format(timeFormatter) : null)
+                .callOut(callOutTime != null ? callOutTime.format(timeFormatter) : null)
+                .callHours(callHours)
+                .adjustedIn(callInTime != null ? callInTime.format(timeFormatter) : null)
+                .adjustedOut(callOutTime != null ? callOutTime.format(timeFormatter) : null)
+                .adjustedHours(adjustedHours)
+                .payHours(payHours)
+                .billHours(billHours)
+                .units(units)
+                .doNotBill(delivery.getCancelled())
+                .visitStatus(visitStatus)
+                .visitStatusDisplay(visitStatus.getDisplayName())
+                .notes(delivery.getCancelReason())
+                .isUnscheduled(delivery.getIsUnscheduled())
+                .unscheduledReason(delivery.getUnscheduledReason())
+                .authorizationNumber(delivery.getAuthorization() != null 
+                        ? delivery.getAuthorization().getAuthorizationNo() 
+                        : null)
+                .createdAt(delivery.getCreatedAt())
+                .updatedAt(delivery.getUpdatedAt())
+                .build();
     }
 }
