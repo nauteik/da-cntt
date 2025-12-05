@@ -90,8 +90,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       try {
-        // Try to fetch user info - the cookie will be sent automatically
-        // Use direct backend call since we removed BFF for user/me
+        // Try to fetch user info via BFF route
+        // The BFF will forward the HttpOnly cookie to the backend
         const response = await apiClient<UserInfoResponse>("/user/me");
 
         if (response.success && response.data) {
