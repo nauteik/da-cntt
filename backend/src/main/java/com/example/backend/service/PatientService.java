@@ -318,4 +318,29 @@ public interface PatientService {
      * @throws IllegalArgumentException if authorization doesn't belong to patient
      */
     PatientProgramDTO deleteAuthorization(UUID patientId, UUID authorizationId);
+
+    /**
+     * Search patients by name (first name or last name).
+     * Returns patients with their main address information including GPS coordinates.
+     *
+     * @param name search string for first name or last name (case-insensitive, partial match)
+     * @return list of matching patients with address info
+     */
+    List<com.example.backend.model.dto.PatientSearchResultDTO> searchPatientsByName(String name);
+
+    /**
+     * Update patient main address with GPS location.
+     * Updates or creates the main address for a patient including GPS coordinates.
+     * If the patient already has a main address, it will be updated.
+     * If not, a new address will be created and set as main.
+     *
+     * @param patientId UUID of the patient
+     * @param updateDTO address update data with GPS coordinates
+     * @return updated patient search result with new address
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
+     */
+    com.example.backend.model.dto.PatientSearchResultDTO updatePatientAddressWithLocation(
+        UUID patientId, 
+        com.example.backend.model.dto.UpdatePatientAddressLocationDTO updateDTO
+    );
 }

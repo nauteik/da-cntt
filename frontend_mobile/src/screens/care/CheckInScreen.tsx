@@ -55,6 +55,14 @@ export default function CheckInScreen() {
   const mockPatientName = patientName || 'John Doe';
 
   useEffect(() => {
+    console.log('[CheckInScreen] Component mounted with params:', {
+      scheduleEventId,
+      serviceDeliveryId,
+      patientId,
+      patientName,
+      visitId,
+    });
+    
     requestLocationPermission();
     // Load patient address from params or fetch from API
     if (patientName) {
@@ -120,9 +128,24 @@ export default function CheckInScreen() {
         accuracy: Location.Accuracy.High,
       });
 
+      console.log('[CheckInScreen] GPS Location obtained:', {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        altitude: location.coords.altitude,
+        timestamp: new Date(location.timestamp).toLocaleString(),
+      });
+
       const address = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
+      });
+
+      console.log('[CheckInScreen] Reverse geocoding result:', {
+        street: address[0]?.street,
+        city: address[0]?.city,
+        region: address[0]?.region,
+        postalCode: address[0]?.postalCode,
       });
 
       const locationData: LocationData = {
@@ -134,14 +157,16 @@ export default function CheckInScreen() {
         timestamp: new Date().toISOString(),
       };
 
+      console.log('[CheckInScreen] Location data prepared:', locationData);
+
       setCurrentLocation(locationData);
 
       // Calculate distance to patient address if available
       // TODO: In production, fetch actual patient GPS coordinates from backend
       // For now, using mock coordinates - you should fetch from serviceDeliveryId
       // Example: GET /api/service-delivery/{id} to get patient address coordinates
-      const mockPatientLat = 10.802485074288798;  // Replace with actual patient lat
-      const mockPatientLon = 106.70588177651746;  // Replace with actual patient lon
+      const mockPatientLat = 37.4220871;  // Replace with actual patient lat
+      const mockPatientLon = -122.084;  // Replace with actual patient lon
       
       if (mockPatientLat && mockPatientLon) {
         const distance = calculateDistance(
@@ -151,7 +176,15 @@ export default function CheckInScreen() {
           mockPatientLon
         );
         setDistanceToPatient(distance);
-        console.log('[CheckInScreen] Distance to patient:', distance, 'meters');
+        console.log('[CheckInScreen] Distance calculation:', {
+          staffLat: location.coords.latitude,
+          staffLon: location.coords.longitude,
+          patientLat: mockPatientLat,
+          patientLon: mockPatientLon,
+          distanceMeters: distance,
+          distanceKm: (distance / 1000).toFixed(2),
+          isWithinRange: distance <= 1000,
+        });
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -195,6 +228,14 @@ export default function CheckInScreen() {
 
     try {
       setIsLoading(true);
+      
+      console.log('[CheckInScreen] Submitting check-in with data:', {
+        serviceDeliveryId,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        address: currentLocation.address,
+        timestamp: currentLocation.timestamp,
+      });
       
       // Call backend API for check-in
       const checkInResponse = await checkInCheckOutService.checkIn({
