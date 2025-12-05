@@ -271,10 +271,48 @@ export default function PatientSearchModal({
     );
   };
 
+  // Helper function to format time from ISO string or HH:MM format
+  const formatTime = (timeStr: string): string => {
+    if (!timeStr) return 'N/A';
+    
+    // Check if it's already in HH:MM format
+    if (/^\d{2}:\d{2}$/.test(timeStr)) {
+      return timeStr;
+    }
+    
+    // If it's ISO format (2025-12-05T02:00:00Z), extract time using UTC
+    try {
+      const date = new Date(timeStr);
+      const hours = date.getUTCHours().toString().padStart(2, '0');
+      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  // Helper function to format date as MM/DD/YY
+  const formatDateShort = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr + 'T00:00:00');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const year = date.getFullYear().toString().slice(-2);
+      return `${month}/${day}/${year}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   // Render schedule item for selection
   const renderScheduleItem = ({ item }: { item: Schedule }) => {
     const today = new Date().toISOString().split('T')[0];
     const isToday = item.date === today;
+    
+    // Format time properly
+    const startTime = formatTime(item.startTime);
+    const endTime = formatTime(item.endTime);
+    const dateShort = formatDateShort(item.date);
     
     // Format date for better display
     const scheduleDate = new Date(item.date + 'T00:00:00');
@@ -314,7 +352,7 @@ export default function PatientSearchModal({
           <View style={styles.listItemInfo}>
             <View style={styles.scheduleHeader}>
               <Text style={[styles.listItemTitle, isToday && styles.todayTitle]}>
-                {item.startTime} - {item.endTime}
+                {startTime} - {endTime}
               </Text>
               {isToday && (
                 <View style={styles.todayBadge}>
@@ -323,7 +361,7 @@ export default function PatientSearchModal({
               )}
             </View>
             <Text style={[styles.listItemSubtitle, isToday && styles.todaySubtitle]}>
-              📅 {dateLabel}
+              📅 {dateLabel} ({dateShort})
             </Text>
             <Text style={styles.listItemSubtitle}>
               💼 {item.serviceType}
@@ -488,7 +526,7 @@ export default function PatientSearchModal({
                   <View style={styles.summaryRow}>
                     <Ionicons name="calendar" size={16} color="#666" />
                     <Text style={styles.summaryText}>
-                      {selectedSchedule.date} • {selectedSchedule.startTime} - {selectedSchedule.endTime}
+                      {formatDateShort(selectedSchedule.date)} • {formatTime(selectedSchedule.startTime)} - {formatTime(selectedSchedule.endTime)}
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
