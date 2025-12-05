@@ -108,6 +108,61 @@ public interface ScheduleEventRepository extends JpaRepository<ScheduleEvent, UU
             @Param("search") String search,
             Pageable pageable
     );
+
+    // Methods for conflict detection
+    List<ScheduleEvent> findByPatient_IdAndEventDate(UUID patientId, LocalDate eventDate);
+    
+    List<ScheduleEvent> findByStaff_IdAndEventDate(UUID staffId, LocalDate eventDate);
+
+    // Methods for global schedule listing with filters
+    // Using @Query because status is an enum and ContainingIgnoreCase doesn't work with enums
+    @Query("SELECT se FROM ScheduleEvent se WHERE " +
+           "se.eventDate BETWEEN :from AND :to AND " +
+           "se.patient.id = :patientId AND " +
+           "se.staff.id = :staffId AND " +
+           "(:status IS NULL OR :status = '' OR CAST(se.status AS string) LIKE %:status%)")
+    Page<ScheduleEvent> findByDateRangeAndPatientAndStaffAndStatus(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("patientId") UUID patientId,
+            @Param("staffId") UUID staffId,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
+    @Query("SELECT se FROM ScheduleEvent se WHERE " +
+           "se.eventDate BETWEEN :from AND :to AND " +
+           "se.patient.id = :patientId AND " +
+           "(:status IS NULL OR :status = '' OR CAST(se.status AS string) LIKE %:status%)")
+    Page<ScheduleEvent> findByDateRangeAndPatientAndStatus(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("patientId") UUID patientId,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
+    @Query("SELECT se FROM ScheduleEvent se WHERE " +
+           "se.eventDate BETWEEN :from AND :to AND " +
+           "se.staff.id = :staffId AND " +
+           "(:status IS NULL OR :status = '' OR CAST(se.status AS string) LIKE %:status%)")
+    Page<ScheduleEvent> findByDateRangeAndStaffAndStatus(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("staffId") UUID staffId,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
+    @Query("SELECT se FROM ScheduleEvent se WHERE " +
+           "se.eventDate BETWEEN :from AND :to AND " +
+           "(:status IS NULL OR :status = '' OR CAST(se.status AS string) LIKE %:status%)")
+    Page<ScheduleEvent> findByDateRangeAndStatus(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("status") String status,
+            Pageable pageable
+    );
 }
 
 

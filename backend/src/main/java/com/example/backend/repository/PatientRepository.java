@@ -293,6 +293,11 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     List<Patient> findActiveByOfficeId(@Param("officeId") UUID officeId);
     
     /**
+     * Find active patients (not deleted) for select dropdown
+     */
+    List<Patient> findByStatusAndDeletedAtIsNull(com.example.backend.model.enums.PatientStatus status);
+    
+    /**
      * Count total patients by office ID
      */
     long countByOfficeIdAndDeletedAtIsNull(UUID officeId);

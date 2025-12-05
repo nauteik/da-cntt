@@ -35,6 +35,11 @@ public class ScheduleEventDTO {
     private OffsetDateTime checkInTime;
     private OffsetDateTime checkOutTime;
     private UUID dailyNoteId; // Daily Note ID if exists (indicates daily note completed)
+    
+    // Additional fields for Edit form
+    private OffsetDateTime actualStartAt; // Read-only in form
+    private OffsetDateTime actualEndAt; // Read-only in form
+    private String comments; // Comments from comment field
 }
 
 

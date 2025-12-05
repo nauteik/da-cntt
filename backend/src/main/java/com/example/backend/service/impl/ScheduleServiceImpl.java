@@ -5,10 +5,20 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -340,7 +350,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ScheduleEventDTO> getScheduleEvents(
+    public Page<ScheduleEventDTO> getScheduleEvents(
             UUID patientId,
             LocalDate from,
             LocalDate to,
@@ -353,7 +363,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             String sortDir) {
         
         // Whitelist of allowed sort fields
-        java.util.Set<String> allowedSortFields = java.util.Set.of(
+        Set<String> allowedSortFields = Set.of(
                 "eventDate", "startAt", "endAt", "status", "plannedUnits", "actualUnits"
         );
         
@@ -364,27 +374,27 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
         
         // Create pageable
-        org.springframework.data.domain.Pageable pageable;
+        Pageable pageable;
         if (sortBy != null && !sortBy.isEmpty()) {
-            org.springframework.data.domain.Sort.Direction direction = 
+            Sort.Direction direction = 
                     "desc".equalsIgnoreCase(sortDir) 
-                            ? org.springframework.data.domain.Sort.Direction.DESC 
-                            : org.springframework.data.domain.Sort.Direction.ASC;
-            org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(direction, sortBy);
-            pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+                            ? Sort.Direction.DESC 
+                            : Sort.Direction.ASC;
+            Sort sort = Sort.by(direction, sortBy);
+            pageable = PageRequest.of(page, size, sort);
         } else {
             // Default sorting by eventDate ASC, startAt ASC
-            org.springframework.data.domain.Sort defaultSort = org.springframework.data.domain.Sort.by(
-                    org.springframework.data.domain.Sort.Direction.ASC, "eventDate", "startAt"
+            Sort defaultSort = Sort.by(
+                    Sort.Direction.ASC, "eventDate", "startAt"
             );
-            pageable = org.springframework.data.domain.PageRequest.of(page, size, defaultSort);
+            pageable = PageRequest.of(page, size, defaultSort);
         }
         
         // Normalize search term
         String normalizedSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         
         // Query events with pagination and search
-        org.springframework.data.domain.Page<ScheduleEvent> eventsPage;
+        Page<ScheduleEvent> eventsPage;
         if (normalizedSearch != null) {
             // Use search-enabled query
             eventsPage = scheduleEventRepository.findAllByPatientIdWithSearch(
@@ -409,7 +419,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .map(this::toScheduleEventDTO)
                 .collect(Collectors.toList());
         
-        return new org.springframework.data.domain.PageImpl<>(
+        return new PageImpl<>(
                 filteredContent,
                 pageable,
                 eventsPage.getTotalElements()
@@ -418,7 +428,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ScheduleEventDTO> getScheduleEventsByStaff(
+    public Page<ScheduleEventDTO> getScheduleEventsByStaff(
             UUID staffId,
             LocalDate from,
             LocalDate to,
@@ -431,7 +441,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             String sortDir) {
         
         // Whitelist of allowed sort fields
-        java.util.Set<String> allowedSortFields = java.util.Set.of(
+        Set<String> allowedSortFields = Set.of(
                 "eventDate", "startAt", "endAt", "status", "plannedUnits", "actualUnits"
         );
         
@@ -442,27 +452,27 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
         
         // Create pageable
-        org.springframework.data.domain.Pageable pageable;
+        Pageable pageable;
         if (sortBy != null && !sortBy.isEmpty()) {
-            org.springframework.data.domain.Sort.Direction direction = 
+            Sort.Direction direction = 
                     "desc".equalsIgnoreCase(sortDir) 
-                            ? org.springframework.data.domain.Sort.Direction.DESC 
-                            : org.springframework.data.domain.Sort.Direction.ASC;
-            org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(direction, sortBy);
-            pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+                            ? Sort.Direction.DESC 
+                            : Sort.Direction.ASC;
+            Sort sort = Sort.by(direction, sortBy);
+            pageable = PageRequest.of(page, size, sort);
         } else {
             // Default sorting by eventDate ASC, startAt ASC
-            org.springframework.data.domain.Sort defaultSort = org.springframework.data.domain.Sort.by(
-                    org.springframework.data.domain.Sort.Direction.ASC, "eventDate", "startAt"
+            Sort defaultSort = Sort.by(
+                    Sort.Direction.ASC, "eventDate", "startAt"
             );
-            pageable = org.springframework.data.domain.PageRequest.of(page, size, defaultSort);
+            pageable = PageRequest.of(page, size, defaultSort);
         }
         
         // Normalize search term
         String normalizedSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         
         // Query events with pagination and search
-        org.springframework.data.domain.Page<ScheduleEvent> eventsPage;
+        Page<ScheduleEvent> eventsPage;
         if (normalizedSearch != null) {
             // Use search-enabled query
             eventsPage = scheduleEventRepository.findAllByStaffIdWithSearch(
@@ -487,7 +497,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .map(this::toScheduleEventDTO)
                 .collect(Collectors.toList());
         
-        return new org.springframework.data.domain.PageImpl<>(
+        return new PageImpl<>(
                 filteredContent,
                 pageable,
                 eventsPage.getTotalElements()
@@ -604,6 +614,13 @@ public class ScheduleServiceImpl implements ScheduleService {
             String patientName = (e.getPatient().getLastName() != null ? e.getPatient().getLastName() : "") + ", " + (e.getPatient().getFirstName() != null ? e.getPatient().getFirstName() : "");
             dto.setPatientName(patientName.trim().replaceAll(", $", ""));
             dto.setPatientClientId(e.getPatient().getClientId());
+            
+            // Supervisor mapping (patient's supervisor)
+            if (e.getPatient().getSupervisor() != null) {
+                dto.setSupervisorId(e.getPatient().getSupervisor().getId());
+                String supervisorName = (e.getPatient().getSupervisor().getLastName() != null ? e.getPatient().getSupervisor().getLastName() : "") + ", " + (e.getPatient().getSupervisor().getFirstName() != null ? e.getPatient().getSupervisor().getFirstName() : "");
+                dto.setSupervisorName(supervisorName.trim().replaceAll(", $", ""));
+            }
         }
         dto.setEventDate(e.getEventDate());
         dto.setStartAt(e.getStartAt());
@@ -638,13 +655,26 @@ public class ScheduleServiceImpl implements ScheduleService {
             dto.setActualUnits(e.getActualUnits().doubleValue());
         }
 
+        // Actual times - map from CheckEvent (check in/out) or ServiceDelivery
+        // For now, use checkInTime/checkOutTime which are already mapped below
+        
         // CALL IN/OUT from CheckEvent
         checkEventRepository.findFirstByScheduleEvent_IdAndEventTypeOrderByOccurredAtAsc(e.getId(), CheckEventType.CHECK_IN)
                 .map(CheckEvent::getOccurredAt)
-                .ifPresent(t -> dto.setCheckInTime(t.atOffset(e.getStartAt() != null ? e.getStartAt().getOffset() : java.time.ZoneOffset.UTC)));
+                .ifPresent(t -> {
+                    OffsetDateTime checkIn = t.atOffset(e.getStartAt() != null ? e.getStartAt().getOffset() : java.time.ZoneOffset.UTC);
+                    dto.setCheckInTime(checkIn);
+                    // Also set actualStartAt if check-in exists
+                    dto.setActualStartAt(checkIn);
+                });
         checkEventRepository.findFirstByScheduleEvent_IdAndEventTypeOrderByOccurredAtDesc(e.getId(), CheckEventType.CHECK_OUT)
                 .map(CheckEvent::getOccurredAt)
-                .ifPresent(t -> dto.setCheckOutTime(t.atOffset(e.getEndAt() != null ? e.getEndAt().getOffset() : java.time.ZoneOffset.UTC)));
+                .ifPresent(t -> {
+                    OffsetDateTime checkOut = t.atOffset(e.getEndAt() != null ? e.getEndAt().getOffset() : java.time.ZoneOffset.UTC);
+                    dto.setCheckOutTime(checkOut);
+                    // Also set actualEndAt if check-out exists
+                    dto.setActualEndAt(checkOut);
+                });
         
         // Service Delivery mapping (get latest active service delivery for this schedule event)
         serviceDeliveryRepository.findFirstByScheduleEvent_IdOrderByCreatedAtDesc(e.getId())
@@ -656,6 +686,9 @@ public class ScheduleServiceImpl implements ScheduleService {
                     dailyNoteRepository.findFirstByServiceDelivery_IdOrderByCreatedAtDesc(sd.getId())
                             .ifPresent(dn -> dto.setDailyNoteId(dn.getId()));
                 });
+        
+        // Set comment from entity
+        dto.setComments(e.getComment());
         
         return dto;
     }
@@ -767,6 +800,507 @@ public class ScheduleServiceImpl implements ScheduleService {
                 })
                 .sorted((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ScheduleEventDTO> getAllScheduleEvents(
+            LocalDate from,
+            LocalDate to,
+            UUID patientId,
+            UUID staffId,
+            String status,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
+        log.info("Fetching all schedule events: from={}, to={}, patientId={}, staffId={}, status={}, page={}, size={}",
+                from, to, patientId, staffId, status, page, size);
+
+        Sort.Direction direction = 
+            "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        
+        Sort sort = sortBy != null && !sortBy.isEmpty() 
+            ? Sort.by(direction, sortBy)
+            : Sort.by(direction, "eventDate");
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Use repository to fetch with filters
+        Page<ScheduleEvent> events;
+        if (patientId != null && staffId != null) {
+            events = scheduleEventRepository.findByDateRangeAndPatientAndStaffAndStatus(
+                    from, to, patientId, staffId, status != null ? status : "", pageable);
+        } else if (patientId != null) {
+            events = scheduleEventRepository.findByDateRangeAndPatientAndStatus(
+                    from, to, patientId, status != null ? status : "", pageable);
+        } else if (staffId != null) {
+            events = scheduleEventRepository.findByDateRangeAndStaffAndStatus(
+                    from, to, staffId, status != null ? status : "", pageable);
+        } else {
+            events = scheduleEventRepository.findByDateRangeAndStatus(
+                    from, to, status != null ? status : "", pageable);
+        }
+
+        return events.map(this::toScheduleEventDTO);
+    }
+
+    @Override
+    @Transactional
+    public com.example.backend.model.dto.schedule.CreateSchedulePreviewResponseDTO createSchedulePreview(
+            com.example.backend.model.dto.schedule.CreateSchedulePreviewRequestDTO request,
+            String authenticatedUserEmail
+    ) {
+        log.info("Creating schedule preview for patient: {}", request.getScheduleEvent().getPatientId());
+
+        com.example.backend.model.dto.schedule.CreateSchedulePreviewResponseDTO response = 
+            new com.example.backend.model.dto.schedule.CreateSchedulePreviewResponseDTO();
+
+        // Generate events based on repeat config
+        List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> eventsToCreate = 
+            generateEventsFromRequest(request);
+
+        // Convert to ScheduleEventDTO for preview (without saving)
+        List<ScheduleEventDTO> previewEvents = eventsToCreate.stream()
+                .map(this::toPreviewScheduleEventDTO)
+                .collect(Collectors.toList());
+
+        response.setScheduleEvents(previewEvents);
+
+        // Detect conflicts
+        List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> conflicts = 
+            detectConflictsForEvents(eventsToCreate);
+
+        response.setConflicts(conflicts);
+        response.setCanSave(conflicts.isEmpty() || conflicts.stream().allMatch(c -> c.isResolved()));
+
+        if (previewEvents.size() == 1) {
+            response.setMessage("1 event will be created");
+        } else {
+            response.setMessage(previewEvents.size() + " events will be created");
+        }
+
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public List<ScheduleEventDTO> createScheduleEvents(
+            List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> events,
+            String authenticatedUserEmail
+    ) {
+        log.info("Creating {} schedule events", events.size());
+
+        // Validate conflicts before saving
+        List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> conflicts = detectConflictsForEvents(events);
+        if (!conflicts.isEmpty()) {
+            // Check if any conflict is unresolved (though here all are unresolved effectively as we are creating new)
+            // For batch creation, we strictly block any conflicts
+            throw new ConflictException("Cannot create schedule events due to " + conflicts.size() + " conflicts. Please refresh and try again.");
+        }
+
+        // Get authenticated user
+        AppUser createdBy = appUserRepository.findByEmail(authenticatedUserEmail)
+                .orElse(null);
+
+        List<ScheduleEvent> savedEvents = events.stream()
+                .map(dto -> createScheduleEventFromDTO(dto, createdBy))
+                .map(scheduleEventRepository::save)
+                .collect(Collectors.toList());
+
+        return savedEvents.stream()
+                .map(this::toScheduleEventDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ScheduleEventDTO getScheduleEvent(UUID eventId, String authenticatedUserEmail) {
+        log.info("Fetching schedule event: {}", eventId);
+
+        // Get authenticated user
+        AppUser user = appUserRepository.findByEmail(authenticatedUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", authenticatedUserEmail));
+
+        // Fetch event
+        ScheduleEvent event = scheduleEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("ScheduleEvent", eventId));
+
+        // Validate user has access to the event's office
+        // User must be assigned to the office where the event is taking place
+        boolean hasAccess = user.getUserOffices().stream()
+                .anyMatch(uo -> uo.getOffice().getId().equals(event.getOffice().getId()));
+
+        if (!hasAccess) {
+            // Check if user is a system admin (optional fallback)
+            boolean isAdmin = user.getRole().getName().equalsIgnoreCase("ADMIN") || 
+                              user.getRole().getCode().equalsIgnoreCase("ADMIN");
+            
+            if (!isAdmin) {
+                throw new com.example.backend.exception.UnauthorizedException(
+                        "You do not have access to this schedule event");
+            }
+        }
+
+        return toScheduleEventDTO(event);
+    }
+
+    @Override
+    @Transactional
+    public ScheduleEventDTO updateScheduleEvent(
+            UUID eventId,
+            com.example.backend.model.dto.schedule.UpdateScheduleEventDTO dto,
+            String authenticatedUserEmail
+    ) {
+        log.info("Updating schedule event: {}", eventId);
+
+        // Get authenticated user
+        AppUser user = appUserRepository.findByEmail(authenticatedUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", authenticatedUserEmail));
+
+        // Fetch existing event
+        ScheduleEvent event = scheduleEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("ScheduleEvent", eventId));
+
+        // Validate user has access to the event's office
+        boolean hasAccess = user.getUserOffices().stream()
+                .anyMatch(uo -> uo.getOffice().getId().equals(event.getOffice().getId()));
+
+        if (!hasAccess) {
+            // Check if user is a system admin (optional fallback)
+            boolean isAdmin = user.getRole().getName().equalsIgnoreCase("ADMIN") || 
+                              user.getRole().getCode().equalsIgnoreCase("ADMIN");
+            
+            if (!isAdmin) {
+                throw new com.example.backend.exception.UnauthorizedException(
+                        "You do not have access to this schedule event");
+            }
+        }
+
+        // Partial update - only update fields that are not null
+        if (dto.getAuthorizationId() != null) {
+            Authorization authorization = authorizationRepository.findById(dto.getAuthorizationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Authorization", dto.getAuthorizationId()));
+            event.setAuthorization(authorization);
+        }
+
+        if (dto.getEventDate() != null) {
+            event.setEventDate(dto.getEventDate());
+        }
+
+        if (dto.getStartTime() != null && dto.getEndTime() != null) {
+            LocalDate startDate = dto.getEventDate() != null ? dto.getEventDate() : event.getEventDate();
+            LocalDate endDate = startDate;
+            
+            // Handle events spanning midnight
+            if (dto.getEndTime().isBefore(dto.getStartTime()) || dto.getEndTime().equals(dto.getStartTime())) {
+                endDate = startDate.plusDays(1);
+            }
+            
+            event.setStartAt(startDate.atTime(dto.getStartTime()).atOffset(ZoneOffset.UTC));
+            event.setEndAt(endDate.atTime(dto.getEndTime()).atOffset(ZoneOffset.UTC));
+            event.setEventDate(startDate);
+        }
+
+        if (dto.getStaffId() != null) {
+            if (dto.getStaffId().toString().equals("00000000-0000-0000-0000-000000000000")) {
+                // Special UUID to indicate "remove staff"
+                event.setStaff(null);
+            } else {
+                Staff staff = staffRepository.findById(dto.getStaffId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Staff", dto.getStaffId()));
+                event.setStaff(staff);
+            }
+        }
+
+        if (dto.getEventCode() != null) {
+            event.setEventCode(dto.getEventCode());
+        }
+
+        if (dto.getStatus() != null) {
+            event.setStatus(com.example.backend.model.enums.ScheduleEventStatus.valueOf(dto.getStatus()));
+        }
+
+        if (dto.getPlannedUnits() != null) {
+            // Note: 1 unit = 15 minutes. When calculating units from time duration,
+            // divide total minutes by 15 to get the number of units.
+            event.setPlannedUnits(dto.getPlannedUnits());
+        
+        }
+
+        // Note: actualUnits, actualStartAt, actualEndAt are read-only in the form
+        // They should not be updated via the Edit form, but we include them in DTO for completeness
+        // In a real system, these would be updated via a separate endpoint (e.g., when staff checks in/out)
+
+        if (dto.getComments() != null) {
+            event.setComment(dto.getComments());
+        }
+
+        // Validate: end_at must be after start_at
+        if (event.getEndAt().isBefore(event.getStartAt()) || event.getEndAt().equals(event.getStartAt())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+
+        // Save updated event
+        ScheduleEvent savedEvent = scheduleEventRepository.save(event);
+
+        return toScheduleEventDTO(savedEvent);
+    }
+
+    // Helper methods
+
+    private List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> generateEventsFromRequest(
+            com.example.backend.model.dto.schedule.CreateSchedulePreviewRequestDTO request
+    ) {
+        List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> events = new ArrayList<>();
+        com.example.backend.model.dto.schedule.CreateScheduleEventDTO baseEvent = request.getScheduleEvent();
+        com.example.backend.model.dto.schedule.RepeatConfigDTO repeatConfig = request.getRepeatConfig();
+
+        if (repeatConfig == null) {
+            // Single event
+            events.add(baseEvent);
+            return events;
+        }
+
+        // Generate repeated events
+        LocalDate currentDate = baseEvent.getEventDate();
+        int occurrenceCount = 0;
+        LocalDate endDate = repeatConfig.getEndDate();
+        Integer maxOccurrences = repeatConfig.getOccurrences();
+
+        while (true) {
+            // Check end conditions
+            if (endDate != null && currentDate.isAfter(endDate)) {
+                break;
+            }
+            if (maxOccurrences != null && occurrenceCount >= maxOccurrences) {
+                break;
+            }
+
+            // Check if current date matches repeat criteria
+            boolean shouldCreateEvent = false;
+            if ("WEEK".equalsIgnoreCase(repeatConfig.getFrequency())) {
+                int dayOfWeek = currentDate.getDayOfWeek().getValue() % 7; // Convert to 0=Sun format
+                if (repeatConfig.getDaysOfWeek() != null && repeatConfig.getDaysOfWeek().contains(dayOfWeek)) {
+                    shouldCreateEvent = true;
+                }
+            } else {
+                // Monthly repeat (simplified - same day of month)
+                shouldCreateEvent = true;
+            }
+
+            if (shouldCreateEvent) {
+                com.example.backend.model.dto.schedule.CreateScheduleEventDTO newEvent = 
+                    new com.example.backend.model.dto.schedule.CreateScheduleEventDTO();
+                newEvent.setPatientId(baseEvent.getPatientId());
+                newEvent.setEventDate(currentDate);
+                newEvent.setStartTime(baseEvent.getStartTime());
+                newEvent.setEndTime(baseEvent.getEndTime());
+                newEvent.setAuthorizationId(baseEvent.getAuthorizationId());
+                newEvent.setStaffId(baseEvent.getStaffId());
+                newEvent.setEventCode(baseEvent.getEventCode());
+                newEvent.setStatus(baseEvent.getStatus());
+                newEvent.setPlannedUnits(baseEvent.getPlannedUnits());
+                newEvent.setComments(baseEvent.getComments());
+                
+                events.add(newEvent);
+                occurrenceCount++;
+            }
+
+            // Advance date
+            if ("WEEK".equalsIgnoreCase(repeatConfig.getFrequency())) {
+                currentDate = currentDate.plusDays(1);
+                // Skip to next week cycle if no days match in current week
+                if (currentDate.getDayOfWeek().getValue() % 7 == 0 && occurrenceCount > 0) {
+                    currentDate = currentDate.plusWeeks(repeatConfig.getInterval() - 1);
+                }
+            } else {
+                currentDate = currentDate.plusMonths(repeatConfig.getInterval());
+            }
+
+            // Safety limit
+            if (occurrenceCount > 365) {
+                log.warn("Exceeded safety limit of 365 events");
+                break;
+            }
+        }
+
+        return events;
+    }
+
+    private List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> detectConflictsForEvents(
+            List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> events
+    ) {
+        List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> conflicts = new ArrayList<>();
+
+        for (com.example.backend.model.dto.schedule.CreateScheduleEventDTO event : events) {
+            // Calculate absolute time range for the new event
+            LocalDate startDate = event.getEventDate();
+            LocalDate endDate = startDate;
+            if (event.getEndTime().isBefore(event.getStartTime()) || event.getEndTime().equals(event.getStartTime())) {
+                endDate = startDate.plusDays(1);
+            }
+            OffsetDateTime startAt = startDate.atTime(event.getStartTime()).atOffset(ZoneOffset.UTC);
+            OffsetDateTime endAt = endDate.atTime(event.getEndTime()).atOffset(ZoneOffset.UTC);
+
+            // Check patient conflicts
+            // Fetch events from day before to day after to handle overlaps across midnight
+            List<ScheduleEvent> patientEvents = scheduleEventRepository.findAllByPatient_IdAndEventDateBetweenOrderByEventDateAscStartAtAsc(
+                    event.getPatientId(), startDate.minusDays(1), startDate.plusDays(1));
+
+            for (ScheduleEvent existing : patientEvents) {
+                if (hasTimeOverlap(startAt, endAt, existing.getStartAt(), existing.getEndAt())) {
+                    
+                    com.example.backend.model.dto.schedule.ScheduleConflictDTO conflict = 
+                        new com.example.backend.model.dto.schedule.ScheduleConflictDTO();
+                    conflict.setConflictType("PATIENT_CONFLICT");
+                    conflict.setConflictingEventId(existing.getId());
+                    conflict.setEventDate(event.getEventDate());
+                    conflict.setStartTime(existing.getStartAt().toLocalTime());
+                    conflict.setEndTime(existing.getEndAt().toLocalTime());
+                    conflict.setMessage("Patient already has an event scheduled during this time");
+                    conflict.setConflictingWithName(existing.getPatient().getFullName());
+                    conflict.setResolved(false);
+                    
+                    conflicts.add(conflict);
+                }
+            }
+
+            // Check staff conflicts if staff is assigned
+            if (event.getStaffId() != null) {
+                // Use pagination method with unpaged to get all
+                Page<ScheduleEvent> staffEventsPage = scheduleEventRepository.findAllByStaff_IdAndEventDateBetween(
+                        event.getStaffId(), startDate.minusDays(1), startDate.plusDays(1), Pageable.unpaged());
+                List<ScheduleEvent> staffEvents = staffEventsPage.getContent();
+
+                for (ScheduleEvent existing : staffEvents) {
+                    if (hasTimeOverlap(startAt, endAt, existing.getStartAt(), existing.getEndAt())) {
+                        
+                        com.example.backend.model.dto.schedule.ScheduleConflictDTO conflict = 
+                            new com.example.backend.model.dto.schedule.ScheduleConflictDTO();
+                        conflict.setConflictType("STAFF_CONFLICT");
+                        conflict.setConflictingEventId(existing.getId());
+                        conflict.setEventDate(event.getEventDate());
+                        conflict.setStartTime(existing.getStartAt().toLocalTime());
+                        conflict.setEndTime(existing.getEndAt().toLocalTime());
+                        conflict.setMessage("Employee already has an event scheduled during this time");
+                        if (existing.getStaff() != null) {
+                            conflict.setConflictingWithName(existing.getStaff().getLastName() + ", " + existing.getStaff().getFirstName());
+                        }
+                        conflict.setResolved(false);
+                        
+                        conflicts.add(conflict);
+                    }
+                }
+            }
+        }
+
+        return conflicts;
+    }
+
+    private boolean hasTimeOverlap(OffsetDateTime start1, OffsetDateTime end1, OffsetDateTime start2, OffsetDateTime end2) {
+        // Overlap if Start1 < End2 AND End1 > Start2
+        return start1.isBefore(end2) && end1.isAfter(start2);
+    }
+
+    private ScheduleEventDTO toPreviewScheduleEventDTO(
+            com.example.backend.model.dto.schedule.CreateScheduleEventDTO dto
+    ) {
+        ScheduleEventDTO preview = new ScheduleEventDTO();
+        preview.setPatientId(dto.getPatientId());
+        preview.setEventDate(dto.getEventDate());
+        preview.setStartAt(dto.getEventDate().atTime(dto.getStartTime()).atOffset(ZoneOffset.UTC));
+        preview.setEndAt(dto.getEventDate().atTime(dto.getEndTime()).atOffset(ZoneOffset.UTC));
+        preview.setStatus(dto.getStatus());
+        preview.setPlannedUnits(dto.getPlannedUnits());
+        preview.setAuthorizationId(dto.getAuthorizationId());
+        preview.setEmployeeId(dto.getStaffId());
+        preview.setEventCode(dto.getEventCode());
+        preview.setComments(dto.getComments());
+
+        // Load additional info for display
+        if (dto.getPatientId() != null) {
+            patientRepository.findById(dto.getPatientId()).ifPresent(patient -> {
+                preview.setPatientName(patient.getFullName());
+                preview.setPatientClientId(patient.getClientId());
+            });
+        }
+
+        if (dto.getStaffId() != null) {
+            staffRepository.findById(dto.getStaffId()).ifPresent(staff -> {
+                preview.setEmployeeName(staff.getLastName() + ", " + staff.getFirstName());
+            });
+        }
+
+        if (dto.getAuthorizationId() != null) {
+            authorizationRepository.findById(dto.getAuthorizationId()).ifPresent(auth -> {
+                if (auth.getPatientService() != null && auth.getPatientService().getServiceType() != null) {
+                    preview.setServiceCode(auth.getPatientService().getServiceType().getCode());
+                }
+            });
+        }
+
+        return preview;
+    }
+
+    private ScheduleEvent createScheduleEventFromDTO(
+            com.example.backend.model.dto.schedule.CreateScheduleEventDTO dto,
+            AppUser createdBy
+    ) {
+        // Fetch required entities
+        Patient patient = patientRepository.findById(dto.getPatientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", dto.getPatientId()));
+
+        Authorization authorization = authorizationRepository.findById(dto.getAuthorizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Authorization", dto.getAuthorizationId()));
+
+        Staff staff = null;
+        if (dto.getStaffId() != null) {
+            staff = staffRepository.findById(dto.getStaffId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Staff", dto.getStaffId()));
+        }
+
+        // Create schedule event
+        ScheduleEvent event = new ScheduleEvent();
+        event.setOffice(patient.getOffice());
+        event.setPatient(patient);
+        
+        // Handle start_at and end_at - if endTime is before startTime, end_at is on the next day
+        LocalDate startDate = dto.getEventDate();
+        LocalDate endDate = dto.getEventDate();
+        
+        // If end time is before start time, end date is next day (event spans midnight)
+        if (dto.getEndTime().isBefore(dto.getStartTime()) || dto.getEndTime().equals(dto.getStartTime())) {
+            endDate = startDate.plusDays(1);
+        }
+        
+        // Set event_date to match the date of start_at (in local date, not UTC)
+        // This ensures event_date always matches the calendar date when the event starts
+        event.setEventDate(startDate);
+        
+        event.setStartAt(startDate.atTime(dto.getStartTime()).atOffset(ZoneOffset.UTC));
+        event.setEndAt(endDate.atTime(dto.getEndTime()).atOffset(ZoneOffset.UTC));
+        
+        // Validate: end_at must be after start_at
+        if (event.getEndAt().isBefore(event.getStartAt()) || event.getEndAt().equals(event.getStartAt())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+        event.setAuthorization(authorization);
+        event.setStaff(staff);
+        event.setEventCode(dto.getEventCode());
+        event.setStatus(com.example.backend.model.enums.ScheduleEventStatus.valueOf(dto.getStatus()));
+        event.setPlannedUnits(dto.getPlannedUnits());
+        event.setComment(dto.getComments());
+        event.setCreatedBy(createdBy);
+
+        // Initialize unit summary
+        Map<String, Object> unitSummary = new HashMap<>();
+        unitSummary.put("plannedUnits", dto.getPlannedUnits());
+        event.setUnitSummary(unitSummary);
+
+        return event;
     }
 }
 

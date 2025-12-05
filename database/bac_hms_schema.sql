@@ -577,6 +577,7 @@ CREATE TABLE schedule_event (
     status text NOT NULL DEFAULT 'PLANNED' CHECK (status IN ('PLANNED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')),
     planned_units integer NOT NULL CHECK (planned_units >= 0),
     actual_units integer CHECK (actual_units >= 0),
+    comment text,
     unit_summary NOT NULL jsonb DEFAULT '{}'::jsonb,  -- Lưu lý do cancelled, tổng units
     source_template_id uuid REFERENCES schedule_template(id) ON DELETE SET NULL,
     generated_at timestamptz,

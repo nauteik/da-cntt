@@ -62,6 +62,9 @@ public class ScheduleEvent {
     @Column(name = "actual_units")
     private Integer actualUnits;
 
+    @Column(name = "comment", columnDefinition = "text")
+    private String comment;
+
     @Type(JsonBinaryType.class)
     @Column(name = "unit_summary", columnDefinition = "jsonb", nullable = false)
     private Map<String, Object> unitSummary = new HashMap<>();
