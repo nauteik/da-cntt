@@ -48,12 +48,8 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       path: '/',
       sameSite: 'lax', // 'lax' is safer and sufficient for first-party contexts
-<<<<<<< HEAD
-      maxAge: 60* 60 * 24, // 1 day in seconds
-=======
       maxAge: 60 * 60 * 2, // 2 hours in seconds
       // Don't set domain to let browser handle it automatically
->>>>>>> main
     });
 
     // Return user info to the client, but not the token
