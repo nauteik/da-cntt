@@ -17,7 +17,7 @@ interface PatientProgramProps {
 }
 
 export default function PatientProgram({ patient, patientId }: PatientProgramProps) {
-  const [showProgramForm, setShowProgramForm] = useState(false);
+const [showProgramForm, setShowProgramForm] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<ProgramDetailDTO | null>(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceDetailDTO | null>(null);
