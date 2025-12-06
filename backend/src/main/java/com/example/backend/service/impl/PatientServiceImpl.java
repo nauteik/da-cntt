@@ -75,6 +75,72 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.backend.exception.ConflictException;
+import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.model.dto.AddressDTO;
+import com.example.backend.model.dto.AuthorizationDTO;
+import com.example.backend.model.dto.ContactDTO;
+import com.example.backend.model.dto.CreateAuthorizationDTO;
+import com.example.backend.model.dto.CreatePatientDTO;
+import com.example.backend.model.dto.CreatePatientPayerDTO;
+import com.example.backend.model.dto.CreatePatientServiceDTO;
+import com.example.backend.model.dto.PatientCreatedDTO;
+import com.example.backend.model.dto.PatientFilterOptionsDTO;
+import com.example.backend.model.dto.PatientHeaderDTO;
+import com.example.backend.model.dto.PatientPersonalDTO;
+import com.example.backend.model.dto.PatientProgramDTO;
+import com.example.backend.model.dto.PatientSummaryDTO;
+import com.example.backend.model.dto.PayerAuthorizationDTO;
+import com.example.backend.model.dto.PayerDetailDTO;
+import com.example.backend.model.dto.ProgramDetailDTO;
+import com.example.backend.model.dto.ServiceDetailDTO;
+import com.example.backend.model.dto.UpdateAuthorizationDTO;
+import com.example.backend.model.dto.UpdatePatientAddressDTO;
+import com.example.backend.model.dto.UpdatePatientContactDTO;
+import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
+import com.example.backend.model.dto.UpdatePatientPayerDTO;
+import com.example.backend.model.dto.UpdatePatientPersonalDTO;
+import com.example.backend.model.dto.UpdatePatientProgramDTO;
+import com.example.backend.model.dto.UpdatePatientServiceDTO;
+import com.example.backend.model.entity.Address;
+import com.example.backend.model.entity.AppUser;
+import com.example.backend.model.entity.Office;
+import com.example.backend.model.entity.Patient;
+import com.example.backend.model.entity.PatientAddress;
+import com.example.backend.model.entity.PatientContact;
+import com.example.backend.model.entity.PatientPayer;
+import com.example.backend.model.entity.PatientProgram;
+import com.example.backend.model.entity.Payer;
+import com.example.backend.model.entity.Program;
+import com.example.backend.model.entity.Staff;
+import com.example.backend.model.entity.UserOffice;
+import com.example.backend.model.enums.Gender;
+import com.example.backend.model.enums.PatientStatus;
+import com.example.backend.repository.AddressRepository;
+import com.example.backend.repository.AppUserRepository;
+import com.example.backend.repository.AuthorizationRepository;
+import com.example.backend.repository.OfficeRepository;
+import com.example.backend.repository.PatientAddressRepository;
+import com.example.backend.repository.PatientContactRepository;
+import com.example.backend.repository.PatientPayerRepository;
+import com.example.backend.repository.PatientProgramRepository;
+import com.example.backend.repository.PatientRepository;
+import com.example.backend.repository.PatientServiceRepository;
+import com.example.backend.repository.PayerRepository;
+import com.example.backend.repository.ProgramRepository;
+import com.example.backend.repository.ServiceTypeRepository;
+import com.example.backend.repository.StaffRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Implementation of PatientService
  * Uses optimized database-level aggregation for efficient pagination
@@ -1596,5 +1662,152 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
 
         // Return updated program data
         return getPatientProgram(patientId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.example.backend.model.dto.PatientSearchResultDTO> searchPatientsByName(String name) {
+        log.info("Searching patients by name: {}", name);
+
+        if (name == null || name.trim().isEmpty()) {
+            log.warn("Search name is empty");
+            return new ArrayList<>();
+        }
+
+        String searchTerm = "%" + name.trim().toLowerCase() + "%";
+        
+        List<Patient> patients = patientRepository.findAll().stream()
+            .filter(p -> p.getFirstName().toLowerCase().contains(name.trim().toLowerCase()) ||
+                        p.getLastName().toLowerCase().contains(name.trim().toLowerCase()))
+            .collect(Collectors.toList());
+
+        log.info("Found {} patients matching name: {}", patients.size(), name);
+
+        return patients.stream()
+            .map(this::mapToPatientSearchResult)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public com.example.backend.model.dto.PatientSearchResultDTO updatePatientAddressWithLocation(
+            UUID patientId,
+            com.example.backend.model.dto.UpdatePatientAddressLocationDTO updateDTO) {
+        
+        log.info("Updating address with GPS location for patient ID: {}", patientId);
+
+        // Find patient
+        Patient patient = patientRepository.findById(patientId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        // Find or create main address
+        PatientAddress mainAddress = patient.getPatientAddresses().stream()
+            .filter(pa -> Boolean.TRUE.equals(pa.getIsMain()))
+            .findFirst()
+            .orElse(null);
+
+        if (mainAddress == null) {
+            // Create new address with minimal required fields
+            Address newAddress = new Address();
+            newAddress.setLine1(updateDTO.getLine1() != null ? updateDTO.getLine1() : "");
+            newAddress.setCity(updateDTO.getCity() != null ? updateDTO.getCity() : "");
+            newAddress.setState(updateDTO.getState() != null ? updateDTO.getState() : "");
+            newAddress.setPostalCode(updateDTO.getPostalCode() != null ? updateDTO.getPostalCode() : "");
+            newAddress.setCounty(updateDTO.getCounty() != null ? updateDTO.getCounty() : "USA");
+            addressRepository.save(newAddress);
+            
+            mainAddress = new PatientAddress();
+            mainAddress.setPatient(patient);
+            mainAddress.setAddress(newAddress);
+            mainAddress.setIsMain(true);
+        }        // Update address fields
+        Address address = mainAddress.getAddress();
+        
+        if (updateDTO.getLine1() != null) {
+            address.setLine1(updateDTO.getLine1());
+        }
+        if (updateDTO.getLine2() != null) {
+            address.setLine2(updateDTO.getLine2());
+        }
+        if (updateDTO.getCity() != null) {
+            address.setCity(updateDTO.getCity());
+        }
+        if (updateDTO.getState() != null) {
+            address.setState(updateDTO.getState());
+        }
+        if (updateDTO.getPostalCode() != null) {
+            address.setPostalCode(updateDTO.getPostalCode());
+        }
+        if (updateDTO.getCounty() != null) {
+            address.setCounty(updateDTO.getCounty());
+        }
+        if (updateDTO.getLabel() != null) {
+            address.setLabel(updateDTO.getLabel());
+        }
+
+        addressRepository.save(address);
+
+        // Update patient address fields (phone, email, GPS coordinates)
+        if (updateDTO.getPhone() != null) {
+            mainAddress.setPhone(updateDTO.getPhone());
+        }
+        if (updateDTO.getEmail() != null) {
+            mainAddress.setEmail(updateDTO.getEmail());
+        }
+        if (updateDTO.getLatitude() != null) {
+            mainAddress.setLatitude(updateDTO.getLatitude());
+        }
+        if (updateDTO.getLongitude() != null) {
+            mainAddress.setLongitude(updateDTO.getLongitude());
+        }
+        if (updateDTO.getLocationNotes() != null) {
+            mainAddress.setLocationNotes(updateDTO.getLocationNotes());
+        }
+
+        patientAddressRepository.save(mainAddress);
+
+        log.info("Successfully updated address with GPS location for patient ID: {}", patientId);
+
+        return mapToPatientSearchResult(patient);
+    }
+
+    /**
+     * Helper method to map Patient entity to PatientSearchResultDTO
+     */
+    private com.example.backend.model.dto.PatientSearchResultDTO mapToPatientSearchResult(Patient patient) {
+        // Find main address
+        PatientAddress mainAddress = patient.getPatientAddresses().stream()
+            .filter(pa -> Boolean.TRUE.equals(pa.getIsMain()))
+            .findFirst()
+            .orElse(null);
+
+        com.example.backend.model.dto.PatientSearchResultDTO.PatientSearchResultDTOBuilder builder = 
+            com.example.backend.model.dto.PatientSearchResultDTO.builder()
+                .id(patient.getId())
+                .firstName(patient.getFirstName())
+                .lastName(patient.getLastName())
+                .fullName(patient.getFullName())
+                .medicaidId(patient.getMedicaidId())
+                .clientId(patient.getClientId())
+                .status(patient.getStatus() != null ? patient.getStatus().name() : null);
+
+        if (mainAddress != null) {
+            Address address = mainAddress.getAddress();
+            builder
+                .mainAddressId(mainAddress.getId())
+                .addressLabel(address.getLabel())
+                .addressLine1(address.getLine1())
+                .addressLine2(address.getLine2())
+                .city(address.getCity())
+                .state(address.getState())
+                .postalCode(address.getPostalCode())
+                .phone(mainAddress.getPhone())
+                .email(mainAddress.getEmail())
+                .latitude(mainAddress.getLatitude())
+                .longitude(mainAddress.getLongitude())
+                .locationNotes(mainAddress.getLocationNotes());
+        }
+
+        return builder.build();
     }
 }

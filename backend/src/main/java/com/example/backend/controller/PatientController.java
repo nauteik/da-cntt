@@ -29,10 +29,12 @@ import com.example.backend.model.dto.PatientFilterOptionsDTO;
 import com.example.backend.model.dto.PatientHeaderDTO;
 import com.example.backend.model.dto.PatientPersonalDTO;
 import com.example.backend.model.dto.PatientProgramDTO;
+import com.example.backend.model.dto.PatientSearchResultDTO;
 import com.example.backend.model.dto.PatientSummaryDTO;
 import com.example.backend.model.dto.PayerAuthorizationDTO;
 import com.example.backend.model.dto.UpdateAuthorizationDTO;
 import com.example.backend.model.dto.UpdatePatientAddressDTO;
+import com.example.backend.model.dto.UpdatePatientAddressLocationDTO;
 import com.example.backend.model.dto.UpdatePatientContactDTO;
 import com.example.backend.model.dto.UpdatePatientIdentifiersDTO;
 import com.example.backend.model.dto.UpdatePatientPayerDTO;
@@ -780,6 +782,65 @@ public class PatientController {
 
         return ResponseEntity.ok(
             ApiResponse.success(updatedProgram, "Authorization deleted successfully")
+        );
+    }
+
+    /**
+     * Search patients by name (first name or last name).
+     * Returns patients with their main address information.
+     * 
+     * @param name search string for first name or last name (case-insensitive, partial match)
+     * @return list of matching patients with address info
+     * 
+     * Example: GET /api/patients/search?name=john
+     */
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<PatientSearchResultDTO>>> searchPatientsByName(
+            @RequestParam String name) {
+        
+        log.info("Searching patients by name: {}", name);
+        
+        List<PatientSearchResultDTO> patients = patientService.searchPatientsByName(name);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(patients, "Found " + patients.size() + " patient(s)")
+        );
+    }
+
+    /**
+     * Update patient main address with GPS location.
+     * Updates or creates the main address for a patient including GPS coordinates.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param updateDTO address update data with GPS coordinates
+     * @return updated patient search result with new address
+     * 
+     * Example: PATCH /api/patients/{id}/address/location
+     * Body: {
+     *   "line1": "123 Main St",
+     *   "city": "Philadelphia",
+     *   "state": "PA",
+     *   "postalCode": "19103",
+     *   "latitude": 39.952583,
+     *   "longitude": -75.165222,
+     *   "phone": "(215) 555-1234",
+     *   "email": "john@example.com",
+     *   "locationNotes": "Apartment 3B, blue door"
+     * }
+     */
+    @PatchMapping("/{id}/address/location")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientSearchResultDTO>> updatePatientAddressWithLocation(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdatePatientAddressLocationDTO updateDTO) {
+        
+        log.info("Updating address with GPS location for patient ID: {}", id);
+        
+        PatientSearchResultDTO updatedPatient = patientService.updatePatientAddressWithLocation(id, updateDTO);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedPatient, "Patient address updated successfully")
         );
     }
 }

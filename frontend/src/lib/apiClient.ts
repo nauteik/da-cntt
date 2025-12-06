@@ -88,11 +88,32 @@ export async function apiClient<T>(
 
   try {
     // Determine if this is a BFF route or backend route
-    const isBffRoute = endpoint.startsWith('api/auth/');
+    // BFF routes: auth (login/logout) and user info (user/me)
+    const isBffRoute = 
+      (endpoint.startsWith('api/auth/') && (endpoint.includes('login') || endpoint.includes('logout'))) ||
+      endpoint === '/user/me' ||
+      endpoint === 'user/me';
+    
     const baseUrl = isBffRoute ? BFF_BASE_URL : BACKEND_URL;
     
+    // For BFF routes, ensure proper path with leading slash
+    let finalEndpoint = endpoint;
+    if (isBffRoute) {
+      // Remove leading slash if present for consistency
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+      
+      // Add 'api/' prefix if not already present
+      if (!cleanEndpoint.startsWith('api/')) {
+        finalEndpoint = `/api/${cleanEndpoint}`;
+      } else {
+        finalEndpoint = `/${cleanEndpoint}`;
+      }
+    }
+    
+    const fullUrl = `${baseUrl}${finalEndpoint}`;
+    
     // Use appropriate URL for the call
-    const response = await fetch(`${baseUrl}${endpoint}`, config);
+    const response = await fetch(fullUrl, config);
 
     // Handle cases where the response is not ok but returns JSON (e.g., validation errors from Spring)
     if (!response.ok) {

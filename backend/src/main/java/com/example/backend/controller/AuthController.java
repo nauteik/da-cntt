@@ -54,28 +54,17 @@ public class AuthController {
                 .maxAge(0)               // Delete the cookie
                 .sameSite("None");       // Use None for cross-domain requests
         
-        // Set domain based on environment (same logic as login)
+        // Simplified domain logic - let the browser handle it
         String origin = request.getHeader("Origin");
-        String referer = request.getHeader("Referer");
-        String userAgent = request.getHeader("User-Agent");
-        log.info("Logout request - Origin: {}, Referer: {}, User-Agent: {}", origin, referer, userAgent);
+        log.info("Logout request - Origin: {}", origin);
         
-        // Check if this is a production request (from Vercel)
-        boolean isProduction = (origin != null && origin.contains("vercel.app")) ||
-                              (referer != null && referer.contains("vercel.app")) ||
-                              (userAgent != null && userAgent.contains("vercel"));
-        
-        if (isProduction) {
-            // Production: set domain to frontend
+        // Only set domain for production Vercel deployments
+        if (origin != null && origin.contains("vercel.app")) {
             cookieBuilder.domain("da-cntt.vercel.app");
             log.info("Clearing cookie domain for production: da-cntt.vercel.app");
-        } else if (origin != null && origin.contains("localhost")) {
-            // Localhost: don't set domain to allow localhost to work
-            log.info("Clearing cookie for localhost (no domain)");
         } else {
-            // Fallback: assume production if we can't determine
-            cookieBuilder.domain("da-cntt.vercel.app");
-            log.info("Clearing cookie domain for production (fallback): da-cntt.vercel.app");
+            // For localhost and other environments, don't set domain
+            log.info("Clearing cookie without domain restriction");
         }
         
         ResponseCookie cookie = cookieBuilder.build();

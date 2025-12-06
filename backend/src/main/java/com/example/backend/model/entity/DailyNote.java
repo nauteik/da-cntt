@@ -61,7 +61,7 @@ public class DailyNote extends BaseEntity {
     @Column(name = "patient_signed", nullable = false)
     private Boolean patientSigned = false;
 
-    @Column(name = "patient_signer_name")
+    @Column(name = "patient_signer_name", columnDefinition = "TEXT")
     private String patientSignerName;
 
     @Column(name = "patient_signed_at")
@@ -84,11 +84,11 @@ public class DailyNote extends BaseEntity {
     private List<Object> mealInfo = new ArrayList<>();
 
     // Patient signature stored as base64 string (from signature pad drawing)
-    @Column(name = "patient_signature", columnDefinition = "TEXT")
+    @Column(name = "patient_signature", columnDefinition = "TEXT", length = 100000)
     private String patientSignature;
 
     // Staff signature stored as base64 string (from signature pad drawing)
-    @Column(name = "staff_signature", columnDefinition = "TEXT")
+    @Column(name = "staff_signature", columnDefinition = "TEXT", length = 100000)
     private String staffSignature;
 
     public DailyNote(ServiceDelivery serviceDelivery, Staff authorStaff, String content) {

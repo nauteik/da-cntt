@@ -38,12 +38,18 @@ export async function POST(request: NextRequest) {
 
     // Set the HttpOnly cookie from the Next.js server
     const cookieStore = await cookies();
+    
+    // Clear any existing accessToken cookie first
+    cookieStore.delete('accessToken');
+    
+    // Set the new cookie
     cookieStore.set('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
       sameSite: 'lax', // 'lax' is safer and sufficient for first-party contexts
-      maxAge: 60* 60 * 24, // 1 day in seconds
+      maxAge: 60 * 60 * 2, // 2 hours in seconds
+      // Don't set domain to let browser handle it automatically
     });
 
     // Return user info to the client, but not the token

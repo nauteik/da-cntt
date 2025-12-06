@@ -45,6 +45,10 @@ public class DailyNoteServiceImpl implements DailyNoteService {
         if (patient == null) {
             throw new ResourceNotFoundException("Patient not found in ServiceDelivery");
         }
+        
+        if (staff == null) {
+            throw new ResourceNotFoundException("Staff not found in ServiceDelivery. Please ensure the schedule event has an assigned staff.");
+        }
 
         DailyNote note = new DailyNote();
         note.setServiceDelivery(serviceDelivery);
