@@ -165,8 +165,8 @@ export default function CheckInScreen() {
       // TODO: In production, fetch actual patient GPS coordinates from backend
       // For now, using mock coordinates - you should fetch from serviceDeliveryId
       // Example: GET /api/service-delivery/{id} to get patient address coordinates
-      const mockPatientLat = 37.4220871;  // Replace with actual patient lat
-      const mockPatientLon = -122.084;  // Replace with actual patient lon
+      const mockPatientLat = 37.431998;  // New York coordinates
+      const mockPatientLon = -122.084001;  // New York coordinates
       
       if (mockPatientLat && mockPatientLon) {
         const distance = calculateDistance(

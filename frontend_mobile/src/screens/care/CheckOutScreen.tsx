@@ -115,8 +115,8 @@ export default function CheckOutScreen() {
 
       // Calculate distance to patient address
       // TODO: Fetch actual patient coordinates from backend
-      const mockPatientLat = 10.802485074288798;
-      const mockPatientLon = 106.70588177651746;
+      const mockPatientLat = 37.422073;  
+      const mockPatientLon = -122.083920;  
       
       if (mockPatientLat && mockPatientLon) {
         const distance = calculateDistance(

@@ -111,4 +111,12 @@ public interface ServiceDeliveryService {
             int size,
             String sortBy,
             String sortDir);
+    
+    /**
+     * Get single visit maintenance detail by service delivery ID
+     * 
+     * @param id Service delivery ID
+     * @return Visit maintenance record
+     */
+    VisitMaintenanceDTO getVisitMaintenanceById(UUID id);
 }

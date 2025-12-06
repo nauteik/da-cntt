@@ -19,6 +19,7 @@ import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.ValidationException;
 import com.example.backend.model.dto.VisitMaintenanceDTO;
 import com.example.backend.model.entity.Authorization;
+import com.example.backend.model.entity.DailyNote;
 import com.example.backend.model.entity.Office;
 import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.ScheduleEvent;
@@ -611,6 +612,36 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
         java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("hh:mm a");
 
+        // Map Check Events (Check-in/Check-out) with GPS tracking
+        com.example.backend.model.dto.CheckEventDTO checkInEventDTO = null;
+        com.example.backend.model.dto.CheckEventDTO checkOutEventDTO = null;
+        
+        var checkInEvent = delivery.getCheckInEvent();
+        if (checkInEvent != null) {
+            checkInEventDTO = com.example.backend.model.dto.CheckEventDTO.builder()
+                    .timestamp(checkInEvent.getOccurredAt())
+                    .eventType(checkInEvent.getEventType())
+                    .latitude(checkInEvent.getLatitude() != null ? checkInEvent.getLatitude().doubleValue() : null)
+                    .longitude(checkInEvent.getLongitude() != null ? checkInEvent.getLongitude().doubleValue() : null)
+                    .accuracyMeters(checkInEvent.getAccuracyM() != null ? checkInEvent.getAccuracyM().doubleValue() : null)
+                    .method(checkInEvent.getMethod())
+                    .status(checkInEvent.getStatus())
+                    .build();
+        }
+        
+        var checkOutEvent = delivery.getCheckOutEvent();
+        if (checkOutEvent != null) {
+            checkOutEventDTO = com.example.backend.model.dto.CheckEventDTO.builder()
+                    .timestamp(checkOutEvent.getOccurredAt())
+                    .eventType(checkOutEvent.getEventType())
+                    .latitude(checkOutEvent.getLatitude() != null ? checkOutEvent.getLatitude().doubleValue() : null)
+                    .longitude(checkOutEvent.getLongitude() != null ? checkOutEvent.getLongitude().doubleValue() : null)
+                    .accuracyMeters(checkOutEvent.getAccuracyM() != null ? checkOutEvent.getAccuracyM().doubleValue() : null)
+                    .method(checkOutEvent.getMethod())
+                    .status(checkOutEvent.getStatus())
+                    .build();
+        }
+
         return VisitMaintenanceDTO.builder()
                 .serviceDeliveryId(delivery.getId())
                 .scheduleEventId(schedule.getId())
@@ -644,8 +675,29 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
                 .authorizationNumber(delivery.getAuthorization() != null 
                         ? delivery.getAuthorization().getAuthorizationNo() 
                         : null)
+                .checkInEvent(checkInEventDTO)
+                .checkOutEvent(checkOutEventDTO)
+                .dailyNoteId(delivery.getDailyNotes().stream()
+                        .findFirst()
+                        .map(DailyNote::getId)
+                        .orElse(null))
+                .dailyNoteContent(delivery.getDailyNotes().stream()
+                        .findFirst()
+                        .map(DailyNote::getContent)
+                        .orElse(null))
                 .createdAt(delivery.getCreatedAt())
                 .updatedAt(delivery.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public VisitMaintenanceDTO getVisitMaintenanceById(UUID id) {
+        log.info("Getting visit maintenance detail for service delivery: {}", id);
+        
+        ServiceDelivery delivery = serviceDeliveryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Service delivery not found with id: " + id));
+        
+        return mapToVisitMaintenanceDTO(delivery);
     }
 }

@@ -70,6 +70,14 @@ public class VisitMaintenanceDTO {
     private String unscheduledReason;
     private String authorizationNumber;
     
+    // GPS Tracking - Check Events (EVV - Electronic Visit Verification)
+    private CheckEventDTO checkInEvent;   // Check-in with GPS location
+    private CheckEventDTO checkOutEvent;  // Check-out with GPS location
+    
+    // Daily Note (Memo)
+    private UUID dailyNoteId;  // ID of the daily note for this visit
+    private String dailyNoteContent;  // Content of the daily note for this visit
+    
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

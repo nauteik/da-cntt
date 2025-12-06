@@ -63,9 +63,38 @@ export interface VisitMaintenanceDTO {
   unscheduledReason?: string;
   authorizationNumber?: string;
 
+  // GPS Tracking - Check Events (EVV - Electronic Visit Verification)
+  checkInEvent?: CheckEventDTO;
+  checkOutEvent?: CheckEventDTO;
+
+  // Daily Note (Memo)
+  dailyNoteId?: string;
+  dailyNoteContent?: string;
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
+}
+
+export enum CheckEventStatus {
+  OK = 'OK',
+  GPS_MISMATCH = 'GPS_MISMATCH',
+  TIME_VARIANCE = 'TIME_VARIANCE',
+}
+
+export enum CheckEventType {
+  CHECK_IN = 'CHECK_IN',
+  CHECK_OUT = 'CHECK_OUT',
+}
+
+export interface CheckEventDTO {
+  timestamp: string;
+  eventType: CheckEventType;
+  latitude?: number;
+  longitude?: number;
+  accuracyMeters?: number;
+  method?: string;
+  status: CheckEventStatus;
 }
 
 export interface VisitMaintenanceQueryParams {

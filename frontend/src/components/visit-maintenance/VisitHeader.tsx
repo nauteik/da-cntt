@@ -1,0 +1,100 @@
+"use client";
+
+import React from "react";
+import { LeftOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import type { VisitMaintenanceDTO } from "@/types/visitMaintenance";
+import { Tag } from "antd";
+
+interface VisitHeaderProps {
+  visit: VisitMaintenanceDTO;
+}
+
+export default function VisitHeader({ visit }: VisitHeaderProps) {
+  const router = useRouter();
+
+  const handleBack = () => {
+    router.push("/visit-maintenance");
+  };
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    const statusMap: Record<string, string> = {
+      Scheduled: "blue",
+      "In Progress": "orange",
+      Completed: "green",
+      Cancelled: "red",
+      "No Show": "default",
+    };
+    return statusMap[status] || "default";
+  };
+
+  return (
+    <div className="bg-[var(--bg-surface)] rounded-none pt-2.5 px-4 mb-0">
+      {/* Row 1: Back button and Visit ID */}
+      <div className="flex items-center gap-4 mb-3">
+        <div
+          onClick={handleBack}
+          className="flex items-center gap-1 font-semibold text-base cursor-pointer text-[var(--primary)] hover:opacity-80 transition-opacity"
+        >
+          <LeftOutlined /> BACK
+        </div>
+
+        <div className="flex items-center gap-3 flex-1">
+          <h1 className="text-xl font-bold text-theme-primary m-0">
+            Visit #{visit.serviceDeliveryId}
+          </h1>
+          <Tag color={getStatusColor(visit.visitStatus)}>
+            {visit.visitStatus}
+          </Tag>
+        </div>
+      </div>
+
+      {/* Row 2: Visit info - all in one line */}
+      <div className="flex items-center gap-3 flex-wrap text-xs leading-[1.5] max-xl:text-[11px] max-md:flex-col max-md:items-start max-md:gap-2">
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Client:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {visit.clientName || "—"}
+          </span>
+        </span>
+
+        <span className="text-theme-border font-light max-md:hidden">|</span>
+
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Employee:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {visit.employeeName || "—"}
+          </span>
+        </span>
+
+        <span className="text-theme-border font-light max-md:hidden">|</span>
+
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Service:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {visit.serviceName || "—"}
+          </span>
+        </span>
+
+        <span className="text-theme-border font-light max-md:hidden">|</span>
+
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Schedule In:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {visit.scheduleIn || "—"}
+          </span>
+        </span>
+
+        <span className="text-theme-border font-light max-md:hidden">|</span>
+
+        <span className="inline-flex items-center gap-1">
+          <span className="text-theme-secondary font-medium">Schedule Out:</span>{" "}
+          <span className="text-theme-primary font-semibold">
+            {visit.scheduleOut || "—"}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}

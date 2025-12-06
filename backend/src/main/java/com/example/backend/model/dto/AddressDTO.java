@@ -1,8 +1,10 @@
 package com.example.backend.model.dto;
 
+import java.util.UUID;
+
 import com.example.backend.model.enums.AddressType;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.UUID;
+
 import lombok.Data;
 
 @Data
@@ -21,4 +23,8 @@ public class AddressDTO {
         
         @JsonProperty("isMain")
         private boolean isMain;
+        
+        // GPS coordinates
+        private Double latitude;
+        private Double longitude;
 }

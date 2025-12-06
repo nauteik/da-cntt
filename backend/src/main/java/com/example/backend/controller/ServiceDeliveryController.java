@@ -217,6 +217,18 @@ public class ServiceDeliveryController {
     }
 
     /**
+     * Get single visit maintenance detail by ID
+     * GET /api/service-delivery/visit-maintenance/{id}
+     */
+    @GetMapping("/visit-maintenance/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    public ResponseEntity<ApiResponse<VisitMaintenanceDTO>> getVisitMaintenanceById(@PathVariable UUID id) {
+        log.info("Getting visit maintenance detail: {}", id);
+        VisitMaintenanceDTO visit = serviceDeliveryService.getVisitMaintenanceById(id);
+        return ResponseEntity.ok(ApiResponse.success(visit, "Visit detail retrieved successfully"));
+    }
+
+    /**
      * Get visit maintenance view with detailed information for billing verification
      * GET /api/service-delivery/visit-maintenance
      * 
