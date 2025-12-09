@@ -90,7 +90,8 @@ export interface AddEventFormData {
   serviceId: string;
   eventCode?: string;
   billType?: string;
-  weekdays: number[]; // Array of selected weekdays
+  weekdays: number[]; // Array of selected weekdays (for create mode)
+  weekday?: number; // Single weekday (for edit mode)
   startTime: string;
   endTime: string;
   employeeId?: string;

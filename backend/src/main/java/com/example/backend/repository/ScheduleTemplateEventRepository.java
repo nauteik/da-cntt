@@ -51,6 +51,25 @@ public interface ScheduleTemplateEventRepository extends JpaRepository<ScheduleT
         @Param("startTime") java.time.LocalTime startTime,
         @Param("endTime") java.time.LocalTime endTime
     );
+
+    // Find overlapping events in the same week and day, excluding the current event
+    @Query("""
+        SELECT e FROM ScheduleTemplateEvent e
+        WHERE e.templateWeek.id = :weekId
+        AND e.dayOfWeek = :dayOfWeek
+        AND e.id != :eventId
+        AND (
+            (e.startTime < :endTime AND e.endTime > :startTime)
+            OR (e.startTime = :startTime AND e.endTime = :endTime)
+        )
+        """)
+    List<ScheduleTemplateEvent> findOverlappingEventsExcludingCurrent(
+        @Param("weekId") UUID weekId,
+        @Param("dayOfWeek") Short dayOfWeek,
+        @Param("startTime") java.time.LocalTime startTime,
+        @Param("endTime") java.time.LocalTime endTime,
+        @Param("eventId") UUID eventId
+    );
 }
 
 

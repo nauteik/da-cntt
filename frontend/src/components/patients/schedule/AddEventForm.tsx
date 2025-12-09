@@ -89,7 +89,7 @@ export default function AddEventForm({
         serviceId: initialData.authorizationId,
         eventCode: initialData.eventCode,
         billType: initialData.billType,
-        weekdays: [initialData.weekday],
+        weekday: initialData.weekday, // Single value for edit mode
         startTime: dayjs(initialData.startTime, "HH:mm"),
         endTime: dayjs(initialData.endTime, "HH:mm"),
         employeeId: initialData.staffId,
@@ -107,7 +107,11 @@ export default function AddEventForm({
         serviceId: values.serviceId,
         eventCode: values.eventCode,
         billType: values.billType,
-        weekdays: values.weekdays,
+        // In edit mode: single weekday, in create mode: array of weekdays
+        ...(isEditMode 
+          ? { weekday: values.weekday, weekdays: [] } 
+          : { weekdays: values.weekdays }
+        ),
         startTime: values.startTime.format("HH:mm"),
         endTime: values.endTime.format("HH:mm"),
         employeeId: values.employeeId,
@@ -210,21 +214,40 @@ export default function AddEventForm({
                 Schedule
               </h3>
 
-              <Form.Item
-                label={<span>Day(S) Of The Event <span className="text-red-500">*</span></span>}
-                name="weekdays"
-                rules={[
-                  { required: true, message: "Please select at least one day" },
-                ]}
-              >
-                <Select
-                  className={styles.formSelect}
-                  mode="multiple"
-                  placeholder="Select day(s) of the event"
-                  options={WEEKDAY_OPTIONS}
-                  maxTagCount="responsive"
-                />
-              </Form.Item>
+              {isEditMode ? (
+                // Edit mode: single day select
+                <Form.Item
+                  label={<span>Day Of The Event <span className="text-red-500">*</span></span>}
+                  name="weekday"
+                  rules={[
+                    { required: true, message: "Please select a day" },
+                  ]}
+                  help="To add this event to multiple days, please create a new event"
+                >
+                  <Select
+                    className={styles.formSelect}
+                    placeholder="Select day of the event"
+                    options={WEEKDAY_OPTIONS}
+                  />
+                </Form.Item>
+              ) : (
+                // Create mode: multiple days select
+                <Form.Item
+                  label={<span>Day(S) Of The Event <span className="text-red-500">*</span></span>}
+                  name="weekdays"
+                  rules={[
+                    { required: true, message: "Please select at least one day" },
+                  ]}
+                >
+                  <Select
+                    className={styles.formSelect}
+                    mode="multiple"
+                    placeholder="Select day(s) of the event"
+                    options={WEEKDAY_OPTIONS}
+                    maxTagCount="responsive"
+                  />
+                </Form.Item>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <Form.Item

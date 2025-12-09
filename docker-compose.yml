@@ -42,24 +42,6 @@ services:
       - backend-network
     depends_on:
       - postgres
-
-  femobile:
-    build:
-      context: ./frontend_mobile
-      dockerfile: Dockerfile
-    container_name: fe-mobile
-    volumes:
-      - ./frontend_mobile:/app
-    command: sh -c "npm install && npm start"
-    ports:
-      - "19000:19000" # Expo app port
-      - "19001:19001" # Metro bundler
-      - "19002:19002" # Web preview
-    networks:
-      - backend-network
-    depends_on:
-      - postgres
-
 volumes:
   postgres_data:
   pgadmin_data:

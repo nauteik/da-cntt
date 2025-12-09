@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
-import { Dropdown, Modal } from "antd";
+import { Dropdown, App } from "antd";
 import { DownOutlined, MoreOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import type { TemplateEventDTO } from "@/types/schedule";
+import buttonStyles from "@/styles/buttons.module.css";
 import styles from "@/styles/schedule.module.css";
+import dayjs from "dayjs";
 
 interface TemplateCalendarProps {
   events: TemplateEventDTO[];
@@ -32,6 +34,7 @@ export default function TemplateCalendar({
   onEditEvent,
   onDeleteEvent,
 }: TemplateCalendarProps) {
+  const { modal } = App.useApp();
   // Group events by weekday
   const eventsByDay = React.useMemo(() => {
     const grouped: Record<number, TemplateEventDTO[]> = {
@@ -62,12 +65,19 @@ export default function TemplateCalendar({
   }, [events]);
 
   const handleDeleteClick = (event: TemplateEventDTO) => {
-    Modal.confirm({
-      title: "Delete Event",
-      content: `Are you sure you want to delete this event (${event.serviceCode} - ${event.startTime} to ${event.endTime})?`,
-      okText: "Delete",
+    modal.confirm({
+      title: "Delete Event Template",
+      content: `Are you sure you want to delete this event template (${event.serviceCode} - ${dayjs(event.startTime, "HH:mm").format("h:mm A")} to ${dayjs(event.endTime, "HH:mm").format("h:mm A")})?`,
+      okText: "DELETE",
       okType: "danger",
-      cancelText: "Cancel",
+      cancelText: "CANCEL",
+      centered: true,
+      okButtonProps: {
+        className: buttonStyles.btnDanger,
+      },
+      cancelButtonProps: {
+        className: buttonStyles.btnCancel,
+      },
       onOk: () => {
         onDeleteEvent(event.id);
       },
@@ -94,6 +104,11 @@ export default function TemplateCalendar({
         <div key={index} className={styles.calendarDay}>
           <div className={styles.calendarDayHeader}>{day}</div>
           <div>
+
+
+
+
+            
             {eventsByDay[index].length > 0 ? (
               eventsByDay[index].map((event) => (
                 <div
