@@ -318,7 +318,92 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .collect(Collectors.toList());
     }
 
-    // updateTemplateEvent removed as per requirement
+    @Override
+    @Transactional
+    public TemplateEventDTO updateTemplateEvent(UUID patientId, UUID eventId, 
+            com.example.backend.model.dto.schedule.UpdateTemplateEventDTO dto) {
+        log.info("Updating template event: {}", eventId);
+
+        // Fetch existing event
+        ScheduleTemplateEvent event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("ScheduleTemplateEvent", eventId));
+
+        // Validate patient ownership
+        if (!event.getTemplateWeek().getTemplate().getPatient().getId().equals(patientId)) {
+            throw new IllegalArgumentException("Event does not belong to this patient");
+        }
+
+        // Validate and resolve authorization if changed
+        if (dto.getAuthorizationId() != null) {
+            Authorization auth = authorizationRepository.findById(dto.getAuthorizationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Authorization", dto.getAuthorizationId()));
+            if (!auth.getPatient().getId().equals(patientId)) {
+                throw new ConflictException("Authorization does not belong to this patient");
+            }
+            event.setAuthorization(auth);
+            // Auto-fill event code from authorization if not explicitly provided
+            if ((dto.getEventCode() == null || dto.getEventCode().isBlank()) && auth.getEventCode() != null) {
+                event.setEventCode(auth.getEventCode());
+            }
+        }
+
+        // Validate and resolve staff if changed
+        if (dto.getStaffId() != null) {
+            Staff staff = staffRepository.findById(dto.getStaffId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Staff", dto.getStaffId()));
+            event.setStaff(staff);
+        }
+
+        // Determine the day of week and times to check for overlaps
+        Short dayOfWeek = dto.getDayOfWeek() != null ? dto.getDayOfWeek() : event.getDayOfWeek();
+        java.time.LocalTime startTime = dto.getStartTime() != null ? dto.getStartTime() : event.getStartTime();
+        java.time.LocalTime endTime = dto.getEndTime() != null ? dto.getEndTime() : event.getEndTime();
+
+        // Validate time range
+        if (endTime.isBefore(startTime) || endTime.equals(startTime)) {
+            throw new ConflictException("End time must be after start time");
+        }
+
+        // Check for overlapping events, excluding the current event
+        List<ScheduleTemplateEvent> overlapping = eventRepository.findOverlappingEventsExcludingCurrent(
+                event.getTemplateWeek().getId(),
+                dayOfWeek,
+                startTime,
+                endTime,
+                eventId
+        );
+        if (!overlapping.isEmpty()) {
+            throw new ConflictException(
+                    String.format("Event overlaps with existing event(s) on %s at %s-%s",
+                            getDayName(dayOfWeek),
+                            startTime,
+                            endTime)
+            );
+        }
+
+        // Update fields (partial update - only non-null values)
+        if (dto.getDayOfWeek() != null) {
+            event.setDayOfWeek(dto.getDayOfWeek());
+        }
+        if (dto.getStartTime() != null) {
+            event.setStartTime(dto.getStartTime());
+        }
+        if (dto.getEndTime() != null) {
+            event.setEndTime(dto.getEndTime());
+        }
+        if (dto.getEventCode() != null) {
+            event.setEventCode(dto.getEventCode());
+        }
+        if (dto.getPlannedUnits() != null) {
+            event.setPlannedUnits(dto.getPlannedUnits());
+        }
+        if (dto.getComment() != null) {
+            event.setComment(dto.getComment());
+        }
+
+        eventRepository.save(event);
+        return toTemplateEventDTO(event);
+    }
 
     @Override
     @Transactional

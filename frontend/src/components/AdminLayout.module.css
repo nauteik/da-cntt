@@ -129,6 +129,34 @@
   color: var(--text-primary);
 }
 
+.breadcrumb {
+  margin-left: 1rem !important;
+  font-size: 0.95rem;
+}
+
+.breadcrumb :global(.ant-breadcrumb-link) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  color: var(--text-secondary) !important;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.breadcrumb :global(.ant-breadcrumb-link):hover {
+  color: var(--primary) !important;
+}
+
+.breadcrumb :global(.ant-breadcrumb-separator) {
+  color: var(--text-secondary) !important;
+}
+
+.breadcrumb :global(li:last-child .ant-breadcrumb-link),
+.breadcrumb :global(li:last-child span) {
+  color: var(--text-primary) !important;
+  font-weight: 500;
+}
+
 .userInfo {
   margin-left: 0.5rem;
   display: flex;

@@ -90,6 +90,10 @@ export function useCreateTemplateEvent(patientId: string) {
   return useApiMutation<TemplateEventDTO[]>(`/patients/${patientId}/schedule/template/events`, "POST");
 }
 
+export function useUpdateTemplateEvent(patientId: string, eventId: string) {
+  return useApiMutation<TemplateEventDTO>(`/patients/${patientId}/schedule/template/events/${eventId}`, "PUT");
+}
+
 export function useDeleteTemplateEvent(patientId: string, eventId: string) {
   return useApiMutation<TemplateEventDTO[]>(`/patients/${patientId}/schedule/template/events/${eventId}`, "DELETE");
 }

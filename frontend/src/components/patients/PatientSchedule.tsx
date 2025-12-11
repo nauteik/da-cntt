@@ -22,7 +22,8 @@ import AddEventForm from "./schedule/AddEventForm";
 import ScheduleEventsTable from "./schedule/ScheduleEventsTable";
 import CreateScheduleForm from "@/components/schedule/CreateScheduleForm";
 import buttonStyles from "@/styles/buttons.module.css";
-import { usePatientTemplateWithWeeks, usePatientScheduleEventsPaginated, useCreateTemplate, useAddWeek, useDeleteWeek, useDeleteTemplate, useCreateTemplateEvent, useGenerateSchedule, useRelatedStaffForPatient } from "@/hooks/usePatientSchedule";
+import { usePatientTemplateWithWeeks, usePatientScheduleEventsPaginated, useCreateTemplate, useAddWeek, useDeleteWeek, useDeleteTemplate, useCreateTemplateEvent, useUpdateTemplateEvent, useGenerateSchedule, useRelatedStaffForPatient } from "@/hooks/usePatientSchedule";
+import { apiClient } from "@/lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface PatientScheduleProps {
@@ -34,7 +35,7 @@ interface WeekSectionProps {
   events: TemplateEventDTO[];
   isCollapsed: boolean;
   onEditEvent: (event: TemplateEventDTO) => void;
-  onDeleteEvent: () => void;
+  onDeleteEvent: (eventId: string) => void;
   onAddEvent: (weekIndex: number) => void;
   onDeleteWeek: () => void;
   onToggleCollapse: () => void;
@@ -201,8 +202,17 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
     setIsAddEventFormOpen(true);
   };
 
-  const handleDeleteEvent = () => {
-    // TODO: wire to delete mutation once edit modal exposes id
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!eventId) return;
+    try {
+      await apiClient<TemplateEventDTO[]>(`/patients/${patientId}/schedule/template/events/${eventId}`, {
+        method: "DELETE",
+      });
+      await queryClient.invalidateQueries({ queryKey: ["patient-template-with-weeks", patientId] });
+      await queryClient.refetchQueries({ queryKey: ["patient-template-with-weeks", patientId], exact: true });
+    } catch (error) {
+      console.error("Failed to delete template event:", error);
+    }
   };
 
   const handleAddEvent = (weekIndex: number) => {
@@ -212,32 +222,49 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
   };
 
   const createTemplateEventMutation = useCreateTemplateEvent(patientId);
+  const updateTemplateEventMutation = useUpdateTemplateEvent(patientId, editingEvent?.id || "");
 
   const handleSaveEvent = async (data: import("@/types/schedule").AddEventFormData) => {
-    if (!selectedWeekIndex) return;
     const toMinutes = (t: string) => {
       const [hh, mm] = t.split(":");
       return parseInt(hh) * 60 + parseInt(mm);
     };
     const plannedUnits = Math.max(0, toMinutes(data.endTime) - toMinutes(data.startTime));
+    
     try {
-      await createTemplateEventMutation.mutateAsync({
-        weekIndex: selectedWeekIndex,
-        weekdays: data.weekdays,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        authorizationId: data.serviceId,
-        eventCode: data.eventCode,
-        plannedUnits,
-        staffId: data.employeeId,
-        comment: data.comments,
-      } as unknown as Record<string, unknown>);
+      if (editingEvent) {
+        // Edit mode: use PUT endpoint with single weekday
+        await updateTemplateEventMutation.mutateAsync({
+          dayOfWeek: data.weekday, // Single value for edit
+          startTime: data.startTime,
+          endTime: data.endTime,
+          authorizationId: data.serviceId,
+          eventCode: data.eventCode,
+          plannedUnits,
+          staffId: data.employeeId,
+          comment: data.comments,
+        } as unknown as Record<string, unknown>);
+      } else {
+        // Create mode: use POST endpoint with multiple weekdays
+        if (!selectedWeekIndex) return;
+        await createTemplateEventMutation.mutateAsync({
+          weekIndex: selectedWeekIndex,
+          weekdays: data.weekdays, // Array of weekdays for create
+          startTime: data.startTime,
+          endTime: data.endTime,
+          authorizationId: data.serviceId,
+          eventCode: data.eventCode,
+          plannedUnits,
+          staffId: data.employeeId,
+          comment: data.comments,
+        } as unknown as Record<string, unknown>);
+      }
       // Keep modal open to show success message; allow user to close manually
       await queryClient.invalidateQueries({ queryKey: ["patient-template-with-weeks", patientId] });
       await queryClient.refetchQueries({ queryKey: ["patient-template-with-weeks", patientId], exact: true });
     } catch (error) {
       // Error will be shown via mutation error state
-      console.error("Failed to create event:", error);
+      console.error(editingEvent ? "Failed to update event:" : "Failed to create event:", error);
     }
   };
 
@@ -564,8 +591,8 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
           onSave={handleSaveEvent}
           initialData={editingEvent}
           patientId={patientId}
-          mutationError={createTemplateEventMutation.error}
-          mutationIsSuccess={createTemplateEventMutation.isSuccess}
+          mutationError={editingEvent ? updateTemplateEventMutation.error : createTemplateEventMutation.error}
+          mutationIsSuccess={editingEvent ? updateTemplateEventMutation.isSuccess : createTemplateEventMutation.isSuccess}
         />
 
         <CreateScheduleForm

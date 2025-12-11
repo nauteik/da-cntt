@@ -30,6 +30,8 @@ public interface ScheduleService {
 
     List<TemplateEventDTO> createTemplateEvent(UUID patientId, InsertTemplateEventDTO dto);
 
+    TemplateEventDTO updateTemplateEvent(UUID patientId, UUID eventId, com.example.backend.model.dto.schedule.UpdateTemplateEventDTO dto);
+
     List<TemplateEventDTO> deleteTemplateEvent(UUID patientId, UUID eventId);
 
     List<ScheduleEventDTO> getScheduleEvents(UUID patientId, LocalDate from, LocalDate to, String status);

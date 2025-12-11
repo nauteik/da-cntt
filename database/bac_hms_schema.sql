@@ -520,13 +520,14 @@ CREATE TABLE schedule_template (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    generated_through date,
     name text NOT NULL DEFAULT 'Master Weekly',  -- Ví dụ: 'Master Weekly', 'Quarterly Template'
     description text,
     status text NOT NULL DEFAULT 'active',  -- 'active', 'archived'
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     created_by uuid REFERENCES app_user(id) ON DELETE SET NULL,
-    CONSTRAINT schedule_template_unique UNIQUE (patient_id, name)
+    CONSTRAINT schedule_template_unique UNIQUE (patient_id)
 );
 
 CREATE INDEX idx_schedule_template_patient ON schedule_template (patient_id);
@@ -578,7 +579,7 @@ CREATE TABLE schedule_event (
     planned_units integer NOT NULL CHECK (planned_units >= 0),
     actual_units integer CHECK (actual_units >= 0),
     comment text,
-    unit_summary NOT NULL jsonb DEFAULT '{}'::jsonb,  -- Lưu lý do cancelled, tổng units
+    unit_summary jsonb NOT NULL DEFAULT '{}'::jsonb,  -- Lưu lý do cancelled, tổng units
     source_template_id uuid REFERENCES schedule_template(id) ON DELETE SET NULL,
     generated_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -620,6 +621,13 @@ CREATE TABLE service_delivery (
     status text NOT NULL DEFAULT 'in_progress',
     approval_status text NOT NULL DEFAULT 'pending',
     total_hours double precision,
+    cancelled boolean NOT NULL DEFAULT false,
+    cancel_reason text,
+    cancelled_at timestamptz,
+    cancelled_by_staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
+    is_unscheduled boolean NOT NULL DEFAULT false,
+    actual_staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
+    unscheduled_reason text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK (end_at > start_at)
