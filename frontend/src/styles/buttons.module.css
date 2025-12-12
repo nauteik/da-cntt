@@ -2,13 +2,14 @@
 .btnSecondary {
   border-color: var(--btn-secondary) !important;
   color: var(--btn-secondary) !important;
+  background-color: var(--bg-primary) !important;
   font-weight: 550 !important;
 }
 
 .btnSecondary:hover {
   border-color: var(--btn-secondary-hover);
   color: var(--btn-secondary-hover);
-  background-color: rgba(32, 98, 172, 0.05);
+  background-color: var(--bg-primary) !important;
 }
 
 .btnPrimary {
