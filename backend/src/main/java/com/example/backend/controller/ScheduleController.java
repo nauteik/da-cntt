@@ -137,7 +137,16 @@ public class ScheduleController {
         return ResponseEntity.ok(ApiResponse.success(events, "Template event created"));
     }
 
-    // Update endpoint removed per requirement
+    @PutMapping("/template/events/{eventId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<ApiResponse<TemplateEventDTO>> updateTemplateEvent(
+            @PathVariable UUID id,
+            @PathVariable UUID eventId,
+            @Valid @RequestBody com.example.backend.model.dto.schedule.UpdateTemplateEventDTO dto) {
+        log.info("Updating template event {} for patient {}", eventId, id);
+        TemplateEventDTO updatedEvent = scheduleService.updateTemplateEvent(id, eventId, dto);
+        return ResponseEntity.ok(ApiResponse.success(updatedEvent, "Template event updated successfully"));
+    }
 
     @DeleteMapping("/template/events/{eventId}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")

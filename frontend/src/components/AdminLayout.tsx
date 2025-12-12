@@ -9,6 +9,7 @@ import {
   Dropdown,
   Typography,
   Space,
+  Breadcrumb,
 } from "antd";
 import styles from "./AdminLayout.module.css";
 import {
@@ -26,6 +27,7 @@ import {
   BarChartOutlined,
   CheckCircleOutlined,
   EnvironmentOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
@@ -46,6 +48,14 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Memoize navigation handler to prevent recreation on every render
+  const handleNavigate = useCallback(
+    (path: string) => {
+      router.push(path);
+    },
+    [router]
+  );
+
   // Derive active menu item directly from pathname
   const activeMenuItem = useMemo(() => {
     if (pathname === "/") return "dashboard";
@@ -60,6 +70,80 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
     return "dashboard";
   }, [pathname]);
 
+  // Generate breadcrumb items based on pathname
+  const breadcrumbItems = useMemo(() => {
+    const items: { title: React.ReactNode }[] = [
+      {
+        title: (
+          <a onClick={() => handleNavigate("/")} className="flex items-center gap-1">
+            <span>Home</span>
+          </a>
+        ),
+      },
+    ];
+
+    const pathSegments = pathname.split("/").filter(Boolean);
+
+    if (pathSegments.length === 0) {
+      items.push({ title: <span>Dashboard</span> });
+      return items;
+    }
+
+    const breadcrumbMap: Record<string, { title: string; icon?: React.ReactNode }> = {
+      clients: { title: "Clients" },
+      employees: { title: "Employees", },
+      offices: { title: "Offices",  },
+      schedule: { title: "Scheduling"},
+      "visit-maintenance": { title: "Visit Maintenance"},
+      reports: { title: "Reports"},
+      authorizations: { title: "Authorizations"},
+      security: { title: "Security"},
+    };
+
+    let currentPath = "";
+    pathSegments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      const isLast = index === pathSegments.length - 1;
+      const config = breadcrumbMap[segment];
+
+      if (config) {
+        if (isLast) {
+          items.push({
+            title: (
+              <span className="flex items-center gap-1">
+                {config.icon}
+                <span>{config.title}</span>
+              </span>
+            ),
+          });
+        } else {
+          const path = currentPath;
+          items.push({
+            title: (
+              <a onClick={() => handleNavigate(path)} className="flex items-center gap-1">
+                {config.icon}
+                <span>{config.title}</span>
+              </a>
+            ),
+          });
+        }
+      } else {
+        // For dynamic segments (like IDs), capitalize first letter
+        const title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+        if (isLast) {
+          items.push({ title: <span>{title}</span> });
+        } else {
+          const path = currentPath;
+          items.push({
+            title: <a onClick={() => handleNavigate(path)}>{title}</a>,
+          });
+        }
+      }
+    });
+
+    return items;
+  }, [pathname, handleNavigate]);
+
   // Derive open keys based on active menu item and user-controlled state
   const openKeys = useMemo(() => {
     // When sidebar is collapsed, don't show any open submenus
@@ -73,14 +157,6 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
 
     return keys;
   }, [activeMenuItem, menuOpenKeys, collapsed]); // Add collapsed dependency
-
-  // Memoize navigation handler to prevent recreation on every render
-  const handleNavigate = useCallback(
-    (path: string) => {
-      router.push(path);
-    },
-    [router]
-  );
 
   // Memoize menu items to prevent recreation
   const menuItems = useMemo(
@@ -264,9 +340,7 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
               onClick={() => setCollapsed(!collapsed)}
               className={styles.menuToggle}
             />
-            <Title level={4} className={styles.headerTitle}>
-              Dashboard
-            </Title>
+            <Breadcrumb items={breadcrumbItems} className={styles.breadcrumb} />
           </div>
 
           <Space size="middle">
