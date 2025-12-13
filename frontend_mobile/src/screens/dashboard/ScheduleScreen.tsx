@@ -204,7 +204,7 @@ export default function ScheduleScreen() {
             ? { 
                 ...event, 
                 serviceDeliveryId: serviceDelivery.id,
-                serviceDeliveryStatus: 'PENDING' // Initial status
+                serviceDeliveryStatus: 'NOT_STARTED' // Initial TaskStatus from backend
               } 
             : event
         )
@@ -221,7 +221,7 @@ export default function ScheduleScreen() {
               const updatedEvent = {
                 ...scheduleEvent,
                 serviceDeliveryId: serviceDelivery.id,
-                serviceDeliveryStatus: 'PENDING'
+                serviceDeliveryStatus: 'NOT_STARTED'
               };
               handleCheckIn(updatedEvent, serviceDelivery.id);
             },
@@ -344,12 +344,19 @@ export default function ScheduleScreen() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
+    // Handle both TaskStatus enum and legacy status values
+    const normalizedStatus = status?.toUpperCase();
+    switch (normalizedStatus) {
+      case 'COMPLETED':
         return '#4CAF50';
-      case 'in-progress':
+      case 'IN_PROGRESS':
+      case 'IN-PROGRESS':
         return '#FF9800';
-      case 'cancelled':
+      case 'INCOMPLETE':
+        return '#FB8C00'; // Orange for incomplete
+      case 'NOT_STARTED':
+        return '#2196F3'; // Blue for not started
+      case 'CANCELLED':
         return '#9E9E9E';
       default:
         return '#2196F3';
@@ -357,12 +364,19 @@ export default function ScheduleScreen() {
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
+    // Handle both TaskStatus enum and legacy status values
+    const normalizedStatus = status?.toUpperCase();
+    switch (normalizedStatus) {
+      case 'COMPLETED':
         return 'checkmark-circle';
-      case 'in-progress':
+      case 'IN_PROGRESS':
+      case 'IN-PROGRESS':
         return 'play-circle';
-      case 'cancelled':
+      case 'INCOMPLETE':
+        return 'alert-circle';
+      case 'NOT_STARTED':
+        return 'time';
+      case 'CANCELLED':
         return 'close-circle';
       default:
         return 'time';
@@ -370,15 +384,22 @@ export default function ScheduleScreen() {
   };
 
   const formatStatus = (status: string) => {
-    switch (status) {
-      case 'completed':
+    // Handle both TaskStatus enum and legacy status values
+    const normalizedStatus = status?.toUpperCase();
+    switch (normalizedStatus) {
+      case 'COMPLETED':
         return 'Completed';
-      case 'in-progress':
+      case 'IN_PROGRESS':
+      case 'IN-PROGRESS':
         return 'In Progress';
-      case 'cancelled':
+      case 'INCOMPLETE':
+        return 'Incomplete';
+      case 'NOT_STARTED':
+        return 'Not Started';
+      case 'CANCELLED':
         return 'Cancelled';
       default:
-        return 'Upcoming';
+        return 'Not Started';
     }
   };
 
@@ -513,11 +534,16 @@ export default function ScheduleScreen() {
             });
           }
           
-          // Consider completed if: status is 'completed' OR serviceDeliveryStatus is 'completed' OR all steps are done
+          // Consider completed if: status is 'completed' OR serviceDeliveryStatus is 'COMPLETED' OR all steps are done
           const allCompleted = event.status === 'completed' || 
-                               event.serviceDeliveryStatus?.toLowerCase() === 'completed' ||
+                               event.serviceDeliveryStatus?.toUpperCase() === 'COMPLETED' ||
                                allStepsCompleted;
           const isCancelled = event.status === 'cancelled';
+          
+          // Use serviceDeliveryStatus (TaskStatus) if available, otherwise use schedule status
+          const displayStatus = event.serviceDeliveryId && event.serviceDeliveryStatus 
+            ? event.serviceDeliveryStatus 
+            : event.status;
 
           return (
             <View key={event.id} style={[styles.patientCard, isCancelled && styles.cancelledCard]}>
@@ -541,13 +567,13 @@ export default function ScheduleScreen() {
                     <Text style={styles.cancelledBadgeText}>Cancelled</Text>
                   </View>
                 ) : (
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status) }]}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(displayStatus) }]}>
                     <Ionicons
-                      name={getStatusIcon(event.status) as any}
+                      name={getStatusIcon(displayStatus) as any}
                       size={12}
                       color="white"
                     />
-                    <Text style={styles.statusText}>{formatStatus(event.status)}</Text>
+                    <Text style={styles.statusText}>{formatStatus(displayStatus)}</Text>
                   </View>
                 )}
               </View>

@@ -5,9 +5,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.example.backend.model.enums.TaskStatus;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -48,8 +52,16 @@ public class ServiceDelivery extends BaseEntity {
     @Column(name = "units", nullable = false)
     private Integer units;
 
+    /**
+     * Task status of the service delivery:
+     * - NOT_STARTED: Shift scheduled but check-in not yet done
+     * - IN_PROGRESS: Check-in done, check-out not yet done (shift ongoing)
+     * - COMPLETED: Both check-in and check-out done (shift finished)
+     * - INCOMPLETE: Check-in done but check-out missed (time has passed)
+     */
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status = "in_progress"; // in_progress, completed, cancelled
+    private TaskStatus taskStatus = TaskStatus.NOT_STARTED;
 
     @Column(name = "approval_status", nullable = false)
     private String approvalStatus = "pending"; // pending, approved, rejected
@@ -69,6 +81,20 @@ public class ServiceDelivery extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cancelled_by_staff_id")
     private Staff cancelledByStaff;
+
+    // === Location Tracking ===
+    /**
+     * Total distance traveled during service delivery (in meters)
+     * Calculated from GPS tracking points
+     */
+    @Column(name = "total_distance_meters", precision = 10, scale = 2)
+    private java.math.BigDecimal totalDistanceMeters;
+
+    /**
+     * Whether location tracking is enabled for this service delivery
+     */
+    @Column(name = "tracking_enabled", nullable = false)
+    private Boolean trackingEnabled = true;
 
     // === Unscheduled Visit Support ===
     /**
@@ -128,12 +154,20 @@ public class ServiceDelivery extends BaseEntity {
     }
 
     // Helper methods
+    public boolean isNotStarted() {
+        return taskStatus == TaskStatus.NOT_STARTED;
+    }
+
     public boolean isInProgress() {
-        return "in_progress".equals(status);
+        return taskStatus == TaskStatus.IN_PROGRESS;
     }
 
     public boolean isCompleted() {
-        return "completed".equals(status);
+        return taskStatus == TaskStatus.COMPLETED;
+    }
+
+    public boolean isIncomplete() {
+        return taskStatus == TaskStatus.INCOMPLETE;
     }
 
     public boolean isApproved() {
@@ -297,7 +331,61 @@ public class ServiceDelivery extends BaseEntity {
         this.cancelReason = reason;
         this.cancelledAt = LocalDateTime.now();
         this.cancelledByStaff = cancelledBy;
-        this.status = "cancelled";
+        // Note: cancelled is tracked by 'cancelled' field, not taskStatus
+    }
+
+    /**
+     * Update task status based on check-in/check-out events
+     * Call this method after adding check events to automatically update status
+     */
+    public void updateTaskStatus() {
+        if (Boolean.TRUE.equals(this.cancelled)) {
+            // Cancelled shifts keep their current taskStatus
+            return;
+        }
+
+        boolean hasCheckIn = getCheckInEvent() != null;
+        boolean hasCheckOut = getCheckOutEvent() != null;
+
+        if (!hasCheckIn) {
+            this.taskStatus = TaskStatus.NOT_STARTED;
+        } else if (hasCheckOut) {
+            this.taskStatus = TaskStatus.COMPLETED;
+        } else {
+            // Has check-in but no check-out
+            // Check if scheduled end time has passed
+            if (LocalDateTime.now().isAfter(this.endAt)) {
+                this.taskStatus = TaskStatus.INCOMPLETE;
+            } else {
+                this.taskStatus = TaskStatus.IN_PROGRESS;
+            }
+        }
+    }
+
+    /**
+     * Calculate and return the current task status dynamically
+     * This is useful for display purposes without modifying the stored status
+     */
+    public TaskStatus calculateCurrentTaskStatus() {
+        if (Boolean.TRUE.equals(this.cancelled)) {
+            return this.taskStatus; // Return stored status for cancelled
+        }
+
+        boolean hasCheckIn = getCheckInEvent() != null;
+        boolean hasCheckOut = getCheckOutEvent() != null;
+
+        if (!hasCheckIn) {
+            return TaskStatus.NOT_STARTED;
+        } else if (hasCheckOut) {
+            return TaskStatus.COMPLETED;
+        } else {
+            // Has check-in but no check-out
+            if (LocalDateTime.now().isAfter(this.endAt)) {
+                return TaskStatus.INCOMPLETE;
+            } else {
+                return TaskStatus.IN_PROGRESS;
+            }
+        }
     }
 
     /**

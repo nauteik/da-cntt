@@ -97,6 +97,10 @@ public class ServiceDeliveryCheckInCheckOutService {
 
         // Add check-in event to service delivery
         serviceDelivery.addCheckInEvent(checkInEvent);
+        
+        // Update task status to IN_PROGRESS after check-in
+        serviceDelivery.updateTaskStatus();
+        
         serviceDeliveryRepository.save(serviceDelivery);
 
         return mapToResponse(serviceDelivery, patient, patientAddress);
@@ -163,6 +167,9 @@ public class ServiceDeliveryCheckInCheckOutService {
 
         // Add check-out event to service delivery (automatically calculates total hours)
         serviceDelivery.addCheckOutEvent(checkOutEvent);
+        
+        // Update task status to COMPLETED after check-out
+        serviceDelivery.updateTaskStatus();
         
         // Tự động cập nhật units dựa trên thời gian thực tế check-in/check-out
         // 1 unit = 15 phút, tính từ totalHours

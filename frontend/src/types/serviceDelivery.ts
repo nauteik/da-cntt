@@ -2,6 +2,20 @@
  * Service Delivery Types
  */
 
+/**
+ * Task Status for tracking shift progress based on check-in/check-out events
+ * - NOT_STARTED: Shift scheduled but check-in not yet done
+ * - IN_PROGRESS: Check-in done, check-out not yet done (shift ongoing)
+ * - COMPLETED: Both check-in and check-out done (shift finished)
+ * - INCOMPLETE: Check-in done but check-out missed (time has passed)
+ */
+export enum TaskStatus {
+  NOT_STARTED = 'NOT_STARTED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  INCOMPLETE = 'INCOMPLETE',
+}
+
 export type ServiceDeliveryStatus = "in_progress" | "completed" | "cancelled";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 
@@ -22,7 +36,8 @@ export interface ServiceDeliveryDTO {
   startAt: string;
   endAt: string;
   units?: number;
-  status: ServiceDeliveryStatus;
+  taskStatus: TaskStatus; // New enum-based status
+  status: ServiceDeliveryStatus; // Legacy string status for backward compatibility
   approvalStatus: ApprovalStatus;
   totalHours?: number;
 

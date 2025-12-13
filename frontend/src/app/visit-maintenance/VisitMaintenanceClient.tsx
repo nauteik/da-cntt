@@ -369,6 +369,14 @@ export default function VisitMaintenanceClient() {
       render: (units: number) => units || 0,
     },
     {
+      title: 'Distance',
+      dataIndex: 'totalDistanceFormatted',
+      key: 'totalDistanceFormatted',
+      width: 100,
+      align: 'center',
+      render: (distance: string | null) => distance || '---',
+    },
+    {
       title: 'Actions',
       key: 'actions',
       width: 80,
@@ -489,7 +497,7 @@ export default function VisitMaintenanceClient() {
             )
           }}
           scroll={{
-            x: 2400,
+            x: 2500,
             y: "calc(100vh - 280px)",
           }}
           pagination={{

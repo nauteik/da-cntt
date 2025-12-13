@@ -4,6 +4,7 @@ import React from "react";
 import { LeftOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import type { VisitMaintenanceDTO } from "@/types/visitMaintenance";
+import { VisitStatus } from "@/types/visitMaintenance";
 import { Tag } from "antd";
 
 interface VisitHeaderProps {
@@ -17,14 +18,15 @@ export default function VisitHeader({ visit }: VisitHeaderProps) {
     router.push("/visit-maintenance");
   };
 
-  // Get status color
-  const getStatusColor = (status: string) => {
-    const statusMap: Record<string, string> = {
-      Scheduled: "blue",
-      "In Progress": "orange",
-      Completed: "green",
-      Cancelled: "red",
-      "No Show": "default",
+  // Get status color based on VisitStatus enum
+  const getStatusColor = (status: VisitStatus) => {
+    const statusMap: Record<VisitStatus, string> = {
+      [VisitStatus.NOT_STARTED]: "default",
+      [VisitStatus.IN_PROGRESS]: "processing",
+      [VisitStatus.COMPLETED]: "success",
+      [VisitStatus.INCOMPLETE]: "warning",
+      [VisitStatus.VERIFIED]: "cyan",
+      [VisitStatus.CANCELLED]: "error",
     };
     return statusMap[status] || "default";
   };
@@ -45,7 +47,7 @@ export default function VisitHeader({ visit }: VisitHeaderProps) {
             Visit #{visit.serviceDeliveryId}
           </h1>
           <Tag color={getStatusColor(visit.visitStatus)}>
-            {visit.visitStatus}
+            {visit.visitStatusDisplay}
           </Tag>
         </div>
       </div>
@@ -82,7 +84,7 @@ export default function VisitHeader({ visit }: VisitHeaderProps) {
         <span className="inline-flex items-center gap-1">
           <span className="text-theme-secondary font-medium">Schedule In:</span>{" "}
           <span className="text-theme-primary font-semibold">
-            {visit.scheduleIn || "—"}
+            {visit.scheduledTimeIn || "—"}
           </span>
         </span>
 
@@ -91,7 +93,7 @@ export default function VisitHeader({ visit }: VisitHeaderProps) {
         <span className="inline-flex items-center gap-1">
           <span className="text-theme-secondary font-medium">Schedule Out:</span>{" "}
           <span className="text-theme-primary font-semibold">
-            {visit.scheduleOut || "—"}
+            {visit.scheduledTimeOut || "—"}
           </span>
         </span>
       </div>

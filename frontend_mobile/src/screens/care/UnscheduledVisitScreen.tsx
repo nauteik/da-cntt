@@ -444,19 +444,10 @@ export default function UnscheduledVisitScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Unscheduled Visits</Text>
-          <View style={styles.headerButtons}>
-            <TouchableOpacity 
-              style={styles.createUnscheduledButton} 
-              onPress={() => setShowPatientSearchModal(true)}
-            >
-              <Ionicons name="add-circle" size={16} color="white" />
-              <Text style={styles.createUnscheduledButtonText}>Create</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.todayButton} onPress={goToToday}>
-              <Ionicons name="calendar" size={16} color="white" />
-              <Text style={styles.todayButtonText}>Today</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.todayButton} onPress={goToToday}>
+            <Ionicons name="calendar" size={16} color="white" />
+            <Text style={styles.todayButtonText}>Today</Text>
+          </TouchableOpacity>
         </View>
         <Text style={styles.headerDate}>
           {selectedDate.toLocaleDateString('en-US', { 
@@ -523,7 +514,7 @@ export default function UnscheduledVisitScreen() {
       <View style={styles.infoBanner}>
         <Ionicons name="information-circle" size={20} color="#4CAF50" />
         <Text style={styles.infoText}>
-          Replacement visits: These are schedules where you're replacing another staff member. Tap "Create" button above or the + button to create a new unscheduled visit.
+          Replacement visits: These are schedules where you're replacing another staff member. Tap the + button at the bottom right to create a new unscheduled visit.
         </Text>
       </View>
 

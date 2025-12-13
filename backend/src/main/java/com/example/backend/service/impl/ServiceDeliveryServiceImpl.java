@@ -25,6 +25,7 @@ import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.ScheduleEvent;
 import com.example.backend.model.entity.ServiceDelivery;
 import com.example.backend.model.entity.Staff;
+import com.example.backend.model.enums.TaskStatus;
 import com.example.backend.model.enums.VisitStatus;
 import com.example.backend.repository.AuthorizationRepository;
 import com.example.backend.repository.OfficeRepository;
@@ -106,7 +107,8 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         serviceDelivery.setStartAt(startAt);
         serviceDelivery.setEndAt(endAt);
         serviceDelivery.setUnits(units);
-        serviceDelivery.setStatus(dto.getStatus() != null ? dto.getStatus() : "in_progress");
+        // TaskStatus will be NOT_STARTED by default (set in entity)
+        // It will be updated automatically when check-in/check-out events are added
         serviceDelivery.setApprovalStatus(dto.getApprovalStatus() != null ? dto.getApprovalStatus() : "pending");
 
         // Handle unscheduled visit (staff replacement)
@@ -185,9 +187,8 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         serviceDelivery.setEndAt(dto.getEndAt());
         serviceDelivery.setUnits(dto.getUnits());
         
-        if (dto.getStatus() != null) {
-            serviceDelivery.setStatus(dto.getStatus());
-        }
+        // Note: TaskStatus is automatically managed based on check-in/check-out events
+        // Manual status updates should use updateTaskStatus() method
         
         if (dto.getApprovalStatus() != null) {
             serviceDelivery.setApprovalStatus(dto.getApprovalStatus());
@@ -270,21 +271,21 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ServiceDeliveryResponseDTO> getByStatus(String status) {
-        return serviceDeliveryRepository.findByStatusOrderByStartAtDesc(status).stream()
+    public List<ServiceDeliveryResponseDTO> getByTaskStatus(TaskStatus taskStatus) {
+        return serviceDeliveryRepository.findByTaskStatusOrderByStartAtDesc(taskStatus).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public ServiceDeliveryResponseDTO updateStatus(UUID id, String status) {
-        log.info("Updating service delivery status: {} to {}", id, status);
+    public ServiceDeliveryResponseDTO updateTaskStatus(UUID id, TaskStatus taskStatus) {
+        log.info("Updating service delivery task status: {} to {}", id, taskStatus);
         
         ServiceDelivery serviceDelivery = serviceDeliveryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service delivery not found"));
         
-        serviceDelivery.setStatus(status);
+        serviceDelivery.setTaskStatus(taskStatus);
         ServiceDelivery saved = serviceDeliveryRepository.save(serviceDelivery);
         
         return toDto(saved);
@@ -377,7 +378,10 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         dto.setStartAt(serviceDelivery.getStartAt());
         dto.setEndAt(serviceDelivery.getEndAt());
         dto.setUnits(serviceDelivery.getUnits());
-        dto.setStatus(serviceDelivery.getStatus());
+        // Use calculated task status for accurate display
+        TaskStatus currentStatus = serviceDelivery.calculateCurrentTaskStatus();
+        dto.setTaskStatus(currentStatus);
+        dto.setStatus(currentStatus.name()); // For backward compatibility
         dto.setApprovalStatus(serviceDelivery.getApprovalStatus());
         dto.setTotalHours(serviceDelivery.getTotalHours());
         
@@ -558,6 +562,7 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
     }
 
     /**
+    /**
      * Map ServiceDelivery entity to VisitMaintenanceDTO with calculated fields
      */
     private VisitMaintenanceDTO mapToVisitMaintenanceDTO(ServiceDelivery delivery) {
@@ -677,6 +682,9 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
                         : null)
                 .checkInEvent(checkInEventDTO)
                 .checkOutEvent(checkOutEventDTO)
+                .totalDistanceMeters(delivery.getTotalDistanceMeters())
+                .totalDistanceFormatted(formatDistance(delivery.getTotalDistanceMeters()))
+                .trackingPointsCount(null) // Will be populated on-demand if needed
                 .dailyNoteId(delivery.getDailyNotes().stream()
                         .findFirst()
                         .map(DailyNote::getId)
@@ -688,6 +696,20 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
                 .createdAt(delivery.getCreatedAt())
                 .updatedAt(delivery.getUpdatedAt())
                 .build();
+    }
+    
+    /**
+     * Format distance for display
+     */
+    private String formatDistance(java.math.BigDecimal meters) {
+        if (meters == null) {
+            return null;
+        }
+        if (meters.compareTo(java.math.BigDecimal.valueOf(1000)) >= 0) {
+            java.math.BigDecimal km = meters.divide(java.math.BigDecimal.valueOf(1000), 2, java.math.RoundingMode.HALF_UP);
+            return km + " km";
+        }
+        return meters.setScale(0, java.math.RoundingMode.HALF_UP) + " m";
     }
 
     @Override

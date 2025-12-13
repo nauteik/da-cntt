@@ -14,6 +14,7 @@ import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.ScheduleEvent;
 import com.example.backend.model.entity.ServiceDelivery;
 import com.example.backend.model.entity.Staff;
+import com.example.backend.model.enums.TaskStatus;
 
 /**
  * Repository for ServiceDelivery entity
@@ -46,9 +47,9 @@ public interface ServiceDeliveryRepository extends JpaRepository<ServiceDelivery
     List<ServiceDelivery> findByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
     /**
-     * Find service deliveries by status
+     * Find service deliveries by task status
      */
-    List<ServiceDelivery> findByStatusOrderByStartAtDesc(String status);
+    List<ServiceDelivery> findByTaskStatusOrderByStartAtDesc(TaskStatus taskStatus);
     
     /**
      * Find service deliveries by approval status

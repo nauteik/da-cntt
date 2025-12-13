@@ -14,6 +14,8 @@ import UnscheduledVisitService from '../../services/api/unscheduledVisitService'
 import checkInCheckOutService, { CheckInCheckOutResponse } from '../../services/api/checkInCheckOutService';
 import CheckInCheckOutValidation from '../../components/care/CheckInCheckOutValidation';
 import { CustomAlert, AlertButton } from '../../components/common/CustomAlert';
+// TODO: GPS tracking temporarily disabled - uncomment when feature is working
+// import locationTrackingService from '../../services/api/locationTrackingService';
 
 interface LocationData {
   latitude: number;
@@ -165,7 +167,7 @@ export default function CheckInScreen() {
       // TODO: In production, fetch actual patient GPS coordinates from backend
       // For now, using mock coordinates - you should fetch from serviceDeliveryId
       // Example: GET /api/service-delivery/{id} to get patient address coordinates
-      const mockPatientLat = 37.431998;  // New York coordinates
+      const mockPatientLat = 37.422222;  // New York coordinates
       const mockPatientLon = -122.084001;  // New York coordinates
       
       if (mockPatientLat && mockPatientLon) {
@@ -249,6 +251,16 @@ export default function CheckInScreen() {
       
       // Store check-in result for display
       setCheckInResult(checkInResponse);
+      
+      // TODO: GPS tracking temporarily disabled - uncomment when feature is working
+      // Start location tracking after successful check-in
+      // try {
+      //   await locationTrackingService.startTracking(serviceDeliveryId);
+      //   console.log('[CheckInScreen] Location tracking started for service delivery:', serviceDeliveryId);
+      // } catch (trackingError) {
+      //   console.error('[CheckInScreen] Failed to start location tracking:', trackingError);
+      //   // Don't fail check-in if tracking fails, just log the error
+      // }
       
       // Update visit status if this is an unscheduled visit
       if (visitId) {

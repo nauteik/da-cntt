@@ -3,6 +3,8 @@ package com.example.backend.dto;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.example.backend.model.enums.TaskStatus;
+
 import lombok.Data;
 
 /**
@@ -27,7 +29,16 @@ public class ServiceDeliveryResponseDTO {
     private LocalDateTime startAt;
     private LocalDateTime endAt;
     private Integer units;
-    private String status;
+    
+    /**
+     * Task status based on check-in/check-out:
+     * - NOT_STARTED: Shift scheduled but check-in not yet done
+     * - IN_PROGRESS: Check-in done, check-out not yet done (shift ongoing)
+     * - COMPLETED: Both check-in and check-out done (shift finished)
+     * - INCOMPLETE: Check-in done but check-out missed (time has passed)
+     */
+    private TaskStatus taskStatus;
+    private String status; // For backward compatibility (string representation)
     private String approvalStatus;
     private Double totalHours;
 

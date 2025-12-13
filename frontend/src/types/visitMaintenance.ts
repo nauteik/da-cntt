@@ -67,6 +67,11 @@ export interface VisitMaintenanceDTO {
   checkInEvent?: CheckEventDTO;
   checkOutEvent?: CheckEventDTO;
 
+  // GPS Journey Tracking
+  totalDistanceMeters?: number; // Total distance traveled during visit
+  totalDistanceFormatted?: string; // Formatted distance (e.g., "1.5 km" or "250 m")
+  trackingPointsCount?: number; // Number of GPS points recorded
+
   // Daily Note (Memo)
   dailyNoteId?: string;
   dailyNoteContent?: string;

@@ -1,7 +1,7 @@
 package com.example.backend.model.enums;
 
 public enum TaskStatus {
-    PENDING,
+    NOT_STARTED,
     IN_PROGRESS,
     INCOMPLETE,
     COMPLETED
