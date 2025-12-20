@@ -13,8 +13,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.backend.dto.ServiceDeliveryRequestDTO;
-import com.example.backend.dto.ServiceDeliveryResponseDTO;
+import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
+import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.ValidationException;
 import com.example.backend.model.dto.VisitMaintenanceDTO;

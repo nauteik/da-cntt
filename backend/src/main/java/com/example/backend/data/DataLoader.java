@@ -1,10 +1,11 @@
 package com.example.backend.data;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Main DataLoader that orchestrates all data loading operations
@@ -20,6 +21,7 @@ public class DataLoader implements CommandLineRunner {
     private final UserDataLoader userDataLoader;
     private final RolePermissionDataLoader rolePermissionDataLoader;
     private final PatientDataLoader patientDataLoader;
+    private final MedicationDataLoader medicationDataLoader;
 
     @Override
     public void run(String... args) throws Exception {
@@ -43,8 +45,12 @@ public class DataLoader implements CommandLineRunner {
             userDataLoader.loadData();
 
             // Load patient data
-            log.info("Step 5/5: Loading patient data...");
+            log.info("Step 5/6: Loading patient data...");
             patientDataLoader.loadData();
+
+            // Load medication data
+            log.info("Step 6/6: Loading medication data...");
+            medicationDataLoader.loadData();
 
             
             log.info("✅ Data initialization completed successfully");

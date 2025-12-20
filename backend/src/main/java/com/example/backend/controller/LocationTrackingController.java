@@ -1,6 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.*;
+import com.example.backend.model.dto.*;
 import com.example.backend.model.ApiResponse;
 import com.example.backend.service.LocationTrackingService;
 import lombok.RequiredArgsConstructor;

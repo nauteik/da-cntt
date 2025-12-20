@@ -6,8 +6,8 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 
-import com.example.backend.dto.ServiceDeliveryRequestDTO;
-import com.example.backend.dto.ServiceDeliveryResponseDTO;
+import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
+import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.model.dto.VisitMaintenanceDTO;
 import com.example.backend.model.enums.TaskStatus;
 import com.example.backend.model.enums.VisitStatus;

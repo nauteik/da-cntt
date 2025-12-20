@@ -1,6 +1,6 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.*;
+import com.example.backend.model.dto.*;
 import com.example.backend.model.entity.LocationTracking;
 import com.example.backend.model.entity.ServiceDelivery;
 import com.example.backend.repository.LocationTrackingRepository;

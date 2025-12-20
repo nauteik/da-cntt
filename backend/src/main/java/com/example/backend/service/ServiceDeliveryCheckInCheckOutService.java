@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.backend.dto.ServiceDeliveryCheckInCheckOutResponse;
-import com.example.backend.dto.ServiceDeliveryCheckInRequest;
-import com.example.backend.dto.ServiceDeliveryCheckOutRequest;
+import com.example.backend.model.dto.ServiceDeliveryCheckInCheckOutResponse;
+import com.example.backend.model.dto.ServiceDeliveryCheckInRequest;
+import com.example.backend.model.dto.ServiceDeliveryCheckOutRequest;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.ValidationException;
 import com.example.backend.model.entity.CheckEvent;

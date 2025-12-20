@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.backend.dto.OfficeCreateRequest;
-import com.example.backend.dto.OfficeDetailResponse;
-import com.example.backend.dto.OfficePatientDTO;
-import com.example.backend.dto.OfficeStaffDTO;
-import com.example.backend.dto.OfficeUpdateRequest;
+import com.example.backend.model.dto.OfficeCreateRequest;
+import com.example.backend.model.dto.OfficeDetailResponse;
+import com.example.backend.model.dto.OfficePatientDTO;
+import com.example.backend.model.dto.OfficeStaffDTO;
+import com.example.backend.model.dto.OfficeUpdateRequest;
 import com.example.backend.model.ApiResponse;
 import com.example.backend.model.dto.OfficeDTO;
 import com.example.backend.service.OfficeService;

@@ -20,8 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.backend.dto.ServiceDeliveryRequestDTO;
-import com.example.backend.dto.ServiceDeliveryResponseDTO;
+import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
+import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.model.ApiResponse;
 import com.example.backend.model.dto.VisitMaintenanceDTO;
 import com.example.backend.model.enums.TaskStatus;

@@ -3,11 +3,11 @@ package com.example.backend.service;
 import java.util.List;
 import java.util.UUID;
 
-import com.example.backend.dto.OfficeCreateRequest;
-import com.example.backend.dto.OfficeDetailResponse;
-import com.example.backend.dto.OfficePatientDTO;
-import com.example.backend.dto.OfficeStaffDTO;
-import com.example.backend.dto.OfficeUpdateRequest;
+import com.example.backend.model.dto.OfficeCreateRequest;
+import com.example.backend.model.dto.OfficeDetailResponse;
+import com.example.backend.model.dto.OfficePatientDTO;
+import com.example.backend.model.dto.OfficeStaffDTO;
+import com.example.backend.model.dto.OfficeUpdateRequest;
 import com.example.backend.model.dto.OfficeDTO;
 
 /**

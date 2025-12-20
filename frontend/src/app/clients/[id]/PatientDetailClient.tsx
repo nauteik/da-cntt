@@ -7,6 +7,7 @@ import { usePatientHeader, usePatientPersonal, usePatientProgram } from "@/hooks
 import PatientHeader from "@/components/patients/PatientHeader";
 import PatientPersonal from "@/components/patients/PatientPersonal";
 import PatientProgram from "@/components/patients/PatientProgram";
+import PatientMedication from "@/components/patients/PatientMedication";
 import PatientSchedule from "@/components/patients/PatientSchedule";
 import PatientNotesHistory from "@/components/patients/PatientNotesHistory";
 import TabLoading from "@/components/common/TabLoading";
@@ -102,6 +103,13 @@ export default function PatientDetailClient({
         </div>
       ) : (
         <PatientProgram patient={programData!} patientId={patientId} />
+      ),
+    },
+    {
+      key: "medication",
+      label: "Medication",
+      children: (
+        <PatientMedication patientId={patientId} patient={headerData} />
       ),
     },
     {
