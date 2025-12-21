@@ -1,4 +1,4 @@
-package com.example.backend.dto;
+package com.example.backend.model.dto;
 
 import java.util.UUID;
 
@@ -6,10 +6,10 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * Request DTO for checking in to a service delivery
+ * Request DTO for checking out from a service delivery
  */
 @Data
-public class ServiceDeliveryCheckInRequest {
+public class ServiceDeliveryCheckOutRequest {
 
     @NotNull(message = "Service delivery ID is required")
     private UUID serviceDeliveryId;

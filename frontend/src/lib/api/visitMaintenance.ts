@@ -29,3 +29,10 @@ export async function getVisits(params?: VisitMaintenanceQueryParams): Promise<A
   
   return apiClient<VisitMaintenanceResponse>(url);
 }
+
+/**
+ * Get a single visit by ID
+ */
+export async function getVisitDetail(visitId: string): Promise<ApiResponse<import('@/types/visitMaintenance').VisitMaintenanceDTO>> {
+  return apiClient<import('@/types/visitMaintenance').VisitMaintenanceDTO>(`/service-delivery/visit-maintenance/${visitId}`);
+}

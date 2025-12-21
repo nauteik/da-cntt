@@ -11,7 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -271,6 +273,29 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        
+        logger.warn("JSON parse error at {}: {}", request.getRequestURI(), ex.getMessage());
+        
+        String message = "Invalid request format";
+        if (ex.getCause() instanceof InvalidFormatException ife) {
+            if (ife.getTargetType().equals(java.util.UUID.class)) {
+                message = "Invalid ID format. Please ensure IDs are valid UUIDs (e.g., 36-character representation)";
+            }
+        }
+
+        ApiResponse<Void> response = ApiResponse.error(
+            message,
+            HttpStatus.BAD_REQUEST.value(),
+            request.getRequestURI(),
+            ErrorType.VALIDATION_ERROR
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)

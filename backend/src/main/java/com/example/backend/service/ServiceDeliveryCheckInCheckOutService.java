@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.backend.dto.ServiceDeliveryCheckInCheckOutResponse;
-import com.example.backend.dto.ServiceDeliveryCheckInRequest;
-import com.example.backend.dto.ServiceDeliveryCheckOutRequest;
+import com.example.backend.model.dto.ServiceDeliveryCheckInCheckOutResponse;
+import com.example.backend.model.dto.ServiceDeliveryCheckInRequest;
+import com.example.backend.model.dto.ServiceDeliveryCheckOutRequest;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.ValidationException;
 import com.example.backend.model.entity.CheckEvent;
@@ -97,6 +97,10 @@ public class ServiceDeliveryCheckInCheckOutService {
 
         // Add check-in event to service delivery
         serviceDelivery.addCheckInEvent(checkInEvent);
+        
+        // Update task status to IN_PROGRESS after check-in
+        serviceDelivery.updateTaskStatus();
+        
         serviceDeliveryRepository.save(serviceDelivery);
 
         return mapToResponse(serviceDelivery, patient, patientAddress);
@@ -163,6 +167,9 @@ public class ServiceDeliveryCheckInCheckOutService {
 
         // Add check-out event to service delivery (automatically calculates total hours)
         serviceDelivery.addCheckOutEvent(checkOutEvent);
+        
+        // Update task status to COMPLETED after check-out
+        serviceDelivery.updateTaskStatus();
         
         // Tự động cập nhật units dựa trên thời gian thực tế check-in/check-out
         // 1 unit = 15 phút, tính từ totalHours

@@ -30,6 +30,57 @@ interface ScheduleEventResponse {
 
 export class ScheduleService {
   /**
+   * Format patient name from "Last Name, First Name" to "First Name Last Name"
+   */
+  private static formatPatientName(name: string): string {
+    if (!name) return '';
+    
+    // Check if name is in "Last Name, First Name" format
+    if (name.includes(',')) {
+      const parts = name.split(',').map(part => part.trim());
+      if (parts.length === 2) {
+        const [lastName, firstName] = parts;
+        return `${firstName} ${lastName}`;
+      }
+    }
+    
+    // If not in that format, return as is
+    return name;
+  }
+
+  /**
+   * Format time from ISO datetime string to HH:mm format
+   * Extracts time portion without timezone conversion
+   * @param isoDateTime - ISO datetime string (e.g., "2024-12-11T02:00:00")
+   * @returns Formatted time string (e.g., "02:00")
+   */
+  private static formatTime(isoDateTime: string): string {
+    if (!isoDateTime) return '';
+    
+    try {
+      // Extract time portion from ISO string (format: YYYY-MM-DDTHH:mm:ss)
+      // This avoids timezone conversion issues
+      const timePart = isoDateTime.split('T')[1];
+      if (timePart) {
+        // Get HH:mm from HH:mm:ss
+        const [hours, minutes] = timePart.split(':');
+        return `${hours}:${minutes}`;
+      }
+      
+      // Fallback: try parsing as Date if format is different
+      const date = new Date(isoDateTime);
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch (error) {
+      console.error('[ScheduleService] Error formatting time:', error);
+      return isoDateTime;
+    }
+  }
+
+  /**
    * Get schedule events for a staff member
    * @param staffId - Staff UUID
    * @param from - Start date (YYYY-MM-DD)
@@ -87,7 +138,7 @@ export class ScheduleService {
         patientId: event.patientId,
         patient: {
           id: event.patientId,
-          name: event.patientName,
+          name: this.formatPatientName(event.patientName), // Format from "Last, First" to "First Last"
           patientId: event.patientClientId || event.patientId,
           address: 'Address not available', // TODO: Fetch from patient details
           phone: 'Phone not available', // TODO: Fetch from patient details
@@ -101,16 +152,8 @@ export class ScheduleService {
         checkInTime: event.checkInTime, // Check-in timestamp from CheckEvent
         checkOutTime: event.checkOutTime, // Check-out timestamp from CheckEvent
         dailyNoteId: event.dailyNoteId, // Daily Note ID if completed
-        startTime: new Date(event.startAt).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
-        endTime: new Date(event.endAt).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
+        startTime: this.formatTime(event.startAt), // Format without timezone conversion
+        endTime: this.formatTime(event.endAt), // Format without timezone conversion
         date: event.eventDate, // Backend already provides formatted date
         status: this.mapStatusToScheduleStatus(event.status),
         notes: event.serviceCode || event.programIdentifier,
@@ -148,7 +191,7 @@ export class ScheduleService {
         patientId: event.patientId,
         patient: {
           id: event.patientId,
-          name: event.patientName,
+          name: this.formatPatientName(event.patientName), // Format from "Last, First" to "First Last"
           patientId: event.patientClientId || event.patientId,
           address: 'Address not available',
           phone: 'Phone not available',
@@ -161,16 +204,8 @@ export class ScheduleService {
         serviceDeliveryStatus: event.serviceDeliveryStatus, // Service Delivery status
         checkInTime: event.checkInTime, // Check-in timestamp from CheckEvent
         checkOutTime: event.checkOutTime, // Check-out timestamp from CheckEvent
-        startTime: new Date(event.startAt).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
-        endTime: new Date(event.endAt).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
+        startTime: this.formatTime(event.startAt), // Format without timezone conversion
+        endTime: this.formatTime(event.endAt), // Format without timezone conversion
         date: event.eventDate,
         status: this.mapStatusToScheduleStatus(event.status),
         notes: event.serviceCode || event.programIdentifier,
@@ -321,14 +356,14 @@ export class ScheduleService {
         patientId: event.patientId,
         patient: {
           id: event.patientId,
-          name: event.patientName,
+          name: this.formatPatientName(event.patientName), // Format from "Last, First" to "First Last"
           clientId: event.patientClientId,
         } as any,
         employeeId: event.employeeId,
         employeeName: event.employeeName,
         date: event.eventDate,
-        startTime: event.startAt,
-        endTime: event.endAt,
+        startTime: this.formatTime(event.startAt), // Format without timezone conversion
+        endTime: this.formatTime(event.endAt), // Format without timezone conversion
         status: event.status as Schedule['status'],
         location: 'Patient Home',
         serviceType: event.serviceCode || 'Unknown',

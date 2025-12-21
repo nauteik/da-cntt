@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Table,
   Button,
@@ -51,6 +52,7 @@ export enum VisitStatus {
 }
 
 export default function VisitMaintenanceClient() {
+  const router = useRouter();
   const [visits, setVisits] = useState<VisitMaintenanceDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -86,11 +88,23 @@ export default function VisitMaintenanceClient() {
         setVisits(response.data.content);
         setTotal(response.data.page.totalElements);
       } else {
-        message.error(response.message || 'Failed to load visit records');
+        setVisits([]);
+        setTotal(0);
+        message.error(response.message || 'Failed to load visit records. Please check your connection and try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load visits:', error);
-      message.error('Failed to load visit records');
+      setVisits([]);
+      setTotal(0);
+      
+      const errorMessage = error?.response?.data?.message 
+        || error?.message 
+        || 'Unable to connect to server. Please check your network connection and try again.';
+      
+      message.error({
+        content: errorMessage,
+        duration: 5,
+      });
     } finally {
       setLoading(false);
     }
@@ -133,24 +147,50 @@ export default function VisitMaintenanceClient() {
     return iconMap[status];
   };
 
-  const handleDoNotBillChange = (recordId: string, checked: boolean) => {
-    // TODO: Call API to update do not bill status
-    setVisits(visits.map(visit => 
-      visit.serviceDeliveryId === recordId 
-        ? { 
-            ...visit, 
-            doNotBill: checked,
-            visitStatus: checked ? VisitStatus.CANCELLED : visit.visitStatus 
-          }
-        : visit
-    ));
-    message.success(checked ? 'Visit marked as Do Not Bill' : 'Do Not Bill removed');
+  const getStatusDisplay = (status: VisitStatusType): string => {
+    const displayMap = {
+      [VisitStatus.NOT_STARTED]: 'Not Started',
+      [VisitStatus.IN_PROGRESS]: 'In Progress',
+      [VisitStatus.COMPLETED]: 'Completed',
+      [VisitStatus.INCOMPLETE]: 'Incomplete',
+      [VisitStatus.VERIFIED]: 'Verified',
+      [VisitStatus.CANCELLED]: 'Cancelled',
+    };
+    return displayMap[status] || status;
+  };
+
+  const handleDoNotBillChange = async (recordId: string, checked: boolean) => {
+    try {
+      // TODO: Implement API call to update do not bill status
+      // await updateVisitDoNotBill(recordId, checked);
+      
+      setVisits(visits.map(visit => 
+        visit.serviceDeliveryId === recordId 
+          ? { 
+              ...visit, 
+              doNotBill: checked,
+              visitStatus: checked ? VisitStatus.CANCELLED : visit.visitStatus 
+            }
+          : visit
+      ));
+      message.success(checked ? 'Visit marked as Do Not Bill' : 'Do Not Bill removed');
+    } catch (error: any) {
+      console.error('Failed to update do not bill status:', error);
+      message.error('Failed to update do not bill status. Please try again.');
+    }
   };
 
   const handleEdit = (record: VisitMaintenanceDTO) => {
-    // TODO: Navigate to edit page or open modal
-    console.log('Edit visit:', record);
-    message.info('Edit functionality coming soon');
+    router.push(`/visit-maintenance/${record.serviceDeliveryId}`);
+  };
+
+  const handleRowClick = (record: VisitMaintenanceDTO) => {
+    return {
+      onClick: () => {
+        router.push(`/visit-maintenance/${record.serviceDeliveryId}`);
+      },
+      style: { cursor: 'pointer' }
+    };
   };
 
   const columns: ColumnsType<VisitMaintenanceDTO> = [
@@ -329,6 +369,14 @@ export default function VisitMaintenanceClient() {
       render: (units: number) => units || 0,
     },
     {
+      title: 'Distance',
+      dataIndex: 'totalDistanceFormatted',
+      key: 'totalDistanceFormatted',
+      width: 100,
+      align: 'center',
+      render: (distance: string | null) => distance || '---',
+    },
+    {
       title: 'Actions',
       key: 'actions',
       width: 80,
@@ -432,8 +480,24 @@ export default function VisitMaintenanceClient() {
           dataSource={visits}
           rowKey="serviceDeliveryId"
           loading={loading}
+          onRow={handleRowClick}
+          locale={{
+            emptyText: (
+              <div style={{ padding: '40px 0' }}>
+                <ClockCircleOutlined style={{ fontSize: 48, color: '#ccc', marginBottom: 16 }} />
+                <div style={{ fontSize: 16, color: '#666', marginBottom: 8 }}>
+                  No visit records found
+                </div>
+                <div style={{ fontSize: 14, color: '#999' }}>
+                  {searchText || statusFilter !== 'all' || dateRange 
+                    ? 'Try adjusting your filters or search criteria'
+                    : 'Visit records will appear here once they are created'}
+                </div>
+              </div>
+            )
+          }}
           scroll={{
-            x: 2400,
+            x: 2500,
             y: "calc(100vh - 280px)",
           }}
           pagination={{

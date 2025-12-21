@@ -8,9 +8,32 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.blueangelscare.app",
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Blue Angels Care cần truy cập vị trí của bạn để theo dõi hành trình chăm sóc bệnh nhân, ngay cả khi app đang chạy ngầm.",
+        "NSLocationWhenInUseUsageDescription": "Blue Angels Care cần truy cập vị trí của bạn để ghi nhận check-in/check-out tại nhà bệnh nhân.",
+        "UIBackgroundModes": [
+          "location",
+          "location"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.blueangelscare.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#2196F3"
       },
@@ -22,6 +45,15 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Blue Angels Care cần truy cập vị trí của bạn để theo dõi hành trình chăm sóc bệnh nhân, ngay cả khi app đang chạy ngầm.",
+          "locationWhenInUsePermission": "Blue Angels Care cần truy cập vị trí của bạn để ghi nhận check-in/check-out tại nhà bệnh nhân.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -38,6 +70,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ec01d41e-4c23-4b52-bf24-e35d9d7c4c6b"
+      }
     }
   }
 }

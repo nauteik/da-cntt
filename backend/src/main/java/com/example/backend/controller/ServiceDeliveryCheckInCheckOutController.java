@@ -1,8 +1,8 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.ServiceDeliveryCheckInCheckOutResponse;
-import com.example.backend.dto.ServiceDeliveryCheckInRequest;
-import com.example.backend.dto.ServiceDeliveryCheckOutRequest;
+import com.example.backend.model.dto.ServiceDeliveryCheckInCheckOutResponse;
+import com.example.backend.model.dto.ServiceDeliveryCheckInRequest;
+import com.example.backend.model.dto.ServiceDeliveryCheckOutRequest;
 import com.example.backend.service.ServiceDeliveryCheckInCheckOutService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

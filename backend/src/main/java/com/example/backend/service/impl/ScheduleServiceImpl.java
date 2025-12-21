@@ -19,7 +19,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -765,7 +764,8 @@ public class ScheduleServiceImpl implements ScheduleService {
         serviceDeliveryRepository.findFirstByScheduleEvent_IdOrderByCreatedAtDesc(e.getId())
                 .ifPresent(sd -> {
                     dto.setServiceDeliveryId(sd.getId());
-                    dto.setServiceDeliveryStatus(sd.getStatus() != null ? sd.getStatus() : null);
+                    // Use taskStatus enum instead of old string status
+                    dto.setServiceDeliveryStatus(sd.getTaskStatus() != null ? sd.getTaskStatus().name() : null);
                     
                     // Check if Daily Note exists for this Service Delivery
                     dailyNoteRepository.findFirstByServiceDelivery_IdOrderByCreatedAtDesc(sd.getId())

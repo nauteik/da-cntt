@@ -83,6 +83,8 @@ export interface AddressDTO {
   phone: string;
   email?: string;
   isMain: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface PatientHeaderDTO {

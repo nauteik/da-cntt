@@ -1,6 +1,6 @@
 package com.example.backend.service.impl;
 
-import com.example.backend.dto.*;
+import com.example.backend.model.dto.*;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.ValidationException;
 import com.example.backend.model.dto.OfficeDTO;

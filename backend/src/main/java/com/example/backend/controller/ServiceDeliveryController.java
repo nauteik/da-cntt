@@ -20,10 +20,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.backend.dto.ServiceDeliveryRequestDTO;
-import com.example.backend.dto.ServiceDeliveryResponseDTO;
+import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
+import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.model.ApiResponse;
 import com.example.backend.model.dto.VisitMaintenanceDTO;
+import com.example.backend.model.enums.TaskStatus;
 import com.example.backend.model.enums.VisitStatus;
 import com.example.backend.service.ServiceDeliveryService;
 
@@ -162,30 +163,30 @@ public class ServiceDeliveryController {
     }
 
     /**
-     * Get service deliveries by status
-     * GET /api/service-delivery/status/{status}
+     * Get service deliveries by task status
+     * GET /api/service-delivery/task-status/{taskStatus}
      */
-    @GetMapping("/status/{status}")
+    @GetMapping("/task-status/{taskStatus}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<ApiResponse<List<ServiceDeliveryResponseDTO>>> getByStatus(
-            @PathVariable String status) {
-        log.info("Getting service deliveries with status: {}", status);
-        List<ServiceDeliveryResponseDTO> result = serviceDeliveryService.getByStatus(status);
+    public ResponseEntity<ApiResponse<List<ServiceDeliveryResponseDTO>>> getByTaskStatus(
+            @PathVariable TaskStatus taskStatus) {
+        log.info("Getting service deliveries with task status: {}", taskStatus);
+        List<ServiceDeliveryResponseDTO> result = serviceDeliveryService.getByTaskStatus(taskStatus);
         return ResponseEntity.ok(ApiResponse.success(result, "Service deliveries retrieved successfully"));
     }
 
     /**
-     * Update service delivery status
-     * PATCH /api/service-delivery/{id}/status
+     * Update service delivery task status
+     * PATCH /api/service-delivery/{id}/task-status
      */
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}/task-status")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<ApiResponse<ServiceDeliveryResponseDTO>> updateStatus(
+    public ResponseEntity<ApiResponse<ServiceDeliveryResponseDTO>> updateTaskStatus(
             @PathVariable UUID id,
-            @RequestParam String status) {
-        log.info("Updating service delivery status: {} to {}", id, status);
-        ServiceDeliveryResponseDTO updated = serviceDeliveryService.updateStatus(id, status);
-        return ResponseEntity.ok(ApiResponse.success(updated, "Status updated successfully"));
+            @RequestParam TaskStatus taskStatus) {
+        log.info("Updating service delivery task status: {} to {}", id, taskStatus);
+        ServiceDeliveryResponseDTO updated = serviceDeliveryService.updateTaskStatus(id, taskStatus);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Task status updated successfully"));
     }
 
     /**
@@ -214,6 +215,18 @@ public class ServiceDeliveryController {
         log.info("Cancelling service delivery: {} with reason: {}", id, reason);
         ServiceDeliveryResponseDTO cancelled = serviceDeliveryService.cancel(id, reason);
         return ResponseEntity.ok(ApiResponse.success(cancelled, "Service delivery cancelled successfully"));
+    }
+
+    /**
+     * Get single visit maintenance detail by ID
+     * GET /api/service-delivery/visit-maintenance/{id}
+     */
+    @GetMapping("/visit-maintenance/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    public ResponseEntity<ApiResponse<VisitMaintenanceDTO>> getVisitMaintenanceById(@PathVariable UUID id) {
+        log.info("Getting visit maintenance detail: {}", id);
+        VisitMaintenanceDTO visit = serviceDeliveryService.getVisitMaintenanceById(id);
+        return ResponseEntity.ok(ApiResponse.success(visit, "Visit detail retrieved successfully"));
     }
 
     /**

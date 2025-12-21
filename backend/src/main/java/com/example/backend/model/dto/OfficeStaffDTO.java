@@ -1,4 +1,4 @@
-package com.example.backend.dto;
+package com.example.backend.model.dto;
 
 import java.time.LocalDate;
 import java.util.UUID;

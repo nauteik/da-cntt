@@ -139,11 +139,8 @@ export default function PatientSearchModal({
       
       setSchedules(sortedSchedules);
       
-      if (sortedSchedules.length === 0) {
-        setError('No upcoming schedules found for this patient');
-      } else {
-        setStep('selectSchedule');
-      }
+      // Always move to selectSchedule step, the UI will handle empty state
+      setStep('selectSchedule');
     } catch (err) {
       setError('Failed to load patient schedules. Please try again.');
       console.error('Schedule load error:', err);
@@ -479,10 +476,27 @@ export default function PatientSearchModal({
                     <ActivityIndicator size="large" color="#2196F3" />
                     <Text style={styles.loadingText}>Loading schedules...</Text>
                   </View>
-                ) : error ? (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="calendar-outline" size={48} color="#ccc" />
-                    <Text style={styles.errorText}>{error}</Text>
+                ) : schedules.length === 0 ? (
+                  <View style={styles.noScheduleContainer}>
+                    <Ionicons name="calendar-outline" size={80} color="#FF9800" />
+                    <Text style={styles.noScheduleTitle}>No Upcoming Schedules</Text>
+                    <Text style={styles.noScheduleMessage}>
+                      Patient <Text style={styles.patientNameHighlight}>{selectedPatient?.firstName} {selectedPatient?.lastName}</Text> does not have any scheduled care visits in the next 7 days.
+                    </Text>
+                    <View style={styles.noScheduleInfoBox}>
+                      <Ionicons name="information-circle" size={20} color="#2196F3" />
+                      <Text style={styles.noScheduleInfoText}>
+                        To create an unscheduled visit, the patient needs to have an existing schedule that you will be replacing.
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.backToSearchButton}
+                      onPress={handleBack}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="arrow-back" size={20} color="#2196F3" />
+                      <Text style={styles.backToSearchButtonText}>Search Another Patient</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <>
@@ -499,12 +513,6 @@ export default function PatientSearchModal({
                       renderItem={renderScheduleItem}
                       keyExtractor={(item) => item.id}
                       contentContainerStyle={styles.listContent}
-                      ListEmptyComponent={
-                        <View style={styles.emptyState}>
-                          <Ionicons name="calendar-outline" size={48} color="#ccc" />
-                          <Text style={styles.emptyText}>No schedules found</Text>
-                        </View>
-                      }
                     />
                   </>
                 )}
@@ -826,6 +834,63 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     paddingHorizontal: 32,
+  },
+  // No Schedule State
+  noScheduleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  noScheduleTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 20,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  noScheduleMessage: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  patientNameHighlight: {
+    fontWeight: '700',
+    color: '#2196F3',
+  },
+  noScheduleInfoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#E3F2FD',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  noScheduleInfoText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#1565C0',
+    lineHeight: 20,
+  },
+  backToSearchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    gap: 8,
+  },
+  backToSearchButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2196F3',
   },
   // Reason Step
   reasonContainer: {

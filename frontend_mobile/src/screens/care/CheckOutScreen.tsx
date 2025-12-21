@@ -115,8 +115,8 @@ export default function CheckOutScreen() {
 
       // Calculate distance to patient address
       // TODO: Fetch actual patient coordinates from backend
-      const mockPatientLat = 10.802485074288798;
-      const mockPatientLon = 106.70588177651746;
+      const mockPatientLat = 37.422073;  
+      const mockPatientLon = -122.083920;  
       
       if (mockPatientLat && mockPatientLon) {
         const distance = calculateDistance(
@@ -195,6 +195,16 @@ export default function CheckOutScreen() {
       // Store check-out result for display
       setCheckOutResult(checkOutResponse);
       
+      // TODO: GPS tracking temporarily disabled - uncomment when feature is working
+      // Stop location tracking after successful check-out
+      // try {
+      //   await locationTrackingService.stopTracking();
+      //   console.log('[CheckOutScreen] Location tracking stopped and final data uploaded');
+      // } catch (trackingError) {
+      //   console.error('[CheckOutScreen] Failed to stop location tracking:', trackingError);
+      //   // Don't fail check-out if tracking stop fails, just log the error
+      // }
+      
       // Update visit status if this is an unscheduled visit
       if (visitId) {
         // Get current visit to check if daily note is completed
@@ -221,7 +231,7 @@ export default function CheckOutScreen() {
       
       setAlertConfig({
         title: 'Check-Out Successful',
-        message: `You have successfully checked out.\n\nPatient: ${mockPatientName}\nTotal Hours: ${totalHours.toFixed(1)}h\nLocation: ${currentLocation.address}\n\n${validationMessage}`,
+        message: `You have successfully checked out for ${mockPatientName}.\n\nLocation: ${currentLocation.address}\nTime: ${new Date(currentLocation.timestamp).toLocaleTimeString()}\n\n${validationMessage}`,
         icon: 'checkmark-circle',
         iconColor: '#4CAF50',
         buttons: [

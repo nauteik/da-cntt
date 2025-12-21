@@ -53,7 +53,11 @@ public class PatientDataLoader {
 
     public void loadData() {
         log.info("Loading patient data...");
-        if (patientRepository.count() == 0 && officeRepository.count() > 0) {
+        long patientCount = patientRepository.count();
+        long officeCount = officeRepository.count();
+        log.info("Current patient count: {}, office count: {}", patientCount, officeCount);
+
+        if (patientCount == 0 && officeCount > 0) {
             Faker faker = new Faker();
             Office office = officeRepository.findAll().get(0);
             
@@ -84,9 +88,13 @@ public class PatientDataLoader {
             List<ISP> isps = loadIspData(faker, patients);
             loadIspGoalData(faker, isps);
             
-            log.info("Patient data loaded.");
+            log.info("Patient data loaded successfully.");
         } else {
-            log.info("Patient data already exists or no offices found, skipping patient data loading.");
+            if (officeCount == 0) {
+                log.warn("No offices found. Patient data loading requires at least one office.");
+            } else {
+                log.info("Patient data already exists, skipping patient data loading.");
+            }
         }
     }
 
@@ -96,8 +104,8 @@ public class PatientDataLoader {
         Set<String> usedMedicaidIds = new HashSet<>();
         Set<String> usedSsns = new HashSet<>();
         
-        log.info("Generating 1000 patients...");
-        for (int i = 0; i < 1000; i++) {
+        log.info("Generating 100 patients...");
+        for (int i = 0; i < 100; i++) {
             Patient patient = new Patient();
             // Set UUID manually for bulk insert
             patient.setId(java.util.UUID.randomUUID());
@@ -148,14 +156,14 @@ public class PatientDataLoader {
             patient.setOffice(office);
             patients.add(patient);
             
-            // Log progress every 100 patients
-            if ((i + 1) % 100 == 0) {
+            // Log progress every 20 patients
+            if ((i + 1) % 20 == 0) {
                 log.info("Generated {} patients...", i + 1);
             }
         }
         
         // Bulk insert patients using JDBC batch processing for maximum performance
-        log.info("Bulk inserting 1000 patients to database using JDBC batch processing...");
+        log.info("Bulk inserting 100 patients to database using JDBC batch processing...");
         bulkInsertService.bulkInsertPatients(patients);
         
         return patients;
@@ -163,61 +171,47 @@ public class PatientDataLoader {
 
     private List<Address> loadAddressData(Faker faker) {
         List<Address> addresses = new ArrayList<>();
-        log.info("Generating 1000 addresses with GPS coordinates...");
+        log.info("Generating 100 addresses with GPS coordinates...");
         
         // Define GPS coordinates for different districts in Ho Chi Minh City
         double[][] districtCenters = {
-            {10.762622, 106.660172},  // District 1 (100 addresses)
-            {10.786945, 106.678413},  // District 3 (100 addresses)
-            {10.801182, 106.702892},  // Binh Thanh (100 addresses)
-            {10.794800, 106.678520},  // Phu Nhuan (100 addresses)
-            {10.734920, 106.717580},  // District 7 (100 addresses)
-            {10.771995, 106.666340},  // District 10 (100 addresses)
-            {10.852140, 106.762510},  // Thu Duc City (100 addresses)
-            {10.799440, 106.653030},  // Tan Binh (100 addresses)
-            {10.837500, 106.667490},  // Go Vap (100 addresses)
-            {10.772432, 106.698089}   // District 1 Center (remaining)
+            {10.762622, 106.660172},  // District 1
+            {10.786945, 106.678413},  // District 3
+            {10.801182, 106.702892},  // Binh Thanh
+            {10.734920, 106.717580},  // District 7
+            {10.823099, 106.629664},  // District 12
+            {10.754297, 106.663361},  // District 5
+            {10.775159, 106.652733},  // District 10
+            {10.799194, 106.680264},  // Phu Nhuan
+            {10.849409, 106.753705},  // Thu Duc
+            {10.741139, 106.632631}   // District 6
         };
-        
-        for (int i = 0; i < 1000; i++) {
+
+        for (int i = 0; i < 100; i++) {
+            int districtIdx = i / 10; // 10 addresses per district
+            double baseLat = districtCenters[districtIdx][0];
+            double baseLng = districtCenters[districtIdx][1];
+            
             Address address = new Address();
-            // Set UUID manually for bulk insert
             address.setId(java.util.UUID.randomUUID());
             address.setLine1(faker.address().streetAddress());
-            address.setCity(faker.address().city());
-            address.setState(faker.address().stateAbbr());
+            address.setCity("Ho Chi Minh City");
+            address.setState("HCMC");
             address.setPostalCode(faker.address().zipCode());
-            address.setCounty("Pennsylvania");
-            AddressType type = faker.options().option(AddressType.HOME, AddressType.BUSINESS, AddressType.COMMUNITY);
-            address.setType(type);
-            address.setLabel(type.getLabel() + " Address");
+            address.setCounty("Vietnam");
+            address.setType(AddressType.HOME);
+            address.setLabel("Home");
             
-            // Assign GPS coordinates based on district (100 addresses per district)
-            int districtIndex = i / 100;
-            if (districtIndex >= districtCenters.length) {
-                districtIndex = 0; // Fallback to District 1
-            }
-            
-            double centerLat = districtCenters[districtIndex][0];
-            double centerLon = districtCenters[districtIndex][1];
-            
-            // Add random offset within ~1km radius (0.01 degree ≈ 1.1km)
-            // Using ±0.009 to stay within 1km
-            double latOffset = (faker.random().nextDouble() - 0.5) * 0.018; // ±0.009
-            double lonOffset = (faker.random().nextDouble() - 0.5) * 0.018; // ±0.009
-            
-            address.setLatitude(BigDecimal.valueOf(centerLat + latOffset));
-            address.setLongitude(BigDecimal.valueOf(centerLon + lonOffset));
+            // Add small random offset to GPS coordinates
+            double latOffset = (faker.random().nextDouble() - 0.5) * 0.02;
+            double lngOffset = (faker.random().nextDouble() - 0.5) * 0.02;
+            address.setLatitude(java.math.BigDecimal.valueOf(baseLat + latOffset));
+            address.setLongitude(java.math.BigDecimal.valueOf(baseLng + lngOffset));
             
             addresses.add(address);
-            
-            if ((i + 1) % 100 == 0) {
-                log.info("Generated {} addresses with GPS coordinates...", i + 1);
-            }
         }
         
-        // Bulk insert addresses using JDBC batch processing for maximum performance
-        log.info("Bulk inserting 1000 addresses with GPS coordinates to database using JDBC batch processing...");
+        log.info("Bulk inserting 100 addresses to database...");
         bulkInsertService.bulkInsertAddresses(addresses);
         
         return addresses;

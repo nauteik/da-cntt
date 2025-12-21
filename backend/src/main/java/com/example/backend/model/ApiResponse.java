@@ -97,6 +97,30 @@ public class ApiResponse<T> {
         return response;
     }
 
+    /**
+     * Creates a simple error response with just a message (defaults: status=400, no path, BUSINESS_ERROR type)
+     */
+    public static <T> ApiResponse<T> error(String message) {
+        ApiResponse<T> response = new ApiResponse<>();
+        response.success = false;
+        response.message = message;
+        response.status = 400;
+        response.errorType = ErrorType.BUSINESS_ERROR;
+        return response;
+    }
+
+    /**
+     * Creates an error response with message and status code
+     */
+    public static <T> ApiResponse<T> error(String message, int status) {
+        ApiResponse<T> response = new ApiResponse<>();
+        response.success = false;
+        response.message = message;
+        response.status = status;
+        response.errorType = ErrorType.BUSINESS_ERROR;
+        return response;
+    }
+
     // Custom getter for success field to follow naming convention
     public boolean isSuccess() {
         return success;

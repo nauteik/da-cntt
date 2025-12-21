@@ -70,6 +70,19 @@ public class VisitMaintenanceDTO {
     private String unscheduledReason;
     private String authorizationNumber;
     
+    // GPS Tracking - Check Events (EVV - Electronic Visit Verification)
+    private CheckEventDTO checkInEvent;   // Check-in with GPS location
+    private CheckEventDTO checkOutEvent;  // Check-out with GPS location
+    
+    // GPS Journey Tracking
+    private java.math.BigDecimal totalDistanceMeters;  // Total distance traveled during visit
+    private String totalDistanceFormatted;  // Formatted distance (e.g., "1.5 km" or "250 m")
+    private Integer trackingPointsCount;  // Number of GPS points recorded
+    
+    // Daily Note (Memo)
+    private UUID dailyNoteId;  // ID of the daily note for this visit
+    private String dailyNoteContent;  // Content of the daily note for this visit
+    
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

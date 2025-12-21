@@ -66,12 +66,12 @@ public class DailyNoteServiceImpl implements DailyNoteService {
             var scheduleEvent = serviceDelivery.getScheduleEvent();
             scheduleEvent.setStatus(com.example.backend.model.enums.ScheduleEventStatus.COMPLETED);
             
-            // Also update ServiceDelivery status to completed
-            serviceDelivery.setStatus("completed");
+            // ServiceDelivery taskStatus is automatically updated via updateTaskStatus() when check-out is done
+            // No manual update needed here as it's handled by check-in/check-out events
             serviceDeliveryRepository.save(serviceDelivery);
             
-            log.info("Updated ScheduleEvent {} and ServiceDelivery {} status to COMPLETED", 
-                    scheduleEvent.getId(), serviceDelivery.getId());
+            log.info("Updated ScheduleEvent {} status to COMPLETED (ServiceDelivery taskStatus auto-updated to COMPLETED)", 
+                    scheduleEvent.getId());
         }
         
         log.info("Created DailyNote {} for ServiceDelivery {} - Patient: {}, Staff: {}", 

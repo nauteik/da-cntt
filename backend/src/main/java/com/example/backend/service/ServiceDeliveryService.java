@@ -6,9 +6,10 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 
-import com.example.backend.dto.ServiceDeliveryRequestDTO;
-import com.example.backend.dto.ServiceDeliveryResponseDTO;
+import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
+import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.model.dto.VisitMaintenanceDTO;
+import com.example.backend.model.enums.TaskStatus;
 import com.example.backend.model.enums.VisitStatus;
 
 /**
@@ -62,14 +63,14 @@ public interface ServiceDeliveryService {
     List<ServiceDeliveryResponseDTO> getByDateRange(LocalDate startDate, LocalDate endDate);
     
     /**
-     * Get service deliveries by status
+     * Get service deliveries by task status
      */
-    List<ServiceDeliveryResponseDTO> getByStatus(String status);
+    List<ServiceDeliveryResponseDTO> getByTaskStatus(TaskStatus taskStatus);
     
     /**
-     * Update status
+     * Update task status
      */
-    ServiceDeliveryResponseDTO updateStatus(UUID id, String status);
+    ServiceDeliveryResponseDTO updateTaskStatus(UUID id, TaskStatus taskStatus);
     
     /**
      * Update approval status
@@ -111,4 +112,12 @@ public interface ServiceDeliveryService {
             int size,
             String sortBy,
             String sortDir);
+    
+    /**
+     * Get single visit maintenance detail by service delivery ID
+     * 
+     * @param id Service delivery ID
+     * @return Visit maintenance record
+     */
+    VisitMaintenanceDTO getVisitMaintenanceById(UUID id);
 }
