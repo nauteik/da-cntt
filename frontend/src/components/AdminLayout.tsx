@@ -64,6 +64,7 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
     if (pathname.startsWith("/offices")) return "offices";
     if (pathname.startsWith("/schedule")) return "schedule";
     if (pathname.startsWith("/visit-maintenance")) return "visit-maintenance";
+    if (pathname.startsWith("/housing")) return "housing";
     if (pathname.startsWith("/reports")) return "reports";
     if (pathname.startsWith("/authorizations")) return "authorizations";
     if (pathname.startsWith("/security")) return "security";
@@ -95,6 +96,7 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
       offices: { title: "Offices",  },
       schedule: { title: "Scheduling"},
       "visit-maintenance": { title: "Visit Maintenance"},
+      housing: { title: "Housing"},
       reports: { title: "Reports"},
       authorizations: { title: "Authorizations"},
       security: { title: "Security"},
@@ -202,6 +204,12 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
         icon: <ToolOutlined />,
         label: "Visit Maintenance",
         onClick: () => handleNavigate("/visit-maintenance"),
+      },
+      {
+        key: "housing",
+        icon: <HomeOutlined />,
+        label: "Housing",
+        onClick: () => handleNavigate("/housing"),
       },
       {
         key: "reports",

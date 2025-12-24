@@ -997,5 +997,37 @@ CREATE TABLE patient_program (
 CREATE INDEX idx_patient_program_patient ON patient_program (patient_id);
 CREATE INDEX idx_patient_program_effective_date ON patient_program (patient_id, status_effective_date DESC);
 
+-- Create house table
+CREATE TABLE IF NOT EXISTS house (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    office_id uuid NOT NULL REFERENCES office(id) ON DELETE RESTRICT,
+    address_id uuid REFERENCES address(id) ON DELETE SET NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    description text,
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz,
+    CONSTRAINT house_code_office_unique UNIQUE (code, office_id)
+);
 
+-- Create indexes for house table
+CREATE INDEX idx_house_office ON house (office_id);
+CREATE INDEX idx_house_address ON house (address_id);
+CREATE INDEX idx_house_deleted_at ON house (deleted_at);
+CREATE INDEX idx_house_code ON house (code);
+CREATE INDEX idx_house_active ON house (is_active) WHERE deleted_at IS NULL;
+
+-- Create patient_house_stay table
+CREATE TABLE IF NOT EXISTS patient_house_stay (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    house_id uuid NOT NULL REFERENCES house(id) ON DELETE CASCADE,
+    move_in_date date NOT NULL,
+    move_out_date date,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT patient_house_stay_move_dates_check CHECK (move_out_date IS NULL OR move_out_date >= move_in_date)
+);
     
