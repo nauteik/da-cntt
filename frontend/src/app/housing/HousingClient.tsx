@@ -57,7 +57,8 @@ export default function HousingClient({
 
   // Local state for search input (for immediate UI feedback)
   const [searchInput, setSearchInput] = React.useState(searchText);
-  const [officeFilterInput, setOfficeFilterInput] = React.useState(officeFilter);
+  const [officeFilterInput, setOfficeFilterInput] =
+    React.useState(officeFilter);
 
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -177,7 +178,18 @@ export default function HousingClient({
         if (record.currentPatientId && record.currentPatientName) {
           return (
             <span
-              className="text-blue-500 cursor-pointer hover:underline"
+              className="cursor-pointer font-medium transition-colors"
+              style={{
+                color: "var(--primary)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--primary-hover)";
+                e.currentTarget.style.textDecoration = "underline";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--primary)";
+                e.currentTarget.style.textDecoration = "none";
+              }}
               onClick={() => router.push(`/clients/${record.currentPatientId}`)}
             >
               {record.currentPatientName}
@@ -244,12 +256,7 @@ export default function HousingClient({
             okText="Yes"
             cancelText="No"
           >
-            <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-              size="small"
-            >
+            <Button type="link" danger icon={<DeleteOutlined />} size="small">
               Delete
             </Button>
           </Popconfirm>
@@ -393,16 +400,9 @@ export default function HousingClient({
 
       {/* TODO: Add CreateHouseModal and UpdateHouseModal components */}
       {isCreateModalOpen && (
-        <div>
-          {/* CreateHouseModal will be implemented */}
-        </div>
+        <div>{/* CreateHouseModal will be implemented */}</div>
       )}
-      {editingHouse && (
-        <div>
-          {/* UpdateHouseModal will be implemented */}
-        </div>
-      )}
+      {editingHouse && <div>{/* UpdateHouseModal will be implemented */}</div>}
     </div>
   );
 }
-

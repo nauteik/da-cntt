@@ -12,8 +12,9 @@ import {
   Button,
   Table,
   Space,
+  Tooltip,
 } from "antd";
-import { DeleteOutlined, UserOutlined } from "@ant-design/icons";
+import { DeleteOutlined, UserOutlined, WarningOutlined } from "@ant-design/icons";
 import type { PatientSelectDTO, StaffSelectDTO, PatientProgramDTO } from "@/types/patient";
 import type {
   CreateScheduleEventDTO,
@@ -67,7 +68,6 @@ export default function CreateScheduleForm({
   // State for preview
   const [previewData, setPreviewData] = useState<CreateSchedulePreviewResponseDTO | null>(null);
   const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
-  const [showConflictsForEvent, setShowConflictsForEvent] = useState<string | null>(null);
   
   // State for change employee modal
   const [changeEmployeeModalOpen, setChangeEmployeeModalOpen] = useState(false);
@@ -292,15 +292,14 @@ export default function CreateScheduleForm({
       return;
     }
     
-    // Check if there are unresolved conflicts
-    const unresolvedConflicts = previewData.conflicts.filter((c) => !c.resolved);
-    if (unresolvedConflicts.length > 0) {
-      setErrorMessage(`Please resolve all conflicts before saving. ${unresolvedConflicts.length} conflict(s) remaining.`);
-      return;
-    }
+    // Check if any selected events have conflicts
+    const selectedEventsWithConflicts = previewData.scheduleEvents.filter((event) => {
+      const eventKey = event.id || `event-${event.eventDate}-${event.startAt}`;
+      return selectedEventIds.has(eventKey) && event.hasConflict === true;
+    });
     
-    if (!previewData.canSave) {
-      setErrorMessage("Please resolve all conflicts before saving");
+    if (selectedEventsWithConflicts.length > 0) {
+      setErrorMessage(`Please resolve all conflicts before saving. ${selectedEventsWithConflicts.length} selected event(s) have conflicts.`);
       return;
     }
     
@@ -391,7 +390,6 @@ export default function CreateScheduleForm({
     setErrorMessage(null);
     setShowSuccess(false);
     setSelectedEventIds(new Set());
-    setShowConflictsForEvent(null);
     setChangeEmployeeModalOpen(false);
     setNewEmployeeId(undefined);
     changeEmployeeForm.resetFields();
@@ -853,82 +851,34 @@ export default function CreateScheduleForm({
                           setSelectedEventIds(new Set(selectedRowKeys as string[]));
                         },
                       }}
+                      rowClassName={(record) => record.hasConflict === true ? "bg-red-50" : ""}
                       columns={[
-                        {
-                          title: (
-                            <Checkbox
-                              checked={
-                                previewData.scheduleEvents.length > 0 &&
-                                previewData.scheduleEvents.every((e) =>
-                                  selectedEventIds.has(e.id || "")
-                                )
-                              }
-                              indeterminate={
-                                selectedEventIds.size > 0 &&
-                                selectedEventIds.size < previewData.scheduleEvents.length
-                              }
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedEventIds(
-                                    new Set(
-                                      previewData.scheduleEvents.map((ev) => 
-                                        ev.id || `event-${ev.eventDate}-${ev.startAt}`
-                                      )
-                                    )
-                                  );
-                                } else {
-                                  setSelectedEventIds(new Set());
-                                }
-                              }}
-                            />
-                          ),
-                          width: 50,
-                          render: () => null, // Checkbox is handled by rowSelection
-                        },
                         {
                           title: "Events",
                           key: "event",
                           render: (_, record) => {
-                            const eventKey = record.id || `event-${record.eventDate}-${record.startAt}`;
-                            // Match conflicts by event date and time
-                            const eventConflicts = previewData.conflicts.filter(
-                              (c) => {
-                                const conflictDate = dayjs(c.eventDate).format("YYYY-MM-DD");
-                                const eventDateStr = dayjs(record.eventDate).format("YYYY-MM-DD");
-                                return conflictDate === eventDateStr && 
-                                       c.startTime === dayjs(record.startAt).format("HH:mm") &&
-                                       !c.resolved;
-                              }
-                            );
-                            const hasConflicts = eventConflicts.length > 0;
+                            const hasConflict = record.hasConflict === true;
+                            const conflictMessages = record.conflictMessages || [];
                             
                             return (
-                              <div className={hasConflicts ? "bg-red-50 p-2 rounded" : ""}>
-                                <div className={hasConflicts ? "text-red-700" : ""}>
+                              <div className="flex items-center justify-between">
+                                <div className={hasConflict ? "text-red-700" : ""}>
                                   {dayjs(record.eventDate).format("dddd, MMMM DD, YYYY")}
                                 </div>
-                                {eventConflicts.length > 0 && (
-                                  <Button
-                                    type="link"
-                                    size="small"
-                                    onClick={() => {
-                                      setShowConflictsForEvent(
-                                        showConflictsForEvent === eventKey ? null : eventKey
-                                      );
-                                    }}
-                                    className="p-0 h-auto text-red-600"
-                                  >
-                                    Show conflicts ({eventConflicts.length})
-                                  </Button>
-                                )}
-                                {showConflictsForEvent === eventKey && eventConflicts.length > 0 && (
-                                  <div className="mt-2 p-2 bg-red-100 rounded text-xs">
-                                    {eventConflicts.map((conflict, idx) => (
-                                      <div key={idx} className="text-red-700 mb-1">
-                                        • {conflict.message}
+                                {hasConflict && conflictMessages.length > 0 && (
+                                  <Tooltip
+                                    title={
+                                      <div>
+                                        {conflictMessages.map((msg, idx) => (
+                                          <div key={idx} className="mb-1">
+                                            • {msg}
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
-                                  </div>
+                                    }
+                                  >
+                                    <WarningOutlined className="text-red-600 text-lg cursor-pointer ml-2" />
+                                  </Tooltip>
                                 )}
                               </div>
                             );
@@ -939,25 +889,20 @@ export default function CreateScheduleForm({
                   </div>
                 </div>
 
-                {/* Conflicts Summary */}
-                {previewData.conflicts.length > 0 && (
-                  <div className="mb-4 p-3 bg-red-50 rounded border border-red-300">
-                    <div className="font-medium text-sm text-red-700 mb-2">
-                      ⚠️ Conflicts ({previewData.conflicts.filter((c) => !c.resolved).length})
-                    </div>
-                  </div>
-                )}
-
                 {/* Save Button */}
                 <Button
                   type="primary"
                   onClick={handleSave}
                   className={`${buttonStyles.btnPrimary} w-full`}
                   disabled={
-                    !previewData.canSave || 
                     createMutation.isPending ||
                     selectedEventIds.size === 0 ||
-                    previewData.conflicts.some((c) => !c.resolved)
+                    Array.from(selectedEventIds).some(id => {
+                      const event = previewData.scheduleEvents.find(
+                        e => (e.id || `event-${e.eventDate}-${e.startAt}`) === id
+                      );
+                      return event?.hasConflict === true;
+                    })
                   }
                   block
                 >

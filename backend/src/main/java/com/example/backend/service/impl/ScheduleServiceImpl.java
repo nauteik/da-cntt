@@ -26,6 +26,9 @@ import com.example.backend.exception.ConflictException;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.dto.PatientSelectDTO;
 import com.example.backend.model.dto.StaffSelectDTO;
+import com.example.backend.model.dto.schedule.ScheduleConflictDTO;
+import com.example.backend.model.dto.schedule.CreateSchedulePreviewResponseDTO;
+import com.example.backend.model.dto.schedule.CreateScheduleEventDTO;
 import com.example.backend.model.dto.schedule.CreateScheduleTemplateDTO;
 import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
 import com.example.backend.model.dto.schedule.ScheduleEventDTO;
@@ -689,6 +692,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         return created;
     }
 
+    @SuppressWarnings("deprecation")
     private ScheduleEventDTO toScheduleEventDTO(ScheduleEvent e) {
         ScheduleEventDTO dto = new ScheduleEventDTO();
         dto.setId(e.getId());
@@ -698,25 +702,31 @@ public class ScheduleServiceImpl implements ScheduleService {
             String patientName = (e.getPatient().getLastName() != null ? e.getPatient().getLastName() : "") + ", " + (e.getPatient().getFirstName() != null ? e.getPatient().getFirstName() : "");
             dto.setPatientName(patientName.trim().replaceAll(", $", ""));
             dto.setPatientClientId(e.getPatient().getClientId());
-            
-            // Supervisor mapping (patient's supervisor)
-            if (e.getPatient().getSupervisor() != null) {
-                dto.setSupervisorId(e.getPatient().getSupervisor().getId());
-                String supervisorName = (e.getPatient().getSupervisor().getLastName() != null ? e.getPatient().getSupervisor().getLastName() : "") + ", " + (e.getPatient().getSupervisor().getFirstName() != null ? e.getPatient().getSupervisor().getFirstName() : "");
-                dto.setSupervisorName(supervisorName.trim().replaceAll(", $", ""));
-            }
         }
         dto.setEventDate(e.getEventDate());
         dto.setStartAt(e.getStartAt());
         dto.setEndAt(e.getEndAt());
         dto.setStatus(e.getStatus() != null ? e.getStatus().name() : null);
         dto.setPlannedUnits(e.getPlannedUnits());
-        // Program identifier via PatientProgram -> Program
+        // Program identifier and client supervisor via PatientProgram -> Program
         try {
             if (e.getPatient() != null) {
                 patientProgramRepository.findByPatientId(e.getPatient().getId())
-                        .map(pp -> pp.getProgram() != null ? pp.getProgram().getProgramIdentifier() : null)
-                        .ifPresent(dto::setProgramIdentifier);
+                        .ifPresent(pp -> {
+                            // Set program identifier
+                            if (pp.getProgram() != null) {
+                                dto.setProgramIdentifier(pp.getProgram().getProgramIdentifier());
+                            }
+                            // Client supervisor mapping (from PatientProgram)
+                            if (pp.getSupervisor() != null) {
+                                dto.setClientSupervisorId(pp.getSupervisor().getId());
+                                String clientSupervisorName = (pp.getSupervisor().getLastName() != null ? pp.getSupervisor().getLastName() : "") + ", " + (pp.getSupervisor().getFirstName() != null ? pp.getSupervisor().getFirstName() : "");
+                                dto.setClientSupervisorName(clientSupervisorName.trim().replaceAll(", $", ""));
+                                // Backward compatibility: also set deprecated fields
+                                dto.setSupervisorId(pp.getSupervisor().getId());
+                                dto.setSupervisorName(dto.getClientSupervisorName());
+                            }
+                        });
             }
         } catch (Exception ex) {
             log.debug("Program lookup failed for event {}: {}", e.getId(), ex.getMessage());
@@ -726,6 +736,13 @@ public class ScheduleServiceImpl implements ScheduleService {
             dto.setEmployeeId(e.getStaff().getId());
             String staffName = (e.getStaff().getLastName() != null ? e.getStaff().getLastName() : "") + ", " + (e.getStaff().getFirstName() != null ? e.getStaff().getFirstName() : "");
             dto.setEmployeeName(staffName.trim().replaceAll(", $", ""));
+            
+            // Employee supervisor mapping (staff's supervisor)
+            if (e.getStaff().getSupervisor() != null) {
+                dto.setEmployeeSupervisorId(e.getStaff().getSupervisor().getId());
+                String employeeSupervisorName = (e.getStaff().getSupervisor().getLastName() != null ? e.getStaff().getSupervisor().getLastName() : "") + ", " + (e.getStaff().getSupervisor().getFirstName() != null ? e.getStaff().getSupervisor().getFirstName() : "");
+                dto.setEmployeeSupervisorName(employeeSupervisorName.trim().replaceAll(", $", ""));
+            }
         }
         // Authorization mapping
         if (e.getAuthorization() != null) {
@@ -934,7 +951,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     @Transactional
-    public com.example.backend.model.dto.schedule.CreateSchedulePreviewResponseDTO createSchedulePreview(
+    public CreateSchedulePreviewResponseDTO createSchedulePreview(
             com.example.backend.model.dto.schedule.CreateSchedulePreviewRequestDTO request,
             String authenticatedUserEmail
     ) {
@@ -952,14 +969,37 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .map(this::toPreviewScheduleEventDTO)
                 .collect(Collectors.toList());
 
+        // Detect conflicts and attach to events
+        // Process each event individually to properly match conflicts
+        for (int i = 0; i < previewEvents.size(); i++) {
+            ScheduleEventDTO previewEvent = previewEvents.get(i);
+            com.example.backend.model.dto.schedule.CreateScheduleEventDTO eventToCreate = eventsToCreate.get(i);
+            
+            // Detect conflicts for this specific event
+            List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> singleEventList = 
+                java.util.Collections.singletonList(eventToCreate);
+            List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> eventConflicts = 
+                detectConflictsForEvents(singleEventList);
+            
+            // Collect conflict messages for this event
+            List<String> eventConflictMessages = new ArrayList<>();
+            for (com.example.backend.model.dto.schedule.ScheduleConflictDTO conflict : eventConflicts) {
+                eventConflictMessages.add(conflict.getMessage());
+            }
+            
+            // Set conflict information on event
+            if (!eventConflictMessages.isEmpty()) {
+                previewEvent.setHasConflict(true);
+                previewEvent.setConflictMessages(eventConflictMessages);
+            }
+        }
+
         response.setScheduleEvents(previewEvents);
-
-        // Detect conflicts
-        List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> conflicts = 
-            detectConflictsForEvents(eventsToCreate);
-
-        response.setConflicts(conflicts);
-        response.setCanSave(conflicts.isEmpty() || conflicts.stream().allMatch(c -> c.isResolved()));
+        
+        // canSave is true if no events have conflicts
+        boolean hasAnyConflicts = previewEvents.stream()
+                .anyMatch(e -> Boolean.TRUE.equals(e.getHasConflict()));
+        response.setCanSave(!hasAnyConflicts);
 
         if (previewEvents.size() == 1) {
             response.setMessage("1 event will be created");
@@ -1136,7 +1176,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     // Helper methods
 
-    private List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> generateEventsFromRequest(
+    private List<CreateScheduleEventDTO> generateEventsFromRequest(
             com.example.backend.model.dto.schedule.CreateSchedulePreviewRequestDTO request
     ) {
         List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> events = new ArrayList<>();
@@ -1215,7 +1255,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         return events;
     }
 
-    private List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> detectConflictsForEvents(
+    private List<ScheduleConflictDTO> detectConflictsForEvents(
             List<com.example.backend.model.dto.schedule.CreateScheduleEventDTO> events
     ) {
         List<com.example.backend.model.dto.schedule.ScheduleConflictDTO> conflicts = new ArrayList<>();

@@ -121,8 +121,8 @@ export default function ScheduleEventsTable({
           },
           {
             title: "CLIENT SUPERVISOR",
-            dataIndex: "supervisorName",
-            key: "supervisorName",
+            dataIndex: "clientSupervisorName",
+            key: "clientSupervisorName",
             width: 125,
             render: (name: string) => (
               <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
@@ -152,7 +152,7 @@ export default function ScheduleEventsTable({
           },
           {
             title: "EMPLOYEE SUPERVISOR",
-            dataIndex: "supervisorName",
+            dataIndex: "employeeSupervisorName",
             key: "employeeSupervisorName",
             width: 125,
             render: (name: string) => (
@@ -175,8 +175,8 @@ export default function ScheduleEventsTable({
             },
             {
               title: "CLIENT SUPERVISOR",
-              dataIndex: "supervisorName",
-              key: "supervisorName",
+              dataIndex: "clientSupervisorName",
+              key: "clientSupervisorName",
               width: 130,
               render: (name: string) => (
                 <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>
@@ -195,8 +195,8 @@ export default function ScheduleEventsTable({
             },
             {
               title: "SUPERVISOR",
-              dataIndex: "supervisorName",
-              key: "supervisorName",
+              dataIndex: "employeeSupervisorName",
+              key: "employeeSupervisorName",
               width: 125,
               render: (name: string) => (
                 <div className="text-[13px] text-[var(--text-primary)]">{name || "-"}</div>

@@ -66,7 +66,16 @@ export interface ScheduleEventDTO {
   programIdentifier?: string;
   employeeId?: string;
   employeeName?: string;
+  // Client supervisor (from Patient)
+  clientSupervisorId?: string;
+  clientSupervisorName?: string;
+  // Employee supervisor (from Staff)
+  employeeSupervisorId?: string;
+  employeeSupervisorName?: string;
+  // Deprecated: kept for backward compatibility, use clientSupervisorId/clientSupervisorName instead
+  /** @deprecated Use clientSupervisorId/clientSupervisorName instead */
   supervisorId?: string;
+  /** @deprecated Use clientSupervisorName instead */
   supervisorName?: string;
   serviceCode?: string;
   checkInTime?: string; // ISO datetime string
@@ -75,6 +84,9 @@ export interface ScheduleEventDTO {
   actualStartAt?: string; // ISO datetime string - read-only in form
   actualEndAt?: string; // ISO datetime string - read-only in form
   comments?: string;
+  // Conflict information (for preview)
+  hasConflict?: boolean;
+  conflictMessages?: string[];
 }
 
 export enum ScheduleEventStatus {
@@ -154,7 +166,6 @@ export interface ScheduleConflictDTO {
 
 export interface CreateSchedulePreviewResponseDTO {
   scheduleEvents: ScheduleEventDTO[];
-  conflicts: ScheduleConflictDTO[];
   canSave: boolean; // True if no conflicts or all conflicts resolved
   message: string; // Summary message about the preview
 }

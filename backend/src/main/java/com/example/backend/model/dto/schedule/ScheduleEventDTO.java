@@ -2,6 +2,8 @@ package com.example.backend.model.dto.schedule;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -25,7 +27,16 @@ public class ScheduleEventDTO {
     private String programIdentifier;
     private UUID employeeId;
     private String employeeName;
+    // Client supervisor (from Patient)
+    private UUID clientSupervisorId;
+    private String clientSupervisorName;
+    // Employee supervisor (from Staff)
+    private UUID employeeSupervisorId;
+    private String employeeSupervisorName;
+    // Deprecated: kept for backward compatibility, use clientSupervisorId/clientSupervisorName instead
+    @Deprecated
     private UUID supervisorId;
+    @Deprecated
     private String supervisorName;
     private UUID authorizationId; // Required for creating Service Delivery
     private UUID serviceDeliveryId; // Current Service Delivery (if exists)
@@ -40,6 +51,10 @@ public class ScheduleEventDTO {
     private OffsetDateTime actualStartAt; // Read-only in form
     private OffsetDateTime actualEndAt; // Read-only in form
     private String comments; // Comments from comment field
+    
+    // Conflict information (for preview)
+    private Boolean hasConflict = false;
+    private List<String> conflictMessages = new ArrayList<>();
 }
 
 

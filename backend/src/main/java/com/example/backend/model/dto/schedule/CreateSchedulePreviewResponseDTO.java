@@ -17,8 +17,6 @@ public class CreateSchedulePreviewResponseDTO {
     
     private List<ScheduleEventDTO> scheduleEvents = new ArrayList<>();
     
-    private List<ScheduleConflictDTO> conflicts = new ArrayList<>();
-    
     private boolean canSave; // True if no conflicts or all conflicts resolved
     
     private String message; // Summary message about the preview
