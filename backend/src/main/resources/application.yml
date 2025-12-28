@@ -47,6 +47,9 @@ spring:
   web:
     resources:
       add-mappings: false
+  output:
+    ansi:
+      enabled: always  # Forces colors in the Cursor/VS Code terminal
 
 # Server Configuration - use environment variable
 server:
@@ -65,7 +68,9 @@ logging:
     "[org.springframework.security]": INFO
     "[org.hibernate.SQL]": INFO
     "[org.hibernate.type.descriptor.sql.BasicBinder]": INFO
-
+  pattern:
+      # %clr = color, %d = date, %5p = log level (5 chars), %-40.40logger = class name (max 40 chars)
+      console: "%clr(%d{HH:mm:ss}){faint} %clr(%5p) %clr(---){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"
 # Management endpoints - fixed configuration
 management:
   endpoints:
@@ -81,3 +86,14 @@ app:
   jwt:
     secret: ${JWT_SECRET:mySecretKeyThatIsAtLeast32CharactersLong123456}
     expiration: ${JWT_EXPIRATION:86400} # 24 hours in seconds
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # This helps organize your UI
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  # Ensures your Record-based DTOs (Java 21) are handled correctly
+  default-produces-media-type: application/json

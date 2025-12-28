@@ -51,13 +51,11 @@ public class PatientDataLoader {
     private final BulkInsertService bulkInsertService;
 
 
-    public void loadData() {
-        log.info("Loading patient data...");
+    public void loadData() {    
         long patientCount = patientRepository.count();
         long officeCount = officeRepository.count();
-        log.info("Current patient count: {}, office count: {}", patientCount, officeCount);
-
         if (patientCount == 0 && officeCount > 0) {
+            log.info("Loading patient data...");
             Faker faker = new Faker();
             Office office = officeRepository.findAll().get(0);
             
@@ -92,9 +90,7 @@ public class PatientDataLoader {
         } else {
             if (officeCount == 0) {
                 log.warn("No offices found. Patient data loading requires at least one office.");
-            } else {
-                log.info("Patient data already exists, skipping patient data loading.");
-            }
+            } 
         }
     }
 

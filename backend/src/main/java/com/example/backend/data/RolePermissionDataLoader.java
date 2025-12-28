@@ -31,17 +31,14 @@ public class RolePermissionDataLoader {
 
     @Transactional
     public void loadData() {
-        log.info("Loading role-permission mappings...");
-
         // Check if data already exists and skip if it does
         if (rolePermissionRepository.count() > 0) {
-            log.info("Role-permission mappings already exist. Skipping.");
             return;
+        } else{
+            log.info("Loading role-permission mappings...");
+            assignPermissionsToRoles();
+            log.info("Role-permission mappings loaded successfully");
         }
-
-        assignPermissionsToRoles();
-
-        log.info("Role-permission mappings loaded successfully");
     }
 
     private void assignPermissionsToRoles() {

@@ -46,7 +46,6 @@ public class UserController {
         }
 
         String email = authentication.getName(); // The email is stored as the principal
-        log.info("Fetching user info for: {}", email);
 
         // Find user by email
         AppUser user = userRepository.findByEmail(email)

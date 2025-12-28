@@ -47,7 +47,6 @@ public class OfficeController {
     @GetMapping
     // @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<List<OfficeDTO>>> getAllOffices() {
-        log.info("Request to get all offices");
         List<OfficeDTO> offices = officeService.getAllOffices();
         return ResponseEntity.ok(ApiResponse.success(offices));
     }
@@ -59,7 +58,6 @@ public class OfficeController {
     @GetMapping("/active")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<List<OfficeDTO>>> getActiveOffices() {
-        log.info("Request to get active offices");
         List<OfficeDTO> offices = officeService.getActiveOffices();
         return ResponseEntity.ok(ApiResponse.success(offices));
     }
@@ -71,7 +69,6 @@ public class OfficeController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<OfficeDetailResponse>> getOfficeById(@PathVariable UUID id) {
-        log.info("Request to get office by ID: {}", id);
         OfficeDetailResponse office = officeService.getOfficeById(id);
         return ResponseEntity.ok(ApiResponse.success(office));
     }
@@ -83,7 +80,6 @@ public class OfficeController {
     @GetMapping("/code/{code}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
     public ResponseEntity<ApiResponse<OfficeDetailResponse>> getOfficeByCode(@PathVariable String code) {
-        log.info("Request to get office by code: {}", code);
         OfficeDetailResponse office = officeService.getOfficeByCode(code);
         return ResponseEntity.ok(ApiResponse.success(office));
     }
@@ -96,7 +92,6 @@ public class OfficeController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<OfficeDetailResponse>> createOffice(
             @Valid @RequestBody OfficeCreateRequest request) {
-        log.info("Request to create new office with code: {}", request.getCode());
         OfficeDetailResponse office = officeService.createOffice(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(office, "Office created successfully"));
@@ -111,7 +106,6 @@ public class OfficeController {
     public ResponseEntity<ApiResponse<OfficeDetailResponse>> updateOffice(
             @PathVariable UUID id,
             @Valid @RequestBody OfficeUpdateRequest request) {
-        log.info("Request to update office with ID: {}", id);
         OfficeDetailResponse office = officeService.updateOffice(id, request);
         return ResponseEntity.ok(ApiResponse.success(office, "Office updated successfully"));
     }
@@ -123,7 +117,6 @@ public class OfficeController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteOffice(@PathVariable UUID id) {
-        log.info("Request to delete office with ID: {}", id);
         officeService.deleteOffice(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Office deleted successfully"));
     }
@@ -135,7 +128,6 @@ public class OfficeController {
     @PutMapping("/{id}/activate")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> activateOffice(@PathVariable UUID id) {
-        log.info("Request to activate office with ID: {}", id);
         officeService.activateOffice(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Office activated successfully"));
     }
@@ -147,7 +139,6 @@ public class OfficeController {
     @PutMapping("/{id}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deactivateOffice(@PathVariable UUID id) {
-        log.info("Request to deactivate office with ID: {}", id);
         officeService.deactivateOffice(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Office deactivated successfully"));
     }
@@ -161,7 +152,6 @@ public class OfficeController {
     public ResponseEntity<ApiResponse<List<OfficeStaffDTO>>> getOfficeStaff(
             @PathVariable UUID id,
             @RequestParam(required = false, defaultValue = "false") Boolean activeOnly) {
-        log.info("Request to get staff for office ID: {}, activeOnly: {}", id, activeOnly);
         List<OfficeStaffDTO> staff = officeService.getOfficeStaff(id, activeOnly);
         return ResponseEntity.ok(ApiResponse.success(staff));
     }
@@ -175,7 +165,6 @@ public class OfficeController {
     public ResponseEntity<ApiResponse<List<OfficePatientDTO>>> getOfficePatients(
             @PathVariable UUID id,
             @RequestParam(required = false, defaultValue = "false") Boolean activeOnly) {
-        log.info("Request to get patients for office ID: {}, activeOnly: {}", id, activeOnly);
         List<OfficePatientDTO> patients = officeService.getOfficePatients(id, activeOnly);
         return ResponseEntity.ok(ApiResponse.success(patients));
     }

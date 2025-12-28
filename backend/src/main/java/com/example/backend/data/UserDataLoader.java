@@ -34,19 +34,17 @@ public class UserDataLoader {
     @Transactional
     public void loadData() {
         if (appUserRepository.count() > 0) {
-            log.info("User data already loaded. Skipping.");
             return;
+        } else{
+            log.info("Loading user data...");
+            List<Office> offices = officeRepository.findAll();
+            if (offices.isEmpty()) {
+                log.info("No offices found. Run OfficeDataLoader first.");
+                return;
+            }
+            loadUsers(offices);
+            log.info("User data loaded successfully");
         }
-        log.info("Loading user data...");
-
-        List<Office> offices = officeRepository.findAll();
-        if (offices.isEmpty()) {
-            throw new RuntimeException("No offices found. Run OfficeDataLoader first.");
-        }
-
-        loadUsers(offices);
-
-        log.info("User data loaded successfully");
     }
 
     private void loadUsers(List<Office> offices) {

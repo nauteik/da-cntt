@@ -42,21 +42,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        log.info("Processing request: {} {}", request.getMethod(), request.getRequestURI());
-
         try {
             // Extract JWT from Authorization header or cookie
             String token = extractJwtFromRequest(request);
 
             if (token != null) {
-                log.info("JWT token found");
-
                 // Extract user email and office ID from token
                 String userEmail = jwtService.extractUserEmail(token);
-                String officeId = jwtService.extractOfficeId(token);
-
-                log.info("Extracted userEmail: {}, officeId: {}", userEmail, officeId);
-
+                
                 // If token contains email and no authentication is set yet
                 if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     // Load user details
@@ -75,25 +68,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         authenticationToken.setDetails(
                                 new WebAuthenticationDetailsSource().buildDetails(request)
                         );
-
+                        log.info("{} {} - Have JWT token", request.getMethod(), request.getRequestURI());
                         // Set authentication in security context
                         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                        log.info("User '{}' authenticated successfully for office '{}'", userEmail, officeId);
                     } else {
-                        log.warn("Invalid JWT token for user: {}", userEmail);
+                        log.info("{} {} - Invalid JWT token for user: {}", request.getMethod(), request.getRequestURI(), userEmail);
                     }
                 } else if (userEmail == null) {
-                    log.warn("Could not extract user email from JWT token");
+                    log.info("{} {} - Could not extract user email from JWT token", request.getMethod(), request.getRequestURI());
                 } else {
-                    log.info("User already authenticated: {}", userEmail);
+                    log.info("{} {} - User already authenticated: {}", request.getMethod(), request.getRequestURI(), userEmail);
                 }
             } else {
-                log.warn("No JWT token found for request: {} {}", request.getMethod(), request.getRequestURI());
+                log.info("{} {} - No JWT token", request.getMethod(), request.getRequestURI());
             }
         } catch (JwtException e) {
-            log.error("JWT validation error: {}", e.getMessage());
+            log.info("{} {} - JWT validation error: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
         } catch (Exception e) {
-            log.error("Could not set user authentication in security context", e);
+            log.info("{} {} - Could not set user authentication in security context", request.getMethod(), request.getRequestURI(), e.getMessage());
         }
 
         filterChain.doFilter(request, response);
@@ -118,7 +110,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .findFirst();
             
             if (jwtCookie.isPresent()) {
-                log.info("JWT found in cookie");
                 return jwtCookie.get().getValue();
             }
         }

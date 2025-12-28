@@ -29,7 +29,6 @@ public class MedicationDataLoader {
 
     public void loadData() {
         long orderCount = orderRepository.count();
-        log.info("Checking medication data... Current order count: {}", orderCount);
         
         if (orderCount == 0) {
             log.info("Loading sample medication data...");
@@ -121,8 +120,6 @@ public class MedicationDataLoader {
                 }
             }
             log.info("Medication data loaded for all patients.");
-        } else {
-            log.info("Medication data already exists, skipping.");
-        }
+        } 
     }
 }

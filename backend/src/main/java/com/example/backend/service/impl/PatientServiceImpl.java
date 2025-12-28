@@ -72,6 +72,9 @@ import com.example.backend.repository.PayerRepository;
 import com.example.backend.repository.ProgramRepository;
 import com.example.backend.repository.ServiceTypeRepository;
 import com.example.backend.repository.StaffRepository;
+import com.example.backend.model.dto.PatientSearchResultDTO;
+import com.example.backend.model.dto.UpdatePatientAddressLocationDTO;
+import com.example.backend.service.PatientService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -83,7 +86,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class PatientServiceImpl implements com.example.backend.service.PatientService {
+public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
     private final ProgramRepository programRepository;
@@ -1608,7 +1611,7 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
 
     @Override
     @Transactional(readOnly = true)
-    public List<com.example.backend.model.dto.PatientSearchResultDTO> searchPatientsByName(String name) {
+    public List<PatientSearchResultDTO> searchPatientsByName(String name) {
         log.info("Searching patients by name: {}", name);
 
         if (name == null || name.trim().isEmpty()) {
@@ -1632,9 +1635,9 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
 
     @Override
     @Transactional
-    public com.example.backend.model.dto.PatientSearchResultDTO updatePatientAddressWithLocation(
+    public PatientSearchResultDTO updatePatientAddressWithLocation(
             UUID patientId,
-            com.example.backend.model.dto.UpdatePatientAddressLocationDTO updateDTO) {
+            UpdatePatientAddressLocationDTO updateDTO) {
         
         log.info("Updating address with GPS location for patient ID: {}", patientId);
 
@@ -1716,15 +1719,15 @@ public class PatientServiceImpl implements com.example.backend.service.PatientSe
     /**
      * Helper method to map Patient entity to PatientSearchResultDTO
      */
-    private com.example.backend.model.dto.PatientSearchResultDTO mapToPatientSearchResult(Patient patient) {
+    private PatientSearchResultDTO mapToPatientSearchResult(Patient patient) {
         // Find main address
         PatientAddress mainAddress = patient.getPatientAddresses().stream()
             .filter(pa -> Boolean.TRUE.equals(pa.getIsMain()))
             .findFirst()
             .orElse(null);
 
-        com.example.backend.model.dto.PatientSearchResultDTO.PatientSearchResultDTOBuilder builder = 
-            com.example.backend.model.dto.PatientSearchResultDTO.builder()
+        PatientSearchResultDTO.PatientSearchResultDTOBuilder builder = 
+            PatientSearchResultDTO.builder()
                 .id(patient.getId())
                 .firstName(patient.getFirstName())
                 .lastName(patient.getLastName())

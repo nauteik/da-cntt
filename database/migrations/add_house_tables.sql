@@ -21,3 +21,4 @@ COMMENT ON COLUMN patient_house_stay.move_out_date IS 'Date when patient moved o
 
 
 
+

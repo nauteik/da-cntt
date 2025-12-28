@@ -57,7 +57,9 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
-                
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/swagger-ui.html").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
                 // Authenticated endpoints (role-based security via @PreAuthorize in controllers)
                 .requestMatchers("/api/patients/**").authenticated()
                 .requestMatchers("/api/office/**").authenticated()

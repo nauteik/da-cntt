@@ -32,35 +32,35 @@ public class HouseDataLoader {
 
     @Transactional
     public void loadData() {
-        log.info("Loading house data...");
-
         // Check if data already exists and skip if it does
         if (houseRepository.count() > 0) {
-            log.info("House data already exists. Skipping.");
             return;
+        } else{
+            log.info("Loading house data...");
+            // Check prerequisites
+            long officeCount = officeRepository.count();
+            long patientCount = patientRepository.count();
+            
+            if (officeCount == 0) {
+                log.info("No offices found. House data loading requires at least one office.");
+                return;
+            }
+
+            if (patientCount == 0) {
+                log.info("No patients found. House data loading requires at least one patient.");
+                return;
+            }
+
+            // Load houses for each office
+            List<House> houses = loadHouses();
+            
+            // Assign patients with residential authorization to houses
+            assignPatientsToHouses(houses);
+
+            log.info("House data loaded successfully");
         }
 
-        // Check prerequisites
-        long officeCount = officeRepository.count();
-        long patientCount = patientRepository.count();
-        
-        if (officeCount == 0) {
-            log.warn("No offices found. House data loading requires at least one office.");
-            return;
-        }
-
-        if (patientCount == 0) {
-            log.warn("No patients found. House data loading requires at least one patient.");
-            return;
-        }
-
-        // Load houses for each office
-        List<House> houses = loadHouses();
-        
-        // Assign patients with residential authorization to houses
-        assignPatientsToHouses(houses);
-
-        log.info("House data loaded successfully");
+       
     }
 
     private List<House> loadHouses() {

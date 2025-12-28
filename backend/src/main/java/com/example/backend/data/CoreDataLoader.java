@@ -29,15 +29,13 @@ public class CoreDataLoader {
 
     @Transactional
     public void loadData() {
-        log.info("Loading core system data...");
-
         // Check if data already exists and skip if it does
         if (moduleRepository.count() > 0 || roleRepository.count() > 0 || 
             permissionRepository.count() > 0 || serviceTypeRepository.count() > 0) {
-            log.info("Core system data already exists. Skipping.");
             return;
-        }
-
+        } else{
+            log.info("Loading core system data...");
+            
         // Load modules
         loadModules();
 
@@ -51,6 +49,7 @@ public class CoreDataLoader {
         loadServiceTypes();
 
         log.info("Core system data loaded successfully");
+        }
     }
 
     private void loadModules() {

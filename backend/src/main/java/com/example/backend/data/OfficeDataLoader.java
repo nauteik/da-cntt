@@ -25,17 +25,14 @@ public class OfficeDataLoader {
 
     @Transactional
     public void loadData() {
-        log.info("Loading office data...");
-
         // Check if data already exists and skip if it does
         if (officeRepository.count() > 0) {
-            log.info("Office data already exists. Skipping.");
             return;
+        } else{
+            log.info("Loading office data...");
+            loadOffices();
+            log.info("Office data loaded successfully");
         }
-
-        loadOffices();
-
-        log.info("Office data loaded successfully");
     }
 
     private void loadOffices() {
