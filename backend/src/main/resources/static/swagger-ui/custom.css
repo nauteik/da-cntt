@@ -1,0 +1,190 @@
+/* ============================================
+   COMPREHENSIVE SWAGGER UI COLOR OVERRIDE
+   Force white background and dark text for ALL elements
+   ============================================ */
+
+/* Base container - white background */
+.swagger-ui {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* ULTIMATE OVERRIDE - Target elements with inline styles using attribute selectors */
+.swagger-ui pre[style*="rgb(51, 51, 51)"],
+.swagger-ui pre[style*="background: rgb(51"],
+.swagger-ui pre[style*="background-color: rgb(51"],
+.swagger-ui pre[style*="color: white"],
+.swagger-ui pre[style*="color: rgb(255"],
+.swagger-ui pre.example[style*="rgb(51, 51, 51)"],
+.swagger-ui pre.example.microlight[style*="rgb(51, 51, 51)"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* ALL pre elements - code blocks */
+.swagger-ui pre,
+.swagger-ui pre[style],
+.swagger-ui pre[style*="background"],
+.swagger-ui pre[style*="color"],
+.swagger-ui pre.example,
+.swagger-ui pre.example[style],
+.swagger-ui pre.example.microlight,
+.swagger-ui pre.example.microlight[style],
+.swagger-ui pre.microlight,
+.swagger-ui pre.microlight[style],
+.swagger-ui pre.body-param__example,
+.swagger-ui pre.body-param__example[style],
+.swagger-ui pre.body-param_example,
+.swagger-ui pre.body-param_example[style],
+.swagger-ui pre.body-param__example.microlight,
+.swagger-ui pre.body-param__example.microlight[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* ALL code elements */
+.swagger-ui code,
+.swagger-ui code[style],
+.swagger-ui code[style*="background"],
+.swagger-ui code[style*="color"],
+.swagger-ui code.language-json,
+.swagger-ui code.language-json[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* ALL span elements inside code blocks - CRITICAL for JSON syntax highlighting */
+.swagger-ui pre span,
+.swagger-ui pre span[style],
+.swagger-ui pre span[style*="color"],
+.swagger-ui code span,
+.swagger-ui code span[style],
+.swagger-ui code span[style*="color"],
+.swagger-ui .hljs span,
+.swagger-ui .hljs span[style],
+.swagger-ui .hljs span[style*="color"],
+.swagger-ui .hljs-attr,
+.swagger-ui .hljs-attr[style],
+.swagger-ui .hljs-attr[style*="color"],
+.swagger-ui .hljs-string,
+.swagger-ui .hljs-string[style],
+.swagger-ui .hljs-string[style*="color"],
+.swagger-ui .hljs-keyword,
+.swagger-ui .hljs-keyword[style],
+.swagger-ui .hljs-keyword[style*="color"],
+.swagger-ui .hljs-number,
+.swagger-ui .hljs-number[style],
+.swagger-ui .hljs-number[style*="color"],
+.swagger-ui .hljs-literal,
+.swagger-ui .hljs-literal[style],
+.swagger-ui .hljs-literal[style*="color"],
+.swagger-ui .hljs-punctuation,
+.swagger-ui .hljs-punctuation[style],
+.swagger-ui .hljs-punctuation[style*="color"],
+.swagger-ui .hljs-property,
+.swagger-ui .hljs-property[style],
+.swagger-ui .hljs-property[style*="color"],
+.swagger-ui .hljs-attribute,
+.swagger-ui .hljs-attribute[style],
+.swagger-ui .hljs-attribute[style*="color"] {
+  color: #000000 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Highlight code containers */
+.swagger-ui .highlight-code,
+.swagger-ui .highlight-code[style],
+.swagger-ui .microlight,
+.swagger-ui .microlight[style],
+.swagger-ui .highlight-code pre,
+.swagger-ui .highlight-code pre[style],
+.swagger-ui .highlight-code code,
+.swagger-ui .highlight-code code[style],
+.swagger-ui .highlight-code span,
+.swagger-ui .highlight-code span[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* hljs elements */
+.swagger-ui .hljs,
+.swagger-ui .hljs[style],
+.swagger-ui .hljs[style*="background"],
+.swagger-ui .hljs[style*="color"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Model example container */
+.swagger-ui .model-example,
+.swagger-ui .model-example[style],
+.swagger-ui .model-example pre,
+.swagger-ui .model-example pre[style],
+.swagger-ui .model-example code,
+.swagger-ui .model-example code[style],
+.swagger-ui .model-example span,
+.swagger-ui .model-example span[style],
+.swagger-ui .model-example .highlight-code,
+.swagger-ui .model-example .highlight-code[style],
+.swagger-ui .model-example .microlight,
+.swagger-ui .model-example .microlight[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Response wrapper */
+.swagger-ui .response-wrapper,
+.swagger-ui .response-inner,
+.swagger-ui .response-inner pre,
+.swagger-ui .response-inner pre[style],
+.swagger-ui .response-inner code,
+.swagger-ui .response-inner code[style],
+.swagger-ui .response-inner span,
+.swagger-ui .response-inner span[style],
+.swagger-ui .response-inner .highlight-code,
+.swagger-ui .response-inner .highlight-code[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Schema box */
+.swagger-ui .model-box,
+.swagger-ui .model-box[style],
+.swagger-ui .model,
+.swagger-ui .model[style] {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Parameter / response container */
+.swagger-ui .opblock,
+.swagger-ui .opblock-body,
+.swagger-ui .opblock-section {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Input fields */
+.swagger-ui input,
+.swagger-ui input[style],
+.swagger-ui textarea,
+.swagger-ui textarea[style] {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #cccccc !important;
+}
+
+/* All other text elements */
+.swagger-ui p,
+.swagger-ui div,
+.swagger-ui span:not(.hljs-attr):not(.hljs-string):not(.hljs-keyword):not(.hljs-number):not(.hljs-literal):not(.hljs-punctuation):not(.hljs-property):not(.hljs-attribute) {
+  color: #000000 !important;
+}

@@ -95,5 +95,7 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
     display-request-duration: true
+    customCssUrl: /swagger-ui/custom.css
+    customJsUrl: /swagger-ui/custom.js
   # Ensures your Record-based DTOs (Java 21) are handled correctly
   default-produces-media-type: application/json
