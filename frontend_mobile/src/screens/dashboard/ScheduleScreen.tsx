@@ -103,18 +103,30 @@ export default function ScheduleScreen() {
       }
       
       // Merge cancellation status into scheduled events
+      // Priority: 1) Schedule Event cancelled status (set by admin), 2) Service Delivery cancelled status
       const scheduledEventsWithCancellation = scheduledEvents.map(event => {
+        // Check if schedule event itself is cancelled (set by admin from frontend)
+        const scheduleEventCancelled = event.cancelled === true;
+        
         if (event.serviceDeliveryId && serviceDeliveriesMap.has(event.serviceDeliveryId)) {
           const sd = serviceDeliveriesMap.get(event.serviceDeliveryId);
+          const serviceDeliveryCancelled = sd.cancelled === true;
+          
           return {
             ...event,
-            cancelled: sd.cancelled,
-            cancelledAt: sd.cancelledAt,
-            cancelledBy: sd.cancelledBy,
-            cancellationReason: sd.cancellationReason,
+            // Cancelled if EITHER schedule event OR service delivery is cancelled
+            cancelled: scheduleEventCancelled || serviceDeliveryCancelled,
+            cancelledAt: event.cancelledAt || sd.cancelledAt,
+            cancelledBy: event.cancelledBy || sd.cancelledBy,
+            cancellationReason: event.cancellationReason || sd.cancellationReason,
           };
         }
-        return event;
+        
+        // No service delivery - keep schedule event cancelled status
+        return {
+          ...event,
+          cancelled: scheduleEventCancelled,
+        };
       });
       
       // Filter out cancelled completed visits from scheduled events (soft cancel)
@@ -275,6 +287,18 @@ export default function ScheduleScreen() {
 
   // Create Service Delivery (Start Shift)
   const handleStartShift = async (scheduleEvent: Schedule) => {
+    // Check if the schedule is cancelled
+    if (scheduleEvent.cancelled) {
+      showAlert(
+        'Error',
+        'Cannot start shift for a cancelled visit.',
+        [{ text: 'OK', style: 'default' }],
+        'alert-circle',
+        '#f44336'
+      );
+      return;
+    }
+
     if (!scheduleEvent.id) {
       showAlert(
         'Error',
@@ -629,7 +653,11 @@ export default function ScheduleScreen() {
           const allCompleted = event.status === 'completed' || 
                                event.serviceDeliveryStatus?.toUpperCase() === 'COMPLETED' ||
                                allStepsCompleted;
-          const isCancelled = event.cancelled === true; // Use soft cancel flag
+          
+          // Check if cancelled from BOTH field and status (admin may set either)
+          const isCancelled = event.cancelled === true || 
+                             event.status?.toLowerCase() === 'cancelled' ||
+                             event.serviceDeliveryStatus?.toUpperCase() === 'CANCELLED';
           
           // Use serviceDeliveryStatus (TaskStatus) if available, otherwise use schedule status
           const displayStatus = event.serviceDeliveryId && event.serviceDeliveryStatus 
