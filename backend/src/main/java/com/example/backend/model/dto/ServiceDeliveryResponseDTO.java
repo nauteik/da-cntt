@@ -48,6 +48,9 @@ public class ServiceDeliveryResponseDTO {
     private Boolean isCheckInCheckOutCompleted;
     private Boolean isCheckInCheckOutFullyValid;
 
+    // Daily note summary
+    private UUID dailyNoteId; // Daily Note ID if exists (indicates daily note completed)
+
     // Cancel information
     private Boolean cancelled;
     private String cancelReason;

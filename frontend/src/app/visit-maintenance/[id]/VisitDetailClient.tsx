@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, Button, message, Input, DatePicker, Select, Checkbox, Tag } from 'antd';
-import { SaveOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { SaveOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import type { VisitMaintenanceDTO } from '@/types/visitMaintenance';
 import VisitHeader from '@/components/visit-maintenance/VisitHeader';
+import CancelVisitModal from '@/components/visit-maintenance/CancelVisitModal';
 import LoadingFallback from '@/components/common/LoadingFallback';
 import InlineError from '@/components/common/InlineError';
 import { getVisitDetail } from '@/lib/api/visitMaintenance';
@@ -29,6 +30,7 @@ export default function VisitDetailClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   useEffect(() => {
     loadVisitDetail();
@@ -75,9 +77,63 @@ export default function VisitDetailClient({
     }
   };
 
+  const handleCancelSuccess = () => {
+    setIsCancelModalOpen(false);
+    loadVisitDetail(); // Reload to show updated cancelled status
+    message.success('Visit cancelled successfully');
+  };
+
   // Tab Content Components
   const GeneralTab = () => (
     <div className="mx-6 p-6 bg-white rounded">
+      {/* Cancellation Alert - Show if visit is cancelled */}
+      {visit.cancelled && (
+        <div style={{
+          backgroundColor: '#fff1f0',
+          border: '2px solid #ff4d4f',
+          borderRadius: 8,
+          padding: 16,
+          marginBottom: 24,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+            <CloseCircleOutlined style={{ fontSize: 24, color: '#ff4d4f', marginRight: 12 }} />
+            <h3 style={{ margin: 0, color: '#cf1322', fontSize: 16, fontWeight: 600 }}>
+              This Visit Has Been Cancelled
+            </h3>
+          </div>
+          
+          {visit.cancelReason && (
+            <div style={{ marginBottom: 8 }}>
+              <strong style={{ color: '#8c1c1c' }}>Cancellation Reason:</strong>
+              <div style={{ 
+                marginTop: 4, 
+                padding: 12, 
+                backgroundColor: '#fff', 
+                borderRadius: 4,
+                color: '#000',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}>
+                {visit.cancelReason}
+              </div>
+            </div>
+          )}
+          
+          <div style={{ display: 'flex', gap: 24, fontSize: 14, color: '#8c1c1c' }}>
+            {visit.cancelledAt && (
+              <div>
+                <strong>Cancelled At:</strong> {dayjs(visit.cancelledAt).format('MM/DD/YYYY HH:mm:ss')}
+              </div>
+            )}
+            {visit.cancelledByStaffName && (
+              <div>
+                <strong>Cancelled By:</strong> {visit.cancelledByStaffName}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Schedule Information */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         <div>
@@ -1023,6 +1079,28 @@ export default function VisitDetailClient({
       {/* Visit Header - Always visible across all tabs */}
       <VisitHeader visit={visit} />
 
+      {/* Action Buttons */}
+      <div className="mx-6 mt-4 flex justify-end gap-2">
+        <Button
+          type="primary"
+          danger
+          icon={<CloseCircleOutlined />}
+          onClick={() => setIsCancelModalOpen(true)}
+          disabled={visit.cancelled}
+        >
+          Cancel Visit
+        </Button>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={handleSave}
+          loading={saving}
+          disabled={visit.cancelled}
+        >
+          Save Changes
+        </Button>
+      </div>
+
       {/* Tabs for different sections */}
       <div className="flex-1 flex flex-col">
         <div className="mx-6 mt-4">
@@ -1033,6 +1111,19 @@ export default function VisitDetailClient({
           />
         </div>
       </div>
+
+      {/* Cancel Visit Modal */}
+      <CancelVisitModal
+        open={isCancelModalOpen}
+        visitId={visitId}
+        visitInfo={{
+          clientName: visit.clientName,
+          employeeName: visit.employeeName,
+          visitDate: visit.visitDate,
+        }}
+        onCancel={() => setIsCancelModalOpen(false)}
+        onSuccess={handleCancelSuccess}
+      />
     </div>
   );
 }

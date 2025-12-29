@@ -13,10 +13,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
-import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.ValidationException;
+import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
+import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.model.dto.VisitMaintenanceDTO;
 import com.example.backend.model.entity.Authorization;
 import com.example.backend.model.entity.DailyNote;
@@ -28,6 +28,7 @@ import com.example.backend.model.entity.Staff;
 import com.example.backend.model.enums.TaskStatus;
 import com.example.backend.model.enums.VisitStatus;
 import com.example.backend.repository.AuthorizationRepository;
+import com.example.backend.repository.DailyNoteRepository;
 import com.example.backend.repository.OfficeRepository;
 import com.example.backend.repository.PatientRepository;
 import com.example.backend.repository.ScheduleEventRepository;
@@ -51,6 +52,7 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
     private final PatientRepository patientRepository;
     private final OfficeRepository officeRepository;
     private final ServiceTypeRepository serviceTypeRepository;
+    private final DailyNoteRepository dailyNoteRepository;
 
     @Override
     @Transactional
@@ -185,7 +187,39 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         // Update fields
         serviceDelivery.setStartAt(dto.getStartAt());
         serviceDelivery.setEndAt(dto.getEndAt());
-        serviceDelivery.setUnits(dto.getUnits());
+        
+        // Update units only if provided, otherwise keep existing or use schedule's planned units
+        if (dto.getUnits() != null) {
+            serviceDelivery.setUnits(dto.getUnits());
+        } else if (serviceDelivery.getUnits() == null) {
+            // If existing units is null, get from schedule event
+            serviceDelivery.setUnits(serviceDelivery.getScheduleEvent().getPlannedUnits());
+        }
+        // If dto.getUnits() is null but serviceDelivery.getUnits() exists, keep existing value
+        
+        // Handle unscheduled visit (staff replacement)
+        if (dto.getIsUnscheduled() != null && dto.getIsUnscheduled()) {
+            if (dto.getActualStaffId() == null) {
+                throw new ValidationException("Actual staff is required for unscheduled visits");
+            }
+            
+            Staff actualStaff = staffRepository.findById(dto.getActualStaffId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Actual staff not found"));
+            
+            serviceDelivery.setIsUnscheduled(true);
+            serviceDelivery.setActualStaff(actualStaff);
+            serviceDelivery.setUnscheduledReason(dto.getUnscheduledReason());
+            
+            log.info("Updating service delivery to unscheduled - Scheduled staff: {}, Actual staff: {}, Reason: {}",
+                    serviceDelivery.getScheduleEvent().getStaff().getFirstName() + " " + serviceDelivery.getScheduleEvent().getStaff().getLastName(),
+                    actualStaff.getFirstName() + " " + actualStaff.getLastName(),
+                    dto.getUnscheduledReason());
+        } else {
+            // Reset unscheduled fields if converting back to scheduled
+            serviceDelivery.setIsUnscheduled(false);
+            serviceDelivery.setActualStaff(null);
+            serviceDelivery.setUnscheduledReason(null);
+        }
         
         // Note: TaskStatus is automatically managed based on check-in/check-out events
         // Manual status updates should use updateTaskStatus() method
@@ -318,9 +352,10 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
             throw new ValidationException("Service delivery is already cancelled");
         }
         
-        // Check if already completed
+        // Soft cancel: Allow cancel even if IN_PROGRESS, but not if COMPLETED with daily note
+        // This allows staff to still check-out and complete documentation
         if (serviceDelivery.isCompleted()) {
-            throw new ValidationException("Cannot cancel a completed service delivery");
+            throw new ValidationException("Cannot cancel a completed service delivery with daily note");
         }
         
         // Validate reason
@@ -336,11 +371,12 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         // String staffId = auth.getName();
         // cancelledBy = staffRepository.findById(UUID.fromString(staffId)).orElse(null);
         
-        // Cancel the service delivery
+        // Cancel the service delivery (soft cancel - staff can still check-out)
         serviceDelivery.cancel(reason, cancelledBy);
         ServiceDelivery saved = serviceDeliveryRepository.save(serviceDelivery);
         
-        log.info("Cancelled service delivery {} by staff {}", id, cancelledBy != null ? cancelledBy.getId() : "system");
+        log.info("Cancelled service delivery {} by staff {} (status: {})", 
+                 id, cancelledBy != null ? cancelledBy.getId() : "system", saved.getTaskStatus());
         return toDto(saved);
     }
 
@@ -390,6 +426,10 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         dto.setCheckOutTime(serviceDelivery.getCheckOutTime());
         dto.setIsCheckInCheckOutCompleted(serviceDelivery.isCheckInCheckOutCompleted());
         dto.setIsCheckInCheckOutFullyValid(serviceDelivery.isCheckInCheckOutFullyValid());
+        
+        // Daily note summary - check if daily note exists for this service delivery
+        dailyNoteRepository.findFirstByServiceDelivery_IdOrderByCreatedAtDesc(serviceDelivery.getId())
+                .ifPresent(dailyNote -> dto.setDailyNoteId(dailyNote.getId()));
         
         // Cancel information
         dto.setCancelled(serviceDelivery.isCancelled());
@@ -674,7 +714,7 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
                 .doNotBill(delivery.getCancelled())
                 .visitStatus(visitStatus)
                 .visitStatusDisplay(visitStatus.getDisplayName())
-                .notes(delivery.getCancelReason())
+                .notes(null) // Notes field reserved for future use
                 .isUnscheduled(delivery.getIsUnscheduled())
                 .unscheduledReason(delivery.getUnscheduledReason())
                 .authorizationNumber(delivery.getAuthorization() != null 
@@ -693,6 +733,15 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
                         .findFirst()
                         .map(DailyNote::getContent)
                         .orElse(null))
+                .cancelled(delivery.getCancelled())
+                .cancelReason(delivery.getCancelReason())
+                .cancelledAt(delivery.getCancelledAt())
+                .cancelledByStaffId(delivery.getCancelledByStaff() != null 
+                        ? delivery.getCancelledByStaff().getId() 
+                        : null)
+                .cancelledByStaffName(delivery.getCancelledByStaff() != null 
+                        ? delivery.getCancelledByStaff().getFirstName() + " " + delivery.getCancelledByStaff().getLastName()
+                        : null)
                 .createdAt(delivery.getCreatedAt())
                 .updatedAt(delivery.getUpdatedAt())
                 .build();

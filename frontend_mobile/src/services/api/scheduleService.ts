@@ -26,6 +26,11 @@ interface ScheduleEventResponse {
   checkInTime?: string;
   checkOutTime?: string;
   dailyNoteId?: string; // Daily Note ID if exists
+  // Staff replacement fields
+  isReplaced?: boolean; // True if this schedule has been replaced
+  replacementStaffId?: string; // ID of replacement staff
+  replacementStaffName?: string; // Name of replacement staff
+  replacementReason?: string; // Reason for replacement
 }
 
 export class ScheduleService {
@@ -123,13 +128,16 @@ export class ScheduleService {
       const events: ScheduleEventResponse[] = pageData.content || [];
       console.log('[ScheduleService] Found', events.length, 'events');
       
-      // Debug: Log first event to check authorizationId
+      // Debug: Log first event to check all status fields
       if (events.length > 0) {
         console.log('[ScheduleService] Sample event:', {
           id: events[0].id,
           patientName: events[0].patientName,
           authorizationId: events[0].authorizationId,
-          hasAuthorization: !!events[0].authorizationId,
+          serviceDeliveryId: events[0].serviceDeliveryId,
+          dailyNoteId: events[0].dailyNoteId,
+          checkInTime: events[0].checkInTime,
+          checkOutTime: events[0].checkOutTime,
         });
       }
       
@@ -159,6 +167,11 @@ export class ScheduleService {
         notes: event.serviceCode || event.programIdentifier,
         location: 'Location not available', // TODO: Fetch from patient details
         serviceType: event.serviceCode || 'Home Care',
+        // Staff replacement tracking
+        isReplaced: event.isReplaced,
+        replacementStaffId: event.replacementStaffId,
+        replacementStaffName: event.replacementStaffName,
+        replacementReason: event.replacementReason,
         // Additional backend fields - not provided in ScheduleEventDTO
         // These would need separate API calls or backend enhancement
       }));
@@ -211,6 +224,11 @@ export class ScheduleService {
         notes: event.serviceCode || event.programIdentifier,
         location: 'Location not available',
         serviceType: event.serviceCode || 'Home Care',
+        // Staff replacement tracking
+        isReplaced: event.isReplaced,
+        replacementStaffId: event.replacementStaffId,
+        replacementStaffName: event.replacementStaffName,
+        replacementReason: event.replacementReason,
       };
     } catch (error) {
       console.error('Error fetching schedule event:', error);

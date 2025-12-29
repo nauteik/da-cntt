@@ -50,11 +50,16 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
   }, [visible]);
 
   const handleButtonPress = (button: AlertButton) => {
-    if (button.onPress) {
-      button.onPress();
-    }
+    // Close alert first to avoid navigation conflicts
     if (onDismiss) {
       onDismiss();
+    }
+    
+    // Delay callback execution to ensure alert is fully dismissed
+    if (button.onPress) {
+      setTimeout(() => {
+        button.onPress!();
+      }, 100);
     }
   };
 

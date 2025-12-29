@@ -32,6 +32,7 @@ export interface ServiceDeliveryResponse {
   totalHours?: number;
   checkInTime?: string;
   checkOutTime?: string;
+  dailyNoteId?: string; // Daily Note ID if completed
   isCheckInCheckOutCompleted: boolean;
   isCheckInCheckOutFullyValid: boolean;
   createdAt: string;
@@ -43,6 +44,11 @@ export interface ServiceDeliveryResponse {
   scheduledStaffId?: string;
   scheduledStaffName?: string;
   unscheduledReason?: string;
+  // Cancellation fields
+  cancelled?: boolean;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
 }
 
 const serviceDeliveryService = {
@@ -76,7 +82,19 @@ const serviceDeliveryService = {
     if (!response.success) {
       throw new Error(response.error || 'Failed to get service deliveries');
     }
-    return response.data.data;
+    const serviceDeliveries = response.data.data;
+    // Debug: Log first service delivery to check dailyNoteId
+    if (serviceDeliveries && serviceDeliveries.length > 0) {
+      console.log('[serviceDeliveryService] Sample service delivery:', {
+        id: serviceDeliveries[0].id,
+        patientName: serviceDeliveries[0].patientName,
+        isUnscheduled: serviceDeliveries[0].isUnscheduled,
+        checkInTime: serviceDeliveries[0].checkInTime,
+        checkOutTime: serviceDeliveries[0].checkOutTime,
+        dailyNoteId: serviceDeliveries[0].dailyNoteId,
+      });
+    }
+    return serviceDeliveries;
   },
 
   /**

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LeftOutlined } from "@ant-design/icons";
+import { LeftOutlined, WarningOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import type { VisitMaintenanceDTO } from "@/types/visitMaintenance";
 import { VisitStatus } from "@/types/visitMaintenance";
@@ -49,8 +49,28 @@ export default function VisitHeader({ visit }: VisitHeaderProps) {
           <Tag color={getStatusColor(visit.visitStatus)}>
             {visit.visitStatusDisplay}
           </Tag>
+          {visit.isUnscheduled && (
+            <Tag color="orange" icon={<WarningOutlined />}>
+              Unscheduled (Replacement)
+            </Tag>
+          )}
         </div>
       </div>
+
+      {/* Replacement Alert */}
+      {visit.isUnscheduled && visit.unscheduledReason && (
+        <div className="bg-[#fff7e6] border border-[#ffd591] rounded-md p-3 mb-3">
+          <div className="flex items-start gap-2">
+            <WarningOutlined className="text-[#fa8c16] mt-0.5" />
+            <div className="flex-1">
+              <div className="font-semibold text-[#d46b08] mb-1">Staff Replacement</div>
+              <div className="text-sm text-[#ad6800]">
+                <strong>Reason:</strong> {visit.unscheduledReason}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Row 2: Visit info - all in one line */}
       <div className="flex items-center gap-3 flex-wrap text-xs leading-[1.5] max-xl:text-[11px] max-md:flex-col max-md:items-start max-md:gap-2">

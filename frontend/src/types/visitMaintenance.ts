@@ -76,6 +76,13 @@ export interface VisitMaintenanceDTO {
   dailyNoteId?: string;
   dailyNoteContent?: string;
 
+  // Cancellation Information
+  cancelled?: boolean;
+  cancelReason?: string;
+  cancelledAt?: string;
+  cancelledByStaffId?: string;
+  cancelledByStaffName?: string;
+
   // Timestamps
   createdAt: string;
   updatedAt: string;

@@ -57,7 +57,7 @@ export default function CancelScheduleScreen() {
       
       // Call backend API to cancel service delivery
       if (params.serviceDeliveryId) {
-        const response = await apiClient.post(
+        const response = await apiClient.patch(
           `/service-delivery/${params.serviceDeliveryId}/cancel?reason=${encodeURIComponent(cancelReason.trim())}`
         );
 

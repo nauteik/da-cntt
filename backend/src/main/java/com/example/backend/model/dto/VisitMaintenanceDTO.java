@@ -83,6 +83,13 @@ public class VisitMaintenanceDTO {
     private UUID dailyNoteId;  // ID of the daily note for this visit
     private String dailyNoteContent;  // Content of the daily note for this visit
     
+    // Cancellation Information
+    private Boolean cancelled;
+    private String cancelReason;
+    private LocalDateTime cancelledAt;
+    private UUID cancelledByStaffId;
+    private String cancelledByStaffName;
+    
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

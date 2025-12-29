@@ -89,8 +89,9 @@ public class BulkInsertService {
         
         String sql = """
             INSERT INTO address (
-                id, line1, city, state, postal_code, county, type, label, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                id, line1, city, state, postal_code, county, type, label, 
+                latitude, longitude, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             """;
 
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
@@ -105,6 +106,8 @@ public class BulkInsertService {
                 ps.setString(6, address.getCounty());
                 ps.setString(7, address.getType().name());
                 ps.setString(8, address.getLabel());
+                ps.setBigDecimal(9, address.getLatitude());
+                ps.setBigDecimal(10, address.getLongitude());
             }
 
             @Override

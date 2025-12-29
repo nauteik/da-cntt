@@ -55,6 +55,12 @@ public class ScheduleEventDTO {
     // Conflict information (for preview)
     private Boolean hasConflict = false;
     private List<String> conflictMessages = new ArrayList<>();
+    
+    // Staff replacement (unscheduled visit) fields
+    private Boolean isReplaced = false; // True if this schedule has been replaced by another staff
+    private UUID replacementStaffId; // ID of the replacement staff (actualStaff in service delivery)
+    private String replacementStaffName; // Name of the replacement staff
+    private String replacementReason; // Reason for staff replacement
 }
 
 

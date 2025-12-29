@@ -26,11 +26,11 @@ import com.example.backend.exception.ConflictException;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.dto.PatientSelectDTO;
 import com.example.backend.model.dto.StaffSelectDTO;
-import com.example.backend.model.dto.schedule.ScheduleConflictDTO;
-import com.example.backend.model.dto.schedule.CreateSchedulePreviewResponseDTO;
 import com.example.backend.model.dto.schedule.CreateScheduleEventDTO;
+import com.example.backend.model.dto.schedule.CreateSchedulePreviewResponseDTO;
 import com.example.backend.model.dto.schedule.CreateScheduleTemplateDTO;
 import com.example.backend.model.dto.schedule.InsertTemplateEventDTO;
+import com.example.backend.model.dto.schedule.ScheduleConflictDTO;
 import com.example.backend.model.dto.schedule.ScheduleEventDTO;
 import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
 import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
@@ -787,6 +787,14 @@ public class ScheduleServiceImpl implements ScheduleService {
                     // Check if Daily Note exists for this Service Delivery
                     dailyNoteRepository.findFirstByServiceDelivery_IdOrderByCreatedAtDesc(sd.getId())
                             .ifPresent(dn -> dto.setDailyNoteId(dn.getId()));
+                    
+                    // Check if this is a staff replacement (unscheduled visit)
+                    if (Boolean.TRUE.equals(sd.getIsUnscheduled()) && sd.getActualStaff() != null) {
+                        dto.setIsReplaced(true);
+                        dto.setReplacementStaffId(sd.getActualStaff().getId());
+                        dto.setReplacementStaffName(sd.getActualStaff().getFirstName() + " " + sd.getActualStaff().getLastName());
+                        dto.setReplacementReason(sd.getUnscheduledReason());
+                    }
                 });
         
         // Set comment from entity

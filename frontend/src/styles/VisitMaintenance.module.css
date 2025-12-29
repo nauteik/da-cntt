@@ -1,0 +1,40 @@
+/* Visit Maintenance specific styles */
+
+/* Legend items spacing */
+.legendContainer {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+/* Visit type badges */
+.visitTypeBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.scheduledBadge {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
+}
+
+.unscheduledBadge {
+  background-color: #fff7e6;
+  color: #fa8c16;
+  border: 1px solid #ffd591;
+}
+
+/* Replacement indicator in employee name cell */
+.employeeNameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.replacementTag {
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 2px;
+}

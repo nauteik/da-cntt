@@ -24,8 +24,9 @@ public interface ServiceDeliveryRepository extends JpaRepository<ServiceDelivery
     
     /**
      * Find service deliveries by staff ordered by start date descending
+     * Includes both scheduled staff and actual staff (for replacements)
      */
-    @Query("SELECT sd FROM ServiceDelivery sd WHERE sd.scheduleEvent.staff = :staff ORDER BY sd.startAt DESC")
+    @Query("SELECT sd FROM ServiceDelivery sd WHERE sd.scheduleEvent.staff = :staff OR sd.actualStaff = :staff ORDER BY sd.startAt DESC")
     List<ServiceDelivery> findByStaffOrderByStartAtDesc(@Param("staff") Staff staff);
     
     /**

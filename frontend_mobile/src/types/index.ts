@@ -75,6 +75,23 @@ export interface Schedule {
   checkOutTime?: string; // ISO datetime string when checked out
   dailyNoteId?: string; // Daily Note ID if daily note has been completed
   recurrenceType?: string;
+  // Unscheduled visit fields (staff replacement)
+  isUnscheduled?: boolean;
+  scheduledStaffId?: string;
+  scheduledStaffName?: string;
+  actualStaffId?: string;
+  actualStaffName?: string;
+  unscheduledReason?: string;
+  // Replacement tracking (for original staff's view)
+  isReplaced?: boolean; // True if this schedule has been replaced
+  replacementStaffId?: string; // ID of replacement staff
+  replacementStaffName?: string; // Name of replacement staff
+  replacementReason?: string; // Reason for replacement
+  // Cancellation fields (soft cancel)
+  cancelled?: boolean;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
 }
 
 // Daily Care Note Types

@@ -51,6 +51,39 @@ export async function getServiceDeliveriesByPatient(
 }
 
 /**
+ * Create unscheduled visit
+ * POST /api/service-delivery with isUnscheduled=true
+ */
+export interface CreateUnscheduledVisitRequest {
+  scheduleEventId?: string | null;
+  authorizationId?: string | null;
+  actualStaffId: string;
+  startAt: string; // ISO datetime string
+  endAt: string; // ISO datetime string
+  isUnscheduled: boolean;
+  unscheduledReason: string;
+  scheduledStaffId?: string | null; // Optional - if replacing someone
+}
+
+export async function createUnscheduledVisit(
+  request: CreateUnscheduledVisitRequest
+): Promise<ServiceDeliveryDTO> {
+  const response = await apiClient<ServiceDeliveryDTO>(
+    '/service-delivery',
+    {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }
+  );
+  
+  if (!response.success || !response.data) {
+    throw new Error(response.message || 'Failed to create unscheduled visit');
+  }
+  
+  return response.data;
+}
+
+/**
  * Get service deliveries by status
  */
 export async function getServiceDeliveriesByStatus(

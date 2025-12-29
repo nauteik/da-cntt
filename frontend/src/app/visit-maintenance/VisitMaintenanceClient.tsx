@@ -33,8 +33,10 @@ import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import layoutStyles from '@/styles/table-layout.module.css';
 import buttonStyles from '@/styles/buttons.module.css';
+import styles from '@/styles/VisitMaintenance.module.css';
 import { getVisits } from '@/lib/api/visitMaintenance';
 import type { VisitMaintenanceDTO, VisitStatus as VisitStatusType } from '@/types/visitMaintenance';
+import CreateUnscheduledVisitModal from '@/components/visit-maintenance/CreateUnscheduledVisitModal';
 
 dayjs.extend(isBetween);
 
@@ -57,15 +59,17 @@ export default function VisitMaintenanceClient() {
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<VisitStatusType | 'all'>('all');
+  const [visitTypeFilter, setVisitTypeFilter] = useState<'all' | 'scheduled' | 'unscheduled'>('all');
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Load visits data
   useEffect(() => {
     loadVisits();
-  }, [currentPage, pageSize, dateRange]);
+  }, [currentPage, pageSize, dateRange, visitTypeFilter]);
 
   const loadVisits = async () => {
     setLoading(true);
@@ -85,8 +89,16 @@ export default function VisitMaintenanceClient() {
       });
 
       if (response.success && response.data) {
-        setVisits(response.data.content);
-        setTotal(response.data.page.totalElements);
+        // Apply client-side visit type filter
+        let filteredVisits = response.data.content;
+        if (visitTypeFilter === 'scheduled') {
+          filteredVisits = filteredVisits.filter(v => !v.isUnscheduled);
+        } else if (visitTypeFilter === 'unscheduled') {
+          filteredVisits = filteredVisits.filter(v => v.isUnscheduled);
+        }
+        
+        setVisits(filteredVisits);
+        setTotal(filteredVisits.length);
       } else {
         setVisits([]);
         setTotal(0);
@@ -121,7 +133,7 @@ export default function VisitMaintenanceClient() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchText, statusFilter]);
+  }, [searchText, statusFilter, visitTypeFilter]);
 
   const getStatusColor = (status: VisitStatusType) => {
     const colorMap = {
@@ -220,6 +232,41 @@ export default function VisitMaintenanceClient() {
       key: 'employeeName',
       width: 150,
       sorter: (a, b) => a.employeeName.localeCompare(b.employeeName),
+      render: (name: string, record: VisitMaintenanceDTO) => (
+        <div>
+          <div>{name}</div>
+          {record.isUnscheduled && (
+            <Tag color="orange" style={{ marginTop: 4, fontSize: 11 }}>
+              Replacement
+            </Tag>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Type',
+      key: 'visitType',
+      width: 110,
+      align: 'center',
+      filters: [
+        { text: 'Scheduled', value: 'scheduled' },
+        { text: 'Unscheduled', value: 'unscheduled' },
+      ],
+      onFilter: (value, record) => 
+        value === 'scheduled' ? !record.isUnscheduled : record.isUnscheduled,
+      render: (_: unknown, record: VisitMaintenanceDTO) => (
+        record.isUnscheduled ? (
+          <Tooltip title={`Replacement: ${record.unscheduledReason || 'No reason provided'}`}>
+            <Tag color="orange" icon={<WarningOutlined />}>
+              Unscheduled
+            </Tag>
+          </Tooltip>
+        ) : (
+          <Tag color="blue" icon={<ClockCircleOutlined />}>
+            Scheduled
+          </Tag>
+        )
+      ),
     },
     {
       title: 'Service',
@@ -338,14 +385,72 @@ export default function VisitMaintenanceClient() {
       dataIndex: 'visitStatus',
       key: 'visitStatus',
       width: 130,
-      render: (status: VisitStatusType, record) => (
-        <Tag 
-          icon={getStatusIcon(status)} 
-          color={getStatusColor(status)}
-        >
-          {record.visitStatusDisplay || getStatusDisplay(status)}
-        </Tag>
-      ),
+      render: (status: VisitStatusType, record) => {
+        // Show cancellation info in tooltip if cancelled
+        if (record.cancelled || status === VisitStatus.CANCELLED) {
+          const cancelInfo = (
+            <div style={{ maxWidth: 300 }}>
+              <div><strong>Cancelled Visit</strong></div>
+              {record.cancelReason && (
+                <div style={{ marginTop: 4 }}>
+                  <strong>Reason:</strong> {record.cancelReason}
+                </div>
+              )}
+              {record.cancelledAt && (
+                <div style={{ marginTop: 4 }}>
+                  <strong>Cancelled At:</strong> {dayjs(record.cancelledAt).format('MM/DD/YYYY HH:mm')}
+                </div>
+              )}
+              {record.cancelledByStaffName && (
+                <div style={{ marginTop: 4 }}>
+                  <strong>Cancelled By:</strong> {record.cancelledByStaffName}
+                </div>
+              )}
+            </div>
+          );
+          
+          return (
+            <Tooltip title={cancelInfo} placement="topLeft">
+              <Tag 
+                icon={getStatusIcon(status)} 
+                color={getStatusColor(status)}
+                style={{ cursor: 'help' }}
+              >
+                {record.visitStatusDisplay || getStatusDisplay(status)}
+              </Tag>
+            </Tooltip>
+          );
+        }
+        
+        return (
+          <Tag 
+            icon={getStatusIcon(status)} 
+            color={getStatusColor(status)}
+          >
+            {record.visitStatusDisplay || getStatusDisplay(status)}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: 'Cancel Reason',
+      dataIndex: 'cancelReason',
+      key: 'cancelReason',
+      width: 200,
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (reason: string | undefined, record: VisitMaintenanceDTO) => {
+        if (!reason || !record.cancelled) return '---';
+        
+        return (
+          <Tooltip title={reason} placement="topLeft">
+            <span style={{ color: '#f5222d', fontStyle: 'italic' }}>
+              {reason}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Do Not Bill',
@@ -402,8 +507,9 @@ export default function VisitMaintenanceClient() {
             type="primary"
             icon={<PlusOutlined />}
             className={buttonStyles.btnPrimary}
+            onClick={() => setIsModalOpen(true)}
           >
-            CREATE CALL
+            CREATE STAFF REPLACEMENT
           </Button>
 
           <Space size="middle" className={layoutStyles.rightControls}>
@@ -420,6 +526,16 @@ export default function VisitMaintenanceClient() {
               onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
               format="MM/DD/YYYY"
             />
+            <Select
+              value={visitTypeFilter}
+              onChange={setVisitTypeFilter}
+              style={{ width: 150 }}
+              placeholder="Visit Type"
+            >
+              <Option value="all">All Visits</Option>
+              <Option value="scheduled">Scheduled</Option>
+              <Option value="unscheduled">Unscheduled</Option>
+            </Select>
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
@@ -454,23 +570,35 @@ export default function VisitMaintenanceClient() {
 
       {/* Legend */}
       <Card className={layoutStyles.controlBar} variant="borderless" style={{ marginBottom: 16 }}>
-        <Space size="large">
-          <span>
-            <Badge status="default" /> Not Started
-          </span>
-          <span>
-            <Badge status="processing" /> In Progress
-          </span>
-          <span>
-            <Badge status="success" /> Completed/Verified
-          </span>
-          <span>
-            <Badge status="warning" /> Incomplete
-          </span>
-          <span>
-            <Badge status="error" /> Cancelled
-          </span>
-        </Space>
+        <div className={styles.legendContainer}>
+          <div>
+            <strong style={{ marginRight: 16 }}>Visit Status:</strong>
+            <Space size="large">
+              <span>
+                <Badge status="default" /> Not Started
+              </span>
+              <span>
+                <Badge status="processing" /> In Progress
+              </span>
+              <span>
+                <Badge status="success" /> Completed/Verified
+              </span>
+              <span>
+                <Badge status="warning" /> Incomplete
+              </span>
+              <span>
+                <Badge status="error" /> Cancelled
+              </span>
+            </Space>
+          </div>
+          <div style={{ marginLeft: 'auto' }}>
+            <strong style={{ marginRight: 16 }}>Visit Type:</strong>
+            <Space>
+              <Tag color="blue" icon={<ClockCircleOutlined />}>Scheduled</Tag>
+              <Tag color="orange" icon={<WarningOutlined />}>Unscheduled (Replacement)</Tag>
+            </Space>
+          </div>
+        </div>
       </Card>
 
       {/* Table */}
@@ -497,7 +625,7 @@ export default function VisitMaintenanceClient() {
             )
           }}
           scroll={{
-            x: 2500,
+            x: 2700,
             y: "calc(100vh - 280px)",
           }}
           pagination={{
@@ -522,6 +650,16 @@ export default function VisitMaintenanceClient() {
           }}
         />
       </Card>
+
+      {/* Unscheduled Visit Modal */}
+      <CreateUnscheduledVisitModal
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          setIsModalOpen(false);
+          loadVisits(); // Refresh the table
+        }}
+      />
     </div>
   );
 }

@@ -80,14 +80,128 @@ export default function ScheduleScreen() {
       
       console.log('[ScheduleScreen] Fetching events for staff:', authState.user.staffId, 'on date:', from);
       
-      const events = await ScheduleService.getStaffScheduleEvents(
+      // Fetch scheduled events
+      const scheduledEvents = await ScheduleService.getStaffScheduleEvents(
         authState.user.staffId,
         from,
         to
       );
       
-      console.log('[ScheduleScreen] Received', events.length, 'events');
-      setSchedule(events);
+      console.log('[ScheduleScreen] Received', scheduledEvents.length, 'scheduled events');
+      
+      // Fetch all service deliveries for the staff to get cancellation status
+      let serviceDeliveriesMap: Map<string, any> = new Map();
+      try {
+        const allServiceDeliveries = await serviceDeliveryService.getByStaff(authState.user.staffId);
+        // Create map by serviceDeliveryId for quick lookup
+        allServiceDeliveries.forEach(sd => {
+          serviceDeliveriesMap.set(sd.id, sd);
+        });
+        console.log('[ScheduleScreen] Fetched', allServiceDeliveries.length, 'service deliveries for cancellation status');
+      } catch (error) {
+        console.error('[ScheduleScreen] Error fetching service deliveries:', error);
+      }
+      
+      // Merge cancellation status into scheduled events
+      const scheduledEventsWithCancellation = scheduledEvents.map(event => {
+        if (event.serviceDeliveryId && serviceDeliveriesMap.has(event.serviceDeliveryId)) {
+          const sd = serviceDeliveriesMap.get(event.serviceDeliveryId);
+          return {
+            ...event,
+            cancelled: sd.cancelled,
+            cancelledAt: sd.cancelledAt,
+            cancelledBy: sd.cancelledBy,
+            cancellationReason: sd.cancellationReason,
+          };
+        }
+        return event;
+      });
+      
+      // Filter out cancelled completed visits from scheduled events (soft cancel)
+      const activeScheduledEvents = scheduledEventsWithCancellation.filter(event => {
+        // Show if not cancelled, OR if cancelled but not completed yet (staff needs to check-out)
+        return !event.cancelled || event.serviceDeliveryStatus !== 'COMPLETED';
+      });
+      
+      console.log('[ScheduleScreen] Active scheduled events after cancel filter:', activeScheduledEvents.length);
+      
+      // Fetch unscheduled visits (service deliveries where isUnscheduled = true)
+      let unscheduledVisits: Schedule[] = [];
+      try {
+        const serviceDeliveries = await serviceDeliveryService.getByStaff(authState.user.staffId);
+        
+        // Filter unscheduled and convert to Schedule format
+        // Only show unscheduled visits where current user is the ACTUAL staff (replacement)
+        // Show cancelled visits if not completed (soft cancel - allow check-out)
+        unscheduledVisits = serviceDeliveries
+          .filter(sd => 
+            sd.isUnscheduled && 
+            sd.startAt.startsWith(from) && 
+            sd.actualStaffId === authState.user.staffId &&
+            // Show if not cancelled, OR if cancelled but not completed yet (staff needs to check-out)
+            (!sd.cancelled || sd.status !== 'COMPLETED')
+          )
+          .map(sd => ({
+            id: sd.id,
+            patientId: sd.patientId,
+            patient: {
+              id: sd.patientId,
+              name: sd.patientName,
+              patientId: sd.patientId,
+              address: '', // Not available in service delivery
+            },
+            employeeId: sd.actualStaffId || sd.staffId,
+            employeeName: sd.actualStaffName || sd.staffName,
+            startTime: new Date(sd.startAt).toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              hour12: false 
+            }),
+            endTime: new Date(sd.endAt).toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              hour12: false 
+            }),
+            date: from,
+            status: sd.status === 'COMPLETED' ? 'completed' : 
+                   sd.status === 'IN_PROGRESS' ? 'in-progress' : 'upcoming',
+            location: '', // Not available
+            serviceType: '',
+            officeId: sd.officeId,
+            officeName: sd.officeName,
+            authorizationId: sd.authorizationId,
+            serviceDeliveryId: sd.id,
+            serviceDeliveryStatus: sd.status,
+            checkInTime: sd.checkInTime,
+            checkOutTime: sd.checkOutTime,
+            dailyNoteId: sd.dailyNoteId, // Daily Note ID if completed
+            // Unscheduled visit specific fields
+            isUnscheduled: true,
+            scheduledStaffId: sd.scheduledStaffId,
+            scheduledStaffName: sd.scheduledStaffName,
+            actualStaffId: sd.actualStaffId,
+            actualStaffName: sd.actualStaffName,
+            unscheduledReason: sd.unscheduledReason,
+            // Cancellation fields
+            cancelled: sd.cancelled,
+            cancelledAt: sd.cancelledAt,
+            cancelledBy: sd.cancelledBy,
+            cancellationReason: sd.cancellationReason,
+          } as Schedule));
+        
+        console.log('[ScheduleScreen] Received', unscheduledVisits.length, 'unscheduled visits');
+      } catch (error) {
+        console.error('[ScheduleScreen] Error fetching unscheduled visits:', error);
+        // Don't fail if unscheduled visits can't be fetched
+      }
+      
+      // Merge and sort by start time
+      const allEvents = [...activeScheduledEvents, ...unscheduledVisits].sort((a, b) => {
+        return a.startTime.localeCompare(b.startTime);
+      });
+      
+      console.log('[ScheduleScreen] Total events (scheduled + unscheduled):', allEvents.length);
+      setSchedule(allEvents);
     } catch (error) {
       console.error('[ScheduleScreen] Error fetching schedule:', error);
       // Don't show alert for now since we're using mock data
@@ -96,6 +210,13 @@ export default function ScheduleScreen() {
       setLoading(false);
     }
   };
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchScheduleEvents();
+    setRefreshing(false);
+  }, [selectedDate, authState.user?.staffId]);
 
   // Get week dates (7 days starting from selected date's week start)
   const getWeekDates = () => {
@@ -152,11 +273,6 @@ export default function ScheduleScreen() {
     setSelectedDate(new Date());
   };
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    fetchScheduleEvents().finally(() => setRefreshing(false));
-  }, [selectedDate, authState.user?.staffId]);
-
   // Create Service Delivery (Start Shift)
   const handleStartShift = async (scheduleEvent: Schedule) => {
     if (!scheduleEvent.id) {
@@ -212,22 +328,9 @@ export default function ScheduleScreen() {
       
       showAlert(
         'Success',
-        'Shift started! You can now check in.',
+        'Shift started successfully! You can now check in from the schedule.',
         [
-          {
-            text: 'Check In Now',
-            onPress: () => {
-              // Update the event with new service delivery info before navigation
-              const updatedEvent = {
-                ...scheduleEvent,
-                serviceDeliveryId: serviceDelivery.id,
-                serviceDeliveryStatus: 'NOT_STARTED'
-              };
-              handleCheckIn(updatedEvent, serviceDelivery.id);
-            },
-            style: 'default',
-          },
-          { text: 'Later', style: 'cancel' },
+          { text: 'OK', style: 'default' },
         ],
         'checkmark-circle',
         '#4CAF50'
@@ -247,18 +350,6 @@ export default function ScheduleScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCancelSchedule = (scheduleEvent: Schedule) => {
-    // Navigate directly to cancel schedule screen with params
-    router.push({
-      pathname: '/cancel-schedule',
-      params: {
-        serviceDeliveryId: scheduleEvent.serviceDeliveryId || '',
-        patientName: scheduleEvent.patient.name,
-        scheduledTime: `${scheduleEvent.date}, ${scheduleEvent.startTime} - ${scheduleEvent.endTime}`,
-      },
-    });
   };
 
   const handleCheckIn = (scheduleEvent: Schedule, serviceDeliveryId?: string) => {
@@ -538,7 +629,7 @@ export default function ScheduleScreen() {
           const allCompleted = event.status === 'completed' || 
                                event.serviceDeliveryStatus?.toUpperCase() === 'COMPLETED' ||
                                allStepsCompleted;
-          const isCancelled = event.status === 'cancelled';
+          const isCancelled = event.cancelled === true; // Use soft cancel flag
           
           // Use serviceDeliveryStatus (TaskStatus) if available, otherwise use schedule status
           const displayStatus = event.serviceDeliveryId && event.serviceDeliveryStatus 
@@ -549,9 +640,18 @@ export default function ScheduleScreen() {
             <View key={event.id} style={[styles.patientCard, isCancelled && styles.cancelledCard]}>
               <View style={styles.cardHeader}>
                 <View style={styles.patientInfo}>
-                  <Text style={[styles.patientName, isCancelled && styles.cancelledText]}>
-                    {event.patient.name}
-                  </Text>
+                  <View style={styles.patientNameRow}>
+                    <Text style={[styles.patientName, isCancelled && styles.cancelledText]}>
+                      {event.patient.name}
+                    </Text>
+                    {/* Replacement Badge for unscheduled visits */}
+                    {event.isUnscheduled && (
+                      <View style={styles.replacementBadge}>
+                        <Ionicons name="swap-horizontal" size={14} color="#FF9800" />
+                        <Text style={styles.replacementBadgeText}>Replacement</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={[styles.patientId, isCancelled && styles.cancelledText]}>
                     ID: {event.patientId}
                   </Text>
@@ -563,8 +663,8 @@ export default function ScheduleScreen() {
                   </View>
                 ) : isCancelled ? (
                   <View style={styles.cancelledBadge}>
-                    <Ionicons name="close-circle" size={20} color="#f44336" />
-                    <Text style={styles.cancelledBadgeText}>Cancelled</Text>
+                    <Ionicons name="alert-circle" size={20} color="#f44336" />
+                    <Text style={styles.cancelledBadgeText}>CANCELLED</Text>
                   </View>
                 ) : (
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(displayStatus) }]}>
@@ -579,6 +679,73 @@ export default function ScheduleScreen() {
               </View>
 
               <View style={styles.cardBody}>
+                {/* Cancelled visit alert */}
+                {isCancelled && (
+                  <View style={styles.cancelledAlert}>
+                    <View style={styles.cancelledAlertHeader}>
+                      <Ionicons name="warning" size={18} color="#f44336" />
+                      <Text style={styles.cancelledAlertTitle}>Visit Cancelled</Text>
+                    </View>
+                    <Text style={styles.cancelledAlertText}>
+                      This visit has been cancelled. Please complete check-out if you have started.
+                    </Text>
+                    {event.cancellationReason && (
+                      <Text style={styles.cancellationReason}>
+                        Reason: {event.cancellationReason}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                
+                {/* Unscheduled visit info (for replacement staff) */}
+                {event.isUnscheduled && (
+                  <View style={styles.replacementInfoCard}>
+                    <View style={styles.replacementInfoRow}>
+                      <Ionicons name="information-circle" size={18} color="#FF9800" />
+                      <Text style={styles.replacementInfoTitle}>Staff Replacement</Text>
+                    </View>
+                    <View style={styles.replacementDetails}>
+                      <Text style={styles.replacementDetailText}>
+                        <Text style={styles.replacementDetailLabel}>Original: </Text>
+                        {event.scheduledStaffName || 'N/A'}
+                      </Text>
+                      <Text style={styles.replacementDetailText}>
+                        <Text style={styles.replacementDetailLabel}>Current: </Text>
+                        {event.actualStaffName || 'You'}
+                      </Text>
+                      {event.unscheduledReason && (
+                        <Text style={styles.replacementReason}>
+                          Reason: {event.unscheduledReason}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )}
+                
+                {/* Replaced notification (for original staff) */}
+                {event.isReplaced && !event.isUnscheduled && (
+                  <View style={styles.replacedNotificationCard}>
+                    <View style={styles.replacedNotificationHeader}>
+                      <Ionicons name="person-remove" size={18} color="#F44336" />
+                      <Text style={styles.replacedNotificationTitle}>Schedule Replaced</Text>
+                    </View>
+                    <View style={styles.replacedNotificationBody}>
+                      <Text style={styles.replacedNotificationText}>
+                        This schedule has been assigned to another staff member.
+                      </Text>
+                      <Text style={styles.replacedStaffText}>
+                        <Text style={styles.replacedStaffLabel}>Replacement Staff: </Text>
+                        {event.replacementStaffName}
+                      </Text>
+                      {event.replacementReason && (
+                        <Text style={styles.replacedReasonText}>
+                          Reason: {event.replacementReason}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )}
+                
                 <View style={styles.infoRow}>
                   <Ionicons name="time-outline" size={16} color={isCancelled ? "#999" : "#666"} />
                   <Text style={[styles.infoText, isCancelled && styles.cancelledText]}>
@@ -601,11 +768,11 @@ export default function ScheduleScreen() {
                 )}
               </View>
 
-              {/* Only show actions for non-cancelled schedules */}
-              {!isCancelled && (
+              {/* Show actions for non-replaced schedules - allow check-out even if cancelled (soft cancel) */}
+              {!event.isReplaced && (
                 <>
-                  {/* Start Shift Button - only if Service Delivery doesn't exist */}
-                  {!hasServiceDelivery && (
+                  {/* Start Shift Button - only if Service Delivery doesn't exist and not cancelled */}
+                  {!hasServiceDelivery && !isCancelled && (
                     <TouchableOpacity 
                       style={styles.startShiftButton}
                       onPress={() => handleStartShift(event)}
@@ -631,7 +798,7 @@ export default function ScheduleScreen() {
                             {progress.checkedIn ? "✓ Checked In" : "Not Checked In"}
                           </Text>
                         </View>
-                        {!progress.checkedIn && (
+                        {!progress.checkedIn && !isCancelled && (
                           <TouchableOpacity 
                             style={styles.stepButton}
                             onPress={() => handleCheckIn(event)}
@@ -654,7 +821,7 @@ export default function ScheduleScreen() {
                             {progress.dailyNoteCompleted ? "✓ Daily Note Completed" : "Daily Note Pending"}
                           </Text>
                         </View>
-                        {!progress.dailyNoteCompleted && progress.checkedIn && (
+                        {!progress.dailyNoteCompleted && progress.checkedIn && !isCancelled && (
                           <TouchableOpacity 
                             style={styles.stepButton}
                             onPress={() => handleDailyNote(event)}
@@ -690,16 +857,6 @@ export default function ScheduleScreen() {
                     </View>
                   )}
 
-                  {/* Cancel Button - only for non-completed schedules */}
-                  {!allCompleted && (
-                    <TouchableOpacity 
-                      style={styles.cancelScheduleButton} 
-                      onPress={() => handleCancelSchedule(event)}
-                    >
-                      <Ionicons name="close-circle-outline" size={18} color="#f44336" />
-                      <Text style={styles.cancelScheduleText}>Cancel Schedule</Text>
-                    </TouchableOpacity>
-                  )}
                 </>
               )}
             </View>
@@ -980,22 +1137,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
-  cancelScheduleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFEBEE',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  cancelScheduleText: {
-    color: '#f44336',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
   cardActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1074,5 +1215,136 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+  },
+  // Replacement badge and info styles
+  patientNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  replacementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    gap: 4,
+  },
+  replacementBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FF9800',
+  },
+  replacementInfoCard: {
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF9800',
+  },
+  replacementInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  replacementInfoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E65100',
+  },
+  replacementDetails: {
+    gap: 4,
+  },
+  replacementDetailText: {
+    fontSize: 13,
+    color: '#F57C00',
+    lineHeight: 18,
+  },
+  replacementDetailLabel: {
+    fontWeight: '600',
+  },
+  replacementReason: {
+    fontSize: 12,
+    color: '#FB8C00',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  // Cancelled alert styles
+  cancelledAlert: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#f44336',
+  },
+  cancelledAlertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  cancelledAlertTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#C62828',
+  },
+  cancelledAlertText: {
+    fontSize: 13,
+    color: '#D32F2F',
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  cancellationReason: {
+    fontSize: 12,
+    color: '#E53935',
+    fontStyle: 'italic',
+  },
+  // Replaced notification styles (for original staff)
+  replacedNotificationCard: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F44336',
+  },
+  replacedNotificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  replacedNotificationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#C62828',
+  },
+  replacedNotificationBody: {
+    gap: 4,
+  },
+  replacedNotificationText: {
+    fontSize: 13,
+    color: '#D32F2F',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  replacedStaffText: {
+    fontSize: 13,
+    color: '#E53935',
+    lineHeight: 18,
+  },
+  replacedStaffLabel: {
+    fontWeight: '600',
+  },
+  replacedReasonText: {
+    fontSize: 12,
+    color: '#EF5350',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });

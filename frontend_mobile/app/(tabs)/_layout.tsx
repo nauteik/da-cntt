@@ -43,19 +43,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="unscheduled"
-        options={{
-          title: 'Unscheduled',
-          tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 28 : 24} 
-              name="plus.circle.fill" 
-              color={color} 
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
