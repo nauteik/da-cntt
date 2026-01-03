@@ -38,12 +38,6 @@ export default function ScheduleScreen() {
   // Fetch schedule events from backend
   useEffect(() => {
     if (authState.user?.staffId) {
-      console.log('[ScheduleScreen] Current user:', {
-        userId: authState.user.id,
-        staffId: authState.user.staffId,
-        name: authState.user.name,
-        role: authState.user.role,
-      });
       fetchScheduleEvents();
     } else {
       console.warn('[ScheduleScreen] No staff ID available for user');
@@ -54,7 +48,6 @@ export default function ScheduleScreen() {
   useFocusEffect(
     useCallback(() => {
       if (authState.user?.staffId) {
-        console.log('[ScheduleScreen] Screen focused - refreshing schedule data');
         fetchScheduleEvents();
       }
     }, [selectedDate, authState.user?.staffId])
@@ -78,16 +71,12 @@ export default function ScheduleScreen() {
       const from = formatDate(selectedDate);
       const to = formatDate(selectedDate);
       
-      console.log('[ScheduleScreen] Fetching events for staff:', authState.user.staffId, 'on date:', from);
-      
       // Fetch scheduled events
       const scheduledEvents = await ScheduleService.getStaffScheduleEvents(
         authState.user.staffId,
         from,
         to
       );
-      
-      console.log('[ScheduleScreen] Received', scheduledEvents.length, 'scheduled events');
       
       // Fetch all service deliveries for the staff to get cancellation status
       let serviceDeliveriesMap: Map<string, any> = new Map();
@@ -97,7 +86,6 @@ export default function ScheduleScreen() {
         allServiceDeliveries.forEach(sd => {
           serviceDeliveriesMap.set(sd.id, sd);
         });
-        console.log('[ScheduleScreen] Fetched', allServiceDeliveries.length, 'service deliveries for cancellation status');
       } catch (error) {
         console.error('[ScheduleScreen] Error fetching service deliveries:', error);
       }
@@ -135,8 +123,6 @@ export default function ScheduleScreen() {
         return !event.cancelled || event.serviceDeliveryStatus !== 'COMPLETED';
       });
       
-      console.log('[ScheduleScreen] Active scheduled events after cancel filter:', activeScheduledEvents.length);
-      
       // Fetch unscheduled visits (service deliveries where isUnscheduled = true)
       let unscheduledVisits: Schedule[] = [];
       try {
@@ -145,63 +131,79 @@ export default function ScheduleScreen() {
         // Filter unscheduled and convert to Schedule format
         // Only show unscheduled visits where current user is the ACTUAL staff (replacement)
         // Show cancelled visits if not completed (soft cancel - allow check-out)
-        unscheduledVisits = serviceDeliveries
-          .filter(sd => 
-            sd.isUnscheduled && 
-            sd.startAt.startsWith(from) && 
-            sd.actualStaffId === authState.user.staffId &&
-            // Show if not cancelled, OR if cancelled but not completed yet (staff needs to check-out)
-            (!sd.cancelled || sd.status !== 'COMPLETED')
-          )
-          .map(sd => ({
-            id: sd.id,
-            patientId: sd.patientId,
-            patient: {
-              id: sd.patientId,
-              name: sd.patientName,
-              patientId: sd.patientId,
-              address: '', // Not available in service delivery
-            },
-            employeeId: sd.actualStaffId || sd.staffId,
-            employeeName: sd.actualStaffName || sd.staffName,
-            startTime: new Date(sd.startAt).toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit', 
-              hour12: false 
-            }),
-            endTime: new Date(sd.endAt).toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit', 
-              hour12: false 
-            }),
-            date: from,
-            status: sd.status === 'COMPLETED' ? 'completed' : 
-                   sd.status === 'IN_PROGRESS' ? 'in-progress' : 'upcoming',
-            location: '', // Not available
-            serviceType: '',
-            officeId: sd.officeId,
-            officeName: sd.officeName,
-            authorizationId: sd.authorizationId,
-            serviceDeliveryId: sd.id,
-            serviceDeliveryStatus: sd.status,
-            checkInTime: sd.checkInTime,
-            checkOutTime: sd.checkOutTime,
-            dailyNoteId: sd.dailyNoteId, // Daily Note ID if completed
-            // Unscheduled visit specific fields
-            isUnscheduled: true,
-            scheduledStaffId: sd.scheduledStaffId,
-            scheduledStaffName: sd.scheduledStaffName,
-            actualStaffId: sd.actualStaffId,
-            actualStaffName: sd.actualStaffName,
-            unscheduledReason: sd.unscheduledReason,
-            // Cancellation fields
-            cancelled: sd.cancelled,
-            cancelledAt: sd.cancelledAt,
-            cancelledBy: sd.cancelledBy,
-            cancellationReason: sd.cancellationReason,
-          } as Schedule));
+        const unscheduledDeliveries = serviceDeliveries.filter(sd => 
+          sd.isUnscheduled && 
+          sd.startAt.startsWith(from) && 
+          sd.actualStaffId === authState.user.staffId &&
+          // Show if not cancelled, OR if cancelled but not completed yet (staff needs to check-out)
+          (!sd.cancelled || sd.status !== 'COMPLETED')
+        );
         
-        console.log('[ScheduleScreen] Received', unscheduledVisits.length, 'unscheduled visits');
+        unscheduledVisits = unscheduledDeliveries
+          .map(sd => {
+            // Log address data for debugging
+            console.log('[ScheduleScreen] Unscheduled visit address data:', {
+              patientName: sd.patientName,
+              patientAddress: sd.patientAddress,
+              patientCity: sd.patientCity,
+              patientState: sd.patientState,
+              patientZipCode: sd.patientZipCode,
+            });
+            
+            // Build location string from patient address
+            const location = sd.patientAddress || 
+                            (sd.patientCity && sd.patientState 
+                              ? `${sd.patientCity}, ${sd.patientState}` 
+                              : 'Location Not Available');
+            
+            return {
+              id: sd.id,
+              patientId: sd.patientId,
+              patient: {
+                id: sd.patientId,
+                name: sd.patientName,
+                patientId: sd.patientId,
+                address: sd.patientAddress || '',
+              },
+              employeeId: sd.actualStaffId || sd.staffId,
+              employeeName: sd.actualStaffName || sd.staffName,
+              startTime: new Date(sd.startAt).toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+              }),
+              endTime: new Date(sd.endAt).toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+              }),
+              date: from,
+              status: sd.status === 'COMPLETED' ? 'completed' : 
+                     sd.status === 'IN_PROGRESS' ? 'in-progress' : 'upcoming',
+              location: location,
+              serviceType: '',
+              officeId: sd.officeId,
+              officeName: sd.officeName,
+              authorizationId: sd.authorizationId,
+              serviceDeliveryId: sd.id,
+              serviceDeliveryStatus: sd.status,
+              checkInTime: sd.checkInTime,
+              checkOutTime: sd.checkOutTime,
+              dailyNoteId: sd.dailyNoteId, // Daily Note ID if completed
+              // Unscheduled visit specific fields
+              isUnscheduled: true,
+              scheduledStaffId: sd.scheduledStaffId,
+              scheduledStaffName: sd.scheduledStaffName,
+              actualStaffId: sd.actualStaffId,
+              actualStaffName: sd.actualStaffName,
+              unscheduledReason: sd.unscheduledReason,
+              // Cancellation fields
+              cancelled: sd.cancelled,
+              cancelledAt: sd.cancelledAt,
+              cancelledBy: sd.cancelledBy,
+              cancellationReason: sd.cancellationReason,
+            } as Schedule;
+          });
       } catch (error) {
         console.error('[ScheduleScreen] Error fetching unscheduled visits:', error);
         // Don't fail if unscheduled visits can't be fetched
@@ -212,7 +214,6 @@ export default function ScheduleScreen() {
         return a.startTime.localeCompare(b.startTime);
       });
       
-      console.log('[ScheduleScreen] Total events (scheduled + unscheduled):', allEvents.length);
       setSchedule(allEvents);
     } catch (error) {
       console.error('[ScheduleScreen] Error fetching schedule:', error);
@@ -633,21 +634,6 @@ export default function ScheduleScreen() {
           
           // Check if all steps are completed
           const allStepsCompleted = progress.checkedIn && progress.checkedOut && progress.dailyNoteCompleted;
-          
-          // Debug logging
-          if (hasServiceDelivery) {
-            console.log('[ScheduleScreen] Event progress:', {
-              eventId: event.id,
-              patientName: event.patient.name,
-              serviceDeliveryId: event.serviceDeliveryId,
-              serviceDeliveryStatus: event.serviceDeliveryStatus,
-              checkInTime: event.checkInTime,
-              checkOutTime: event.checkOutTime,
-              dailyNoteId: event.dailyNoteId,
-              progress,
-              allStepsCompleted,
-            });
-          }
           
           // Consider completed if: status is 'completed' OR serviceDeliveryStatus is 'COMPLETED' OR all steps are done
           const allCompleted = event.status === 'completed' || 

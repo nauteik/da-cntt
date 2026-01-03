@@ -18,6 +18,10 @@ public class ScheduleEventDTO {
     private UUID patientId;
     private String patientName; // For display in staff context
     private String patientClientId; // For display in staff context
+    private String patientAddress; // Full address string for display
+    private String patientCity;
+    private String patientState;
+    private String patientZipCode;
     private LocalDate eventDate;
     private OffsetDateTime startAt;
     private OffsetDateTime endAt;

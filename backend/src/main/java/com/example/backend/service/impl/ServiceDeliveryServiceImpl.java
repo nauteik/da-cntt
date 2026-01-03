@@ -18,6 +18,7 @@ import com.example.backend.exception.ValidationException;
 import com.example.backend.model.dto.ServiceDeliveryRequestDTO;
 import com.example.backend.model.dto.ServiceDeliveryResponseDTO;
 import com.example.backend.model.dto.VisitMaintenanceDTO;
+import com.example.backend.model.entity.Address;
 import com.example.backend.model.entity.Authorization;
 import com.example.backend.model.entity.DailyNote;
 import com.example.backend.model.entity.Office;
@@ -402,6 +403,20 @@ public class ServiceDeliveryServiceImpl implements ServiceDeliveryService {
         if (patient != null) {
             dto.setPatientId(patient.getId());
             dto.setPatientName(patient.getFirstName() + " " + patient.getLastName());
+            
+            // Get patient's main address
+            patient.getPatientAddresses().stream()
+                    .filter(pa -> Boolean.TRUE.equals(pa.getIsMain()))
+                    .findFirst()
+                    .ifPresent(patientAddress -> {
+                        Address address = patientAddress.getAddress();
+                        if (address != null) {
+                            dto.setPatientAddress(address.getFullAddress());
+                            dto.setPatientCity(address.getCity());
+                            dto.setPatientState(address.getState());
+                            dto.setPatientZipCode(address.getPostalCode());
+                        }
+                    });
         }
         
         Staff staff = serviceDelivery.getStaff();

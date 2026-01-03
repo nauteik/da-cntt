@@ -7,6 +7,10 @@ interface ScheduleEventResponse {
   patientId: string;
   patientName: string;
   patientClientId: string;
+  patientAddress?: string; // Full address string
+  patientCity?: string;
+  patientState?: string;
+  patientZipCode?: string;
   eventDate: string;
   startAt: string;
   endAt: string;
@@ -148,7 +152,7 @@ export class ScheduleService {
           id: event.patientId,
           name: this.formatPatientName(event.patientName), // Format from "Last, First" to "First Last"
           patientId: event.patientClientId || event.patientId,
-          address: 'Address not available', // TODO: Fetch from patient details
+          address: event.patientAddress || 'Address not available',
           phone: 'Phone not available', // TODO: Fetch from patient details
           dateOfBirth: 'DOB not available', // TODO: Fetch from patient details
         },
@@ -165,7 +169,10 @@ export class ScheduleService {
         date: event.eventDate, // Backend already provides formatted date
         status: this.mapStatusToScheduleStatus(event.status),
         notes: event.serviceCode || event.programIdentifier,
-        location: 'Location not available', // TODO: Fetch from patient details
+        location: event.patientAddress || 
+                 (event.patientCity && event.patientState 
+                   ? `${event.patientCity}, ${event.patientState}` 
+                   : 'Location not available'),
         serviceType: event.serviceCode || 'Home Care',
         // Staff replacement tracking
         isReplaced: event.isReplaced,
@@ -206,7 +213,7 @@ export class ScheduleService {
           id: event.patientId,
           name: this.formatPatientName(event.patientName), // Format from "Last, First" to "First Last"
           patientId: event.patientClientId || event.patientId,
-          address: 'Address not available',
+          address: event.patientAddress || 'Address not available',
           phone: 'Phone not available',
           dateOfBirth: 'DOB not available',
         },

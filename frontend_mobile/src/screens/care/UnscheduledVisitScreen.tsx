@@ -114,48 +114,96 @@ export default function UnscheduledVisitScreen() {
       return;
     }
 
+    console.log('========== LOAD UNSCHEDULED VISITS ==========');
+    console.log('👤 Staff ID:', state.user.staffId);
     setIsLoading(true);
     try {
       // Get all service deliveries for this staff
       const allServiceDeliveries = await serviceDeliveryService.getByStaff(state.user.staffId);
+      console.log('📦 All service deliveries received:', allServiceDeliveries.length);
+      console.log('📋 First service delivery sample:', allServiceDeliveries[0]);
 
       // Filter only unscheduled visits (where actualStaffId is set and different from scheduledStaffId)
       const unscheduledServiceDeliveries = allServiceDeliveries.filter(
         (sd) => sd.isUnscheduled === true && sd.actualStaffId === state.user?.staffId
       );
 
-      console.log('[UnscheduledVisitScreen] Loaded', unscheduledServiceDeliveries.length, 'unscheduled visits');
+      console.log('🔍 Filtered unscheduled visits:', unscheduledServiceDeliveries.length);
+      if (unscheduledServiceDeliveries.length > 0) {
+        console.log('📝 First unscheduled visit details:', {
+          id: unscheduledServiceDeliveries[0].id,
+          patientName: unscheduledServiceDeliveries[0].patientName,
+          patientAddress: unscheduledServiceDeliveries[0].patientAddress,
+          patientCity: unscheduledServiceDeliveries[0].patientCity,
+          patientState: unscheduledServiceDeliveries[0].patientState,
+          patientZipCode: unscheduledServiceDeliveries[0].patientZipCode,
+          isUnscheduled: unscheduledServiceDeliveries[0].isUnscheduled,
+          actualStaffId: unscheduledServiceDeliveries[0].actualStaffId,
+          allKeys: Object.keys(unscheduledServiceDeliveries[0]),
+        });
+      }
 
       // Transform ServiceDeliveryResponse to UnscheduledVisitDisplay
-      const unscheduledVisits: UnscheduledVisitDisplay[] = unscheduledServiceDeliveries.map((sd) => ({
-        id: sd.scheduleEventId, // Use schedule event ID as the main ID
-        serviceDeliveryId: sd.id,
-        patientId: sd.patientId || '',
-        patient: {
-          id: sd.patientId || '',
-          name: sd.patientName || 'Unknown Patient',
-          clientId: '',
-        } as any,
-        employeeId: sd.actualStaffId || state.user?.staffId || '',
-        employeeName: sd.actualStaffName || state.user?.name || '',
-        date: new Date(sd.createdAt).toISOString().split('T')[0],
-        startTime: sd.startAt || '',
-        endTime: sd.endAt || '',
-        status: sd.status === 'COMPLETED' ? 'completed' : 
-                sd.status === 'CANCELLED' ? 'cancelled' : 'in-progress',
-        location: 'Patient Home',
-        serviceType: 'Unscheduled Visit',
-        authorizationId: sd.authorizationId,
-        checkInTime: sd.checkInTime,
-        checkOutTime: sd.checkOutTime,
-        unscheduledReason: sd.unscheduledReason,
-        actualStaffName: sd.actualStaffName,
-        scheduledStaffName: sd.scheduledStaffName,
-      }));
+      const unscheduledVisits: UnscheduledVisitDisplay[] = unscheduledServiceDeliveries.map((sd, index) => {
+        // Build location string from patient address
+        const location = sd.patientAddress || 
+                        (sd.patientCity && sd.patientState 
+                          ? `${sd.patientCity}, ${sd.patientState}` 
+                          : 'Patient Home');
+        
+        console.log(`🔄 Transforming visit ${index + 1}:`, {
+          id: sd.id,
+          patientName: sd.patientName,
+          patientAddress: sd.patientAddress,
+          patientCity: sd.patientCity,
+          patientState: sd.patientState,
+          computedLocation: location,
+        });
+        
+        return {
+          id: sd.scheduleEventId, // Use schedule event ID as the main ID
+          serviceDeliveryId: sd.id,
+          patientId: sd.patientId || '',
+          patient: {
+            id: sd.patientId || '',
+            name: sd.patientName || 'Unknown Patient',
+            clientId: '',
+          } as any,
+          employeeId: sd.actualStaffId || state.user?.staffId || '',
+          employeeName: sd.actualStaffName || state.user?.name || '',
+          date: new Date(sd.createdAt).toISOString().split('T')[0],
+          startTime: sd.startAt || '',
+          endTime: sd.endAt || '',
+          status: sd.status === 'COMPLETED' ? 'completed' : 
+                  sd.status === 'CANCELLED' ? 'cancelled' : 'in-progress',
+          location: location,
+          serviceType: 'Unscheduled Visit',
+          authorizationId: sd.authorizationId,
+          checkInTime: sd.checkInTime,
+          checkOutTime: sd.checkOutTime,
+          unscheduledReason: sd.unscheduledReason,
+          actualStaffName: sd.actualStaffName,
+          scheduledStaffName: sd.scheduledStaffName,
+        };
+      });
+
+      console.log('✅ Final transformed visits:', unscheduledVisits.length);
+      if (unscheduledVisits.length > 0) {
+        console.log('📍 First visit location:', unscheduledVisits[0].location);
+        console.log('📍 All visit locations:', unscheduledVisits.map(v => ({ 
+          patient: v.patient.name, 
+          location: v.location 
+        })));
+      }
+      console.log('============================================');
 
       setVisits(unscheduledVisits);
     } catch (error) {
-      console.error('[UnscheduledVisitScreen] Load visits error:', error);
+      console.error('❌ [UnscheduledVisitScreen] Load visits error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -177,11 +225,13 @@ export default function UnscheduledVisitScreen() {
     }
 
     try {
+      console.log('========== CREATE UNSCHEDULED VISIT ==========');
       console.log('[UnscheduledVisitScreen] Creating unscheduled visit:', {
         scheduleEventId: selectedSchedule.id,
         patientName: selectedSchedule.patient.name,
         actualStaffId: state.user.staffId,
         reason: reason,
+        authorizationId: selectedSchedule.authorizationId,
       });
 
       const serviceDelivery = await serviceDeliveryService.create({
@@ -192,7 +242,15 @@ export default function UnscheduledVisitScreen() {
         unscheduledReason: reason,
       });
 
-      console.log('[UnscheduledVisitScreen] Service Delivery created:', serviceDelivery);
+      console.log('✅ [UnscheduledVisitScreen] Service Delivery created:', serviceDelivery);
+      console.log('📍 Location in created SD:', {
+        patientAddress: serviceDelivery.patientAddress,
+        patientCity: serviceDelivery.patientCity,
+        patientState: serviceDelivery.patientState,
+        patientZipCode: serviceDelivery.patientZipCode,
+        allKeys: Object.keys(serviceDelivery),
+      });
+      console.log('=============================================');
 
       // Close modal
       setShowPatientSearchModal(false);
@@ -211,7 +269,11 @@ export default function UnscheduledVisitScreen() {
         },
       });
     } catch (error) {
-      console.error('[UnscheduledVisitScreen] Create error:', error);
+      console.error('❌ [UnscheduledVisitScreen] Create error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       Alert.alert('Error', 'Failed to create unscheduled visit: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };

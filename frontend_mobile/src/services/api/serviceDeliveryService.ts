@@ -22,6 +22,10 @@ export interface ServiceDeliveryResponse {
   officeName: string;
   patientId: string;
   patientName: string;
+  patientAddress?: string;
+  patientCity?: string;
+  patientState?: string;
+  patientZipCode?: string;
   staffId: string;
   staffName: string;
   startAt: string;

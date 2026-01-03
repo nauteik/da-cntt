@@ -22,6 +22,10 @@ public class ServiceDeliveryResponseDTO {
     private String officeName;
     private UUID patientId;
     private String patientName;
+    private String patientAddress; // Full address string for display
+    private String patientCity;
+    private String patientState;
+    private String patientZipCode;
     private UUID staffId;
     private String staffName;
 

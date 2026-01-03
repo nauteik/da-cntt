@@ -36,6 +36,7 @@ import com.example.backend.model.dto.schedule.ScheduleTemplateDTO;
 import com.example.backend.model.dto.schedule.ScheduleTemplateWeeksDTO;
 import com.example.backend.model.dto.schedule.TemplateEventDTO;
 import com.example.backend.model.dto.schedule.WeekWithEventsDTO;
+import com.example.backend.model.entity.Address;
 import com.example.backend.model.entity.AppUser;
 import com.example.backend.model.entity.Authorization;
 import com.example.backend.model.entity.CheckEvent;
@@ -702,6 +703,20 @@ public class ScheduleServiceImpl implements ScheduleService {
             String patientName = (e.getPatient().getLastName() != null ? e.getPatient().getLastName() : "") + ", " + (e.getPatient().getFirstName() != null ? e.getPatient().getFirstName() : "");
             dto.setPatientName(patientName.trim().replaceAll(", $", ""));
             dto.setPatientClientId(e.getPatient().getClientId());
+            
+            // Get patient's main address
+            e.getPatient().getPatientAddresses().stream()
+                    .filter(pa -> Boolean.TRUE.equals(pa.getIsMain()))
+                    .findFirst()
+                    .ifPresent(patientAddress -> {
+                        Address address = patientAddress.getAddress();
+                        if (address != null) {
+                            dto.setPatientAddress(address.getFullAddress());
+                            dto.setPatientCity(address.getCity());
+                            dto.setPatientState(address.getState());
+                            dto.setPatientZipCode(address.getPostalCode());
+                        }
+                    });
         }
         dto.setEventDate(e.getEventDate());
         dto.setStartAt(e.getStartAt());
