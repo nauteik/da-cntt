@@ -434,9 +434,9 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
             WHERE p.deleted_at IS NULL
                 AND a.end_date IS NOT NULL
                 AND a.end_date >= CURRENT_DATE
-                AND a.end_date <= CURRENT_DATE + INTERVAL '90 days'
-                AND (:fromDate IS NULL OR a.start_date >= CAST(:fromDate AS DATE))
-                AND (:toDate IS NULL OR a.end_date <= CAST(:toDate AS DATE))
+                AND a.end_date <= CURRENT_DATE + CAST(:expiresAfterDays AS INTEGER) * INTERVAL '1 day'
+                AND (CAST(:fromDate AS DATE) IS NULL OR a.start_date >= CAST(:fromDate AS DATE))
+                AND (CAST(:toDate AS DATE) IS NULL OR a.end_date <= CAST(:toDate AS DATE))
                 AND (COALESCE(:payerIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR payer.id = ANY(:payerIds))
                 AND (COALESCE(:programIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR prog.id = ANY(:programIds))
                 AND (COALESCE(:serviceTypeIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR st.id = ANY(:serviceTypeIds))
@@ -456,6 +456,7 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
         @Param("serviceTypeIds") UUID[] serviceTypeIds,
         @Param("clientMedicaidId") String clientMedicaidId,
         @Param("clientSearch") String clientSearch,
+        @Param("expiresAfterDays") Integer expiresAfterDays,
         @Param("limit") int limit,
         @Param("offset") int offset
     );
@@ -480,9 +481,9 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
             WHERE p.deleted_at IS NULL
                 AND a.end_date IS NOT NULL
                 AND a.end_date >= CURRENT_DATE
-                AND a.end_date <= CURRENT_DATE + INTERVAL '90 days'
-                AND (:fromDate IS NULL OR a.start_date >= CAST(:fromDate AS DATE))
-                AND (:toDate IS NULL OR a.end_date <= CAST(:toDate AS DATE))
+                AND a.end_date <= CURRENT_DATE + CAST(:expiresAfterDays AS INTEGER) * INTERVAL '1 day'
+                AND (CAST(:fromDate AS DATE) IS NULL OR a.start_date >= CAST(:fromDate AS DATE))
+                AND (CAST(:toDate AS DATE) IS NULL OR a.end_date <= CAST(:toDate AS DATE))
                 AND (COALESCE(:payerIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR payer.id = ANY(:payerIds))
                 AND (COALESCE(:programIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR prog.id = ANY(:programIds))
                 AND (COALESCE(:serviceTypeIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR st.id = ANY(:serviceTypeIds))
@@ -499,6 +500,7 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
         @Param("programIds") UUID[] programIds,
         @Param("serviceTypeIds") UUID[] serviceTypeIds,
         @Param("clientMedicaidId") String clientMedicaidId,
-        @Param("clientSearch") String clientSearch
+        @Param("clientSearch") String clientSearch,
+        @Param("expiresAfterDays") Integer expiresAfterDays
     );
 }

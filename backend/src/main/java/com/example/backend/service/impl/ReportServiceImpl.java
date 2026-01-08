@@ -207,8 +207,13 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional(readOnly = true)
     public Page<ExpiringAuthReportDTO> getExpiringAuthReport(ReportFilterDTO filters, Pageable pageable) {
-        log.info("Generating Expiring Authorizations report with filters: fromDate={}, toDate={}",
-            filters.getFromDate(), filters.getToDate());
+        log.info("Generating Expiring Authorizations report with filters: fromDate={}, toDate={}, expiresAfterDays={}",
+            filters.getFromDate(), filters.getToDate(), filters.getExpiresAfterDays());
+
+        // Validate expiresAfterDays
+        if (filters.getExpiresAfterDays() == null || filters.getExpiresAfterDays() <= 0) {
+            throw new IllegalArgumentException("expiresAfterDays must be provided and greater than 0");
+        }
 
         // Handle unpaged requests (for exports)
         boolean isUnpaged = pageable.isUnpaged();
@@ -232,6 +237,7 @@ public class ReportServiceImpl implements ReportService {
             serviceTypeIds,
             filters.getClientMedicaidId(),
             filters.getClientSearch(),
+            filters.getExpiresAfterDays(),
             limit,
             offset
         );
@@ -265,7 +271,8 @@ public class ReportServiceImpl implements ReportService {
             programIds,
             serviceTypeIds,
             filters.getClientMedicaidId(),
-            filters.getClientSearch()
+            filters.getClientSearch(),
+            filters.getExpiresAfterDays()
         );
 
         if (isUnpaged) {

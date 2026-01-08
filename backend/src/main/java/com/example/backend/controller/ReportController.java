@@ -145,9 +145,10 @@ public class ReportController {
         @RequestParam(required = false) List<UUID> serviceTypeIds,
         @RequestParam(required = false) String clientMedicaidId,
         @RequestParam(required = false) String clientSearch,
+        @RequestParam(required = true) Integer expiresAfterDays,
         @PageableDefault(size = 25) Pageable pageable
     ) {
-        log.info("GET /api/reports/authorization/expiring-auth - fromDate: {}, toDate: {}", fromDate, toDate);
+        log.info("GET /api/reports/authorization/expiring-auth - fromDate: {}, toDate: {}, expiresAfterDays: {}", fromDate, toDate, expiresAfterDays);
         
         ReportFilterDTO filters = new ReportFilterDTO();
         filters.setFromDate(fromDate);
@@ -159,6 +160,7 @@ public class ReportController {
         filters.setServiceTypeIds(serviceTypeIds);
         filters.setClientMedicaidId(clientMedicaidId);
         filters.setClientSearch(clientSearch);
+        filters.setExpiresAfterDays(expiresAfterDays);
         
         Page<ExpiringAuthReportDTO> result = reportService.getExpiringAuthReport(filters, pageable);
         return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
@@ -178,9 +180,10 @@ public class ReportController {
         @RequestParam(required = false) List<UUID> programIds,
         @RequestParam(required = false) List<UUID> serviceTypeIds,
         @RequestParam(required = false) String clientMedicaidId,
-        @RequestParam(required = false) String clientSearch
+        @RequestParam(required = false) String clientSearch,
+        @RequestParam(required = false) Integer expiresAfterDays
     ) {
-        log.info("GET /api/reports/authorization/{}/export - fromDate: {}, toDate: {}", reportType, fromDate, toDate);
+        log.info("GET /api/reports/authorization/{}/export - fromDate: {}, toDate: {}, expiresAfterDays: {}", reportType, fromDate, toDate, expiresAfterDays);
         
         try {
             ReportFilterDTO filters = new ReportFilterDTO();
@@ -193,6 +196,9 @@ public class ReportController {
             filters.setServiceTypeIds(serviceTypeIds);
             filters.setClientMedicaidId(clientMedicaidId);
             filters.setClientSearch(clientSearch);
+            if (expiresAfterDays != null) {
+                filters.setExpiresAfterDays(expiresAfterDays);
+            }
             
             // Fetch all data without pagination for export
             Pageable unpaged = Pageable.unpaged();
@@ -219,6 +225,9 @@ public class ReportController {
                     break;
                     
                 case "expiring-auth":
+                    if (expiresAfterDays == null || expiresAfterDays <= 0) {
+                        return ResponseEntity.badRequest().build();
+                    }
                     Page<ExpiringAuthReportDTO> expiringData = reportService.getExpiringAuthReport(filters, unpaged);
                     excelData = excelExportService.exportExpiringAuthReport(expiringData.getContent(), "Expiring Authorizations");
                     filename = "ExpiringAuth_" + getCurrentTimestamp() + ".xlsx";

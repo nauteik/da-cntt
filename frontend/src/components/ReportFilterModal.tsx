@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Modal, Form, DatePicker, TimePicker, Select, Input, Button, Alert, Space } from "antd";
+import { Modal, Form, DatePicker, TimePicker, Select, Input, InputNumber, Button, Alert, Space } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -71,13 +71,20 @@ export default function ReportFilterModal({
       const startOfMonth = now.startOf('month');
       const endOfMonth = now.endOf('month');
       
-      form.setFieldsValue({
+      const defaultValues: any = {
         dateRange: [startOfMonth, endOfMonth],
         fromTime: dayjs().startOf('day'),
         toTime: dayjs().endOf('day').subtract(1, 'minute'), // 11:59 PM
-      });
+      };
+      
+      // Set default expiresAfterDays for expiring-auth report
+      if (reportMetadata?.key === 'expiring-auth') {
+        defaultValues.expiresAfterDays = 90;
+      }
+      
+      form.setFieldsValue(defaultValues);
     }
-  }, [open, form]);
+  }, [open, form, reportMetadata]);
 
   const handleClear = () => {
     form.resetFields();
@@ -86,11 +93,18 @@ export default function ReportFilterModal({
     const startOfMonth = now.startOf('month');
     const endOfMonth = now.endOf('month');
     
-    form.setFieldsValue({
+    const defaultValues: any = {
       dateRange: [startOfMonth, endOfMonth],
       fromTime: dayjs().startOf('day'),
       toTime: dayjs().endOf('day').subtract(1, 'minute'),
-    });
+    };
+    
+    // Re-apply default expiresAfterDays for expiring-auth report
+    if (reportMetadata?.key === 'expiring-auth') {
+      defaultValues.expiresAfterDays = 90;
+    }
+    
+    form.setFieldsValue(defaultValues);
   };
 
   const handleRunReport = async () => {
@@ -122,6 +136,7 @@ export default function ReportFilterModal({
         serviceTypeIds: values.serviceTypeIds,
         clientMedicaidId: values.clientMedicaidId,
         clientSearch: values.clientSearch,
+        expiresAfterDays: values.expiresAfterDays,
       };
 
       // Encode filters as query params
@@ -282,6 +297,20 @@ export default function ReportFilterModal({
             name="clientMedicaidId"
           >
             <Input placeholder="Enter Medicaid ID" />
+          </Form.Item>
+        )}
+
+        {config.showExpiresAfter && (
+          <Form.Item
+            label="Expires after"
+            name="expiresAfterDays"
+            rules={[{ required: true, message: 'Please enter number of days' }]}
+          >
+            <InputNumber
+              min={1}
+              placeholder="Enter number of days"
+              style={{ width: '100%' }}
+            />
           </Form.Item>
         )}
 

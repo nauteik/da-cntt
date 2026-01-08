@@ -22,6 +22,9 @@ function buildQueryString(filters: ReportFilters, pagination: PaginationParams =
   if (filters.toTime) params.append('toTime', filters.toTime);
   if (filters.clientMedicaidId) params.append('clientMedicaidId', filters.clientMedicaidId);
   if (filters.clientSearch) params.append('clientSearch', filters.clientSearch);
+  if (filters.expiresAfterDays !== undefined) {
+    params.append('expiresAfterDays', filters.expiresAfterDays.toString());
+  }
   
   // Add array filters
   if (filters.payerIds?.length) {

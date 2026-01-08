@@ -8,6 +8,7 @@ export interface ReportFilters {
   serviceTypeIds?: string[];
   clientMedicaidId?: string;
   clientSearch?: string;
+  expiresAfterDays?: number;
 }
 
 export interface AuthVsActualReportDTO {
@@ -104,6 +105,7 @@ export interface FilterFieldConfig {
   showServices: boolean;
   showClient: boolean;
   showClientMedicaidId: boolean;
+  showExpiresAfter: boolean;
 }
 
 export const REPORT_FILTER_CONFIGS: Record<ReportType, FilterFieldConfig> = {
@@ -115,6 +117,7 @@ export const REPORT_FILTER_CONFIGS: Record<ReportType, FilterFieldConfig> = {
     showServices: true,
     showClient: true,
     showClientMedicaidId: true,
+    showExpiresAfter: false,
   },
   'authorizations': {
     showDateRange: true,
@@ -124,6 +127,7 @@ export const REPORT_FILTER_CONFIGS: Record<ReportType, FilterFieldConfig> = {
     showServices: true,
     showClient: true,
     showClientMedicaidId: true,
+    showExpiresAfter: false,
   },
   'clients-without-auth': {
     showDateRange: true,
@@ -133,6 +137,7 @@ export const REPORT_FILTER_CONFIGS: Record<ReportType, FilterFieldConfig> = {
     showServices: false,
     showClient: true,
     showClientMedicaidId: true,
+    showExpiresAfter: false,
   },
   'expiring-auth': {
     showDateRange: true,
@@ -142,6 +147,7 @@ export const REPORT_FILTER_CONFIGS: Record<ReportType, FilterFieldConfig> = {
     showServices: true,
     showClient: true,
     showClientMedicaidId: true,
+    showExpiresAfter: true,
   },
 };
 
