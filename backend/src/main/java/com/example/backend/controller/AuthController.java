@@ -27,46 +27,38 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserInfoResponse>> login(
-            @Valid @RequestBody LoginRequest loginRequest
-    ) {
-        log.info("Login request received for email: {}", loginRequest.getEmail());
-        
+            @Valid @RequestBody LoginRequest loginRequest) {
+
         // Authenticate and get user info with token
         // IMPORTANT: UserInfoResponse must now include the token string
         AuthService.LoginResult loginResult = authService.login(loginRequest);
 
         // REMOVE ALL HttpServletResponse and cookie logic from this endpoint.
         // Return the token in the response body.
-        
-        log.info("Login successful for email: {}", loginRequest.getEmail());
+
         return ResponseEntity.ok(ApiResponse.success(loginResult.userInfo(), "Login successful"));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request, HttpServletResponse response) {
-        log.info("Logout request received");
-
+       
         // Clear the accessToken cookie by setting maxAge to 0
         ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("accessToken", "")
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(0)               // Delete the cookie
-                .sameSite("None");       // Use None for cross-domain requests
-        
+                .maxAge(0) // Delete the cookie
+                .sameSite("None"); // Use None for cross-domain requests
+
         // Simplified domain logic - let the browser handle it
         String origin = request.getHeader("Origin");
-        log.info("Logout request - Origin: {}", origin);
-        
         // Only set domain for production Vercel deployments
         if (origin != null && origin.contains("vercel.app")) {
             cookieBuilder.domain("da-cntt.vercel.app");
-            log.info("Clearing cookie domain for production: da-cntt.vercel.app");
         } else {
             // For localhost and other environments, don't set domain
-            log.info("Clearing cookie without domain restriction");
         }
-        
+
         ResponseCookie cookie = cookieBuilder.build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

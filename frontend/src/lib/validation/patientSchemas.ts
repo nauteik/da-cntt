@@ -115,7 +115,7 @@ export const addressSchema = z.object({
     .max(FIELD_CONSTRAINTS.LABEL_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.LABEL_MAX))
     .optional(),
   type: z.enum(["HOME", "COMMUNITY", "SENIOR", "BUSINESS"] as const, {
-    required_error: "Address type is required",
+    message: "Address type is required",
   }),
   line1: z
     .string()
@@ -147,6 +147,18 @@ export const addressSchema = z.object({
   phone: phoneSchema,
   email: emailOptionalSchema,
   isMain: z.boolean(),
+  latitude: z
+    .number()
+    .min(-90, "Latitude must be between -90 and 90")
+    .max(90, "Latitude must be between -90 and 90")
+    .optional()
+    .nullable(),
+  longitude: z
+    .number()
+    .min(-180, "Longitude must be between -180 and 180")
+    .max(180, "Longitude must be between -180 and 180")
+    .optional()
+    .nullable(),
 });
 
 /**

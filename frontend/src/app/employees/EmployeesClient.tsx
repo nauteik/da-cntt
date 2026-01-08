@@ -87,7 +87,7 @@ export default function EmployeesClient({
 
   // Use React Query with URL-derived state
   // Convert 1-based URL page to 0-based backend page
-  const { data, isLoading, error, refetch } = useEmployees(
+  const { data, isLoading, refetch } = useEmployees(
     {
       page: currentPage - 1, // Backend uses 0-based indexing
       size: pageSize,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table,
@@ -19,7 +19,6 @@ import {
 import {
   SearchOutlined,
   EditOutlined,
-  FilterOutlined,
   ReloadOutlined,
   ExportOutlined,
   CheckCircleOutlined,
@@ -62,12 +61,7 @@ export default function VisitMaintenanceClient() {
   const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState(0);
 
-  // Load visits data
-  useEffect(() => {
-    loadVisits();
-  }, [currentPage, pageSize, dateRange]);
-
-  const loadVisits = async () => {
+  const loadVisits = useCallback(async () => {
     setLoading(true);
     try {
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD');
@@ -88,17 +82,17 @@ export default function VisitMaintenanceClient() {
         setVisits(response.data.content);
         setTotal(response.data.page.totalElements);
       } else {
-        setVisits([]);
-        setTotal(0);
-        message.error(response.message || 'Failed to load visit records. Please check your connection and try again.');
+      setVisits([]);
+      setTotal(0);
+      message.error(response.message || 'Failed to load visit records. Please check your connection and try again.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load visits:', error);
       setVisits([]);
       setTotal(0);
       
-      const errorMessage = error?.response?.data?.message 
-        || error?.message 
+      const errorMessage = (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message 
+        || (error as { message?: string })?.message 
         || 'Unable to connect to server. Please check your network connection and try again.';
       
       message.error({
@@ -108,7 +102,12 @@ export default function VisitMaintenanceClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, dateRange, searchText, statusFilter]);
+
+  // Load visits data
+  useEffect(() => {
+    loadVisits();
+  }, [loadVisits]);
 
   // Search effect with debounce
   useEffect(() => {
@@ -121,7 +120,7 @@ export default function VisitMaintenanceClient() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchText, statusFilter]);
+  }, [searchText, statusFilter, currentPage, loadVisits]);
 
   const getStatusColor = (status: VisitStatusType) => {
     const colorMap = {
@@ -174,7 +173,7 @@ export default function VisitMaintenanceClient() {
           : visit
       ));
       message.success(checked ? 'Visit marked as Do Not Bill' : 'Do Not Bill removed');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update do not bill status:', error);
       message.error('Failed to update do not bill status. Please try again.');
     }

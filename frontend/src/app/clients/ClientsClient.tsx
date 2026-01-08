@@ -91,7 +91,7 @@ export default function ClientsClient({
 
   // Use React Query with URL-derived state
   // Convert 1-based URL page to 0-based backend page
-  const { data, isLoading, error } = useClients(
+  const { data, isLoading } = useClients(
     {
       page: currentPage - 1, // Backend uses 0-based indexing
       size: pageSize,

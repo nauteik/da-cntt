@@ -120,7 +120,6 @@ export default function MonthlyCalendar({
   };
 
   const today = dayjs();
-  const isCurrentMonth = month.isSame(today, "month");
 
   return (
     <div>

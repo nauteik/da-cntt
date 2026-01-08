@@ -12,7 +12,7 @@ import {
   Tag,
   Select,
   Popconfirm,
-  message,
+  App,
   type TablePaginationConfig,
 } from "antd";
 import {
@@ -33,6 +33,9 @@ import type { PaginatedHouses, HouseDTO } from "@/types/house";
 import type { OfficeDTO } from "@/types/office";
 import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
+import EditHouseModal from "@/components/housing/EditHouseModal";
+import AssignPatientModal from "@/components/housing/AssignPatientModal";
+import UnassignPatientModal from "@/components/housing/UnassignPatientModal";
 
 interface HousingClientProps {
   initialData: PaginatedHouses;
@@ -46,6 +49,7 @@ export default function HousingClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   // Derive all state from URL - single source of truth
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
@@ -63,6 +67,8 @@ export default function HousingClient({
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [editingHouse, setEditingHouse] = React.useState<HouseDTO | null>(null);
+  const [assigningHouse, setAssigningHouse] = React.useState<HouseDTO | null>(null);
+  const [unassigningHouse, setUnassigningHouse] = React.useState<HouseDTO | null>(null);
 
   // Debounce search input to prevent excessive API calls (500ms delay)
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -104,7 +110,7 @@ export default function HousingClient({
   };
 
   // Use React Query with URL-derived state
-  const { data, isLoading, error } = useHouses(
+  const { data, isLoading } = useHouses(
     {
       page: currentPage - 1, // Backend uses 0-based indexing
       size: pageSize,
@@ -143,6 +149,25 @@ export default function HousingClient({
           : undefined,
       width: 120,
       fixed: "left",
+      render: (code: string, record: HouseDTO) => (
+        <span
+          className="cursor-pointer font-medium transition-colors"
+          style={{
+            color: "var(--primary)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "var(--primary-hover)";
+            e.currentTarget.style.textDecoration = "underline";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "var(--primary)";
+            e.currentTarget.style.textDecoration = "none";
+          }}
+          onClick={() => router.push(`/housing/${record.id}`)}
+        >
+          {code}
+        </span>
+      ),
     },
     {
       title: "HOUSE NAME",
@@ -156,6 +181,25 @@ export default function HousingClient({
             : "descend"
           : undefined,
       width: 200,
+      render: (name: string, record: HouseDTO) => (
+        <span
+          className="cursor-pointer font-medium transition-colors"
+          style={{
+            color: "var(--primary)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "var(--primary-hover)";
+            e.currentTarget.style.textDecoration = "underline";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "var(--primary)";
+            e.currentTarget.style.textDecoration = "none";
+          }}
+          onClick={() => router.push(`/housing/${record.id}`)}
+        >
+          {name}
+        </span>
+      ),
     },
     {
       title: "OFFICE",
@@ -229,10 +273,7 @@ export default function HousingClient({
             <Button
               type="link"
               icon={<UserDeleteOutlined />}
-              onClick={() => {
-                // TODO: Implement unassign patient
-                message.info("Unassign patient functionality coming soon");
-              }}
+              onClick={() => setUnassigningHouse(record)}
               size="small"
             >
               Unassign
@@ -241,10 +282,7 @@ export default function HousingClient({
             <Button
               type="link"
               icon={<UserAddOutlined />}
-              onClick={() => {
-                // TODO: Implement assign patient
-                message.info("Assign patient functionality coming soon");
-              }}
+              onClick={() => setAssigningHouse(record)}
               size="small"
             >
               Assign
@@ -312,11 +350,11 @@ export default function HousingClient({
     }
   };
 
-  const handleCreateSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["houses"] });
-    router.push("/housing");
-    router.refresh();
-  };
+  // const handleCreateSuccess = () => {
+  //   queryClient.invalidateQueries({ queryKey: ["houses"] });
+  //   router.push("/housing");
+  //   router.refresh();
+  // };
 
   return (
     <div className={layoutStyles.pageContainer}>
@@ -398,11 +436,41 @@ export default function HousingClient({
         />
       </Card>
 
-      {/* TODO: Add CreateHouseModal and UpdateHouseModal components */}
+      {/* Modals */}
       {isCreateModalOpen && (
         <div>{/* CreateHouseModal will be implemented */}</div>
       )}
-      {editingHouse && <div>{/* UpdateHouseModal will be implemented */}</div>}
+      {editingHouse && (
+        <EditHouseModal
+          open={!!editingHouse}
+          onClose={() => setEditingHouse(null)}
+          house={editingHouse}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["houses"] });
+          }}
+        />
+      )}
+      {assigningHouse && (
+        <AssignPatientModal
+          open={!!assigningHouse}
+          onClose={() => setAssigningHouse(null)}
+          houseId={assigningHouse.id}
+          houseName={assigningHouse.name}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["houses"] });
+          }}
+        />
+      )}
+      {unassigningHouse && (
+        <UnassignPatientModal
+          open={!!unassigningHouse}
+          onClose={() => setUnassigningHouse(null)}
+          house={unassigningHouse}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["houses"] });
+          }}
+        />
+      )}
     </div>
   );
 }

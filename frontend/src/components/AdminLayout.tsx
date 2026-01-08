@@ -17,7 +17,6 @@ import {
   UserOutlined,
   TeamOutlined,
   CalendarOutlined,
-  SafetyOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BellOutlined,
@@ -67,7 +66,6 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
     if (pathname.startsWith("/housing")) return "housing";
     if (pathname.startsWith("/reports")) return "reports";
     if (pathname.startsWith("/authorizations")) return "authorizations";
-    if (pathname.startsWith("/security")) return "security";
     return "dashboard";
   }, [pathname]);
 
@@ -99,7 +97,6 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
       housing: { title: "Housing"},
       reports: { title: "Reports"},
       authorizations: { title: "Authorizations"},
-      security: { title: "Security"},
     };
 
     let currentPath = "";
@@ -222,12 +219,6 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
         icon: <CheckCircleOutlined />,
         label: "Authorizations",
         onClick: () => handleNavigate("/authorizations"),
-      },
-      {
-        key: "security",
-        icon: <SafetyOutlined />,
-        label: "Security",
-        onClick: () => handleNavigate("/security"),
       },
     ],
     [handleNavigate]

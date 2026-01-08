@@ -64,12 +64,12 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
             LEFT JOIN program prog ON pp_latest.program_id = prog.id
             LEFT JOIN staff s ON pp_latest.supervisor_id = s.id
             WHERE p.deleted_at IS NULL
-                AND (:startDate IS NULL OR a.start_date >= :startDate)
-                AND (:endDate IS NULL OR a.end_date <= :endDate)
-                AND (:payerId IS NULL OR payer.id = :payerId)
-                AND (:supervisorId IS NULL OR s.id = :supervisorId)
-                AND (:programId IS NULL OR prog.id = :programId)
-                AND (:serviceTypeId IS NULL OR st.id = :serviceTypeId)
+                AND (CAST(:startDate AS DATE) IS NULL OR a.start_date >= CAST(:startDate AS DATE))
+                AND (CAST(:endDate AS DATE) IS NULL OR a.end_date <= CAST(:endDate AS DATE))
+                AND (CAST(:payerId AS uuid) IS NULL OR payer.id = CAST(:payerId AS uuid))
+                AND (CAST(:supervisorId AS uuid) IS NULL OR s.id = CAST(:supervisorId AS uuid))
+                AND (CAST(:programId AS uuid) IS NULL OR prog.id = CAST(:programId AS uuid))
+                AND (CAST(:serviceTypeId AS uuid) IS NULL OR st.id = CAST(:serviceTypeId AS uuid))
                 AND (:authorizationNo IS NULL OR :authorizationNo = '' OR LOWER(a.authorization_no) LIKE LOWER(CONCAT('%', :authorizationNo, '%')))
                 AND (:clientId IS NULL OR :clientId = '' OR LOWER(p.client_id) LIKE LOWER(CONCAT('%', :clientId, '%')))
                 AND (:clientFirstName IS NULL OR :clientFirstName = '' OR LOWER(p.first_name) LIKE LOWER(CONCAT('%', :clientFirstName, '%')))
@@ -168,12 +168,12 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
             LEFT JOIN program prog ON pp_latest.program_id = prog.id
             LEFT JOIN staff s ON pp_latest.supervisor_id = s.id
             WHERE p.deleted_at IS NULL
-                AND (:startDate IS NULL OR a.start_date >= :startDate)
-                AND (:endDate IS NULL OR a.end_date <= :endDate)
-                AND (:payerId IS NULL OR payer.id = :payerId)
-                AND (:supervisorId IS NULL OR s.id = :supervisorId)
-                AND (:programId IS NULL OR prog.id = :programId)
-                AND (:serviceTypeId IS NULL OR st.id = :serviceTypeId)
+                AND (CAST(:startDate AS DATE) IS NULL OR a.start_date >= CAST(:startDate AS DATE))
+                AND (CAST(:endDate AS DATE) IS NULL OR a.end_date <= CAST(:endDate AS DATE))
+                AND (CAST(:payerId AS uuid) IS NULL OR payer.id = CAST(:payerId AS uuid))
+                AND (CAST(:supervisorId AS uuid) IS NULL OR s.id = CAST(:supervisorId AS uuid))
+                AND (CAST(:programId AS uuid) IS NULL OR prog.id = CAST(:programId AS uuid))
+                AND (CAST(:serviceTypeId AS uuid) IS NULL OR st.id = CAST(:serviceTypeId AS uuid))
                 AND (:authorizationNo IS NULL OR :authorizationNo = '' OR LOWER(a.authorization_no) LIKE LOWER(CONCAT('%', :authorizationNo, '%')))
                 AND (:clientId IS NULL OR :clientId = '' OR LOWER(p.client_id) LIKE LOWER(CONCAT('%', :clientId, '%')))
                 AND (:clientFirstName IS NULL OR :clientFirstName = '' OR LOWER(p.first_name) LIKE LOWER(CONCAT('%', :clientFirstName, '%')))
@@ -241,8 +241,8 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
             ) pp_latest ON TRUE
             LEFT JOIN program prog ON pp_latest.program_id = prog.id
             WHERE p.deleted_at IS NULL
-                AND (COALESCE(:fromDate, DATE '1900-01-01') = DATE '1900-01-01' OR a.start_date >= CAST(:fromDate AS DATE))
-                AND (COALESCE(:toDate, DATE '9999-12-31') = DATE '9999-12-31' OR a.end_date <= CAST(:toDate AS DATE))
+                AND (CAST(:fromDate AS DATE) IS NULL OR a.start_date <= CAST(:toDate AS DATE))
+                AND (CAST(:toDate AS DATE) IS NULL OR a.end_date IS NULL OR a.end_date >= CAST(:fromDate AS DATE))
                 AND (COALESCE(:payerIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR payer.id = ANY(:payerIds))
                 AND (COALESCE(:programIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR prog.id = ANY(:programIds))
                 AND (COALESCE(:serviceTypeIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR st.id = ANY(:serviceTypeIds))
@@ -284,8 +284,8 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
             ) pp_latest ON TRUE
             LEFT JOIN program prog ON pp_latest.program_id = prog.id
             WHERE p.deleted_at IS NULL
-                AND (COALESCE(:fromDate, DATE '1900-01-01') = DATE '1900-01-01' OR a.start_date >= CAST(:fromDate AS DATE))
-                AND (COALESCE(:toDate, DATE '9999-12-31') = DATE '9999-12-31' OR a.end_date <= CAST(:toDate AS DATE))
+                AND (CAST(:fromDate AS DATE) IS NULL OR a.start_date <= CAST(:toDate AS DATE))
+                AND (CAST(:toDate AS DATE) IS NULL OR a.end_date IS NULL OR a.end_date >= CAST(:fromDate AS DATE))
                 AND (COALESCE(:payerIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR payer.id = ANY(:payerIds))
                 AND (COALESCE(:programIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR prog.id = ANY(:programIds))
                 AND (COALESCE(:serviceTypeIds, ARRAY[]::uuid[]) = ARRAY[]::uuid[] OR st.id = ANY(:serviceTypeIds))

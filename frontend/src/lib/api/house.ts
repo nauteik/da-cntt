@@ -175,6 +175,19 @@ export const houseApi = {
     }
     return response.data || null;
   },
+
+  /**
+   * Get all stays for a house
+   */
+  async getHouseStays(houseId: string): Promise<PatientHouseStayDTO[]> {
+    const response = await apiClient<PatientHouseStayDTO[]>(
+      `/house/${houseId}/stays`
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.message || "Failed to fetch house stays");
+    }
+    return response.data;
+  },
 };
 
 

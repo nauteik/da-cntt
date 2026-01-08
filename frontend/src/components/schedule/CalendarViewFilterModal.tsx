@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Radio, Select, DatePicker, Alert, Space, Button } from "antd";
+import { Modal, Form, Radio, Select, DatePicker, Alert, Button } from "antd";
+import type { RadioChangeEvent } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
@@ -71,8 +72,8 @@ export default function CalendarViewFilterModal({
     form,
   ]);
 
-  const handleFilterByChange = (e: any) => {
-    const value = e.target.value;
+  const handleFilterByChange = (e: RadioChangeEvent) => {
+    const value = e.target.value as "client" | "employee" | null;
     setFilterBy(value);
     // Clear the other field when switching
     if (value === "client") {

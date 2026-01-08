@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.model.ApiResponse;
 import com.example.backend.model.dto.AuthorizationSearchDTO;
 import com.example.backend.model.dto.report.*;
 import com.example.backend.service.ExcelExportService;
@@ -41,7 +42,7 @@ public class ReportController {
      * Get Authorization vs Actual Used by Client report
      */
     @GetMapping("/auth-vs-actual")
-    public ResponseEntity<Page<AuthVsActualReportDTO>> getAuthVsActualReport(
+    public ResponseEntity<ApiResponse<Page<AuthVsActualReportDTO>>> getAuthVsActualReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -67,14 +68,14 @@ public class ReportController {
         filters.setClientSearch(clientSearch);
         
         Page<AuthVsActualReportDTO> result = reportService.getAuthVsActualReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**
      * Get Authorizations report
      */
     @GetMapping("/authorizations")
-    public ResponseEntity<Page<AuthorizationSearchDTO>> getAuthorizationsReport(
+    public ResponseEntity<ApiResponse<Page<AuthorizationSearchDTO>>> getAuthorizationsReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -100,14 +101,14 @@ public class ReportController {
         filters.setClientSearch(clientSearch);
         
         Page<AuthorizationSearchDTO> result = reportService.getAuthorizationsReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**
      * Get Clients Without Authorizations report
      */
     @GetMapping("/clients-without-auth")
-    public ResponseEntity<Page<ClientsWithoutAuthReportDTO>> getClientsWithoutAuthReport(
+    public ResponseEntity<ApiResponse<Page<ClientsWithoutAuthReportDTO>>> getClientsWithoutAuthReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -127,14 +128,14 @@ public class ReportController {
         filters.setClientSearch(clientSearch);
         
         Page<ClientsWithoutAuthReportDTO> result = reportService.getClientsWithoutAuthReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**
      * Get Expiring Authorizations report
      */
     @GetMapping("/expiring-auth")
-    public ResponseEntity<Page<ExpiringAuthReportDTO>> getExpiringAuthReport(
+    public ResponseEntity<ApiResponse<Page<ExpiringAuthReportDTO>>> getExpiringAuthReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -160,7 +161,7 @@ public class ReportController {
         filters.setClientSearch(clientSearch);
         
         Page<ExpiringAuthReportDTO> result = reportService.getExpiringAuthReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**

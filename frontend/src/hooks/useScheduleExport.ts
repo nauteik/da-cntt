@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { pdf } from "@react-pdf/renderer";
 import SchedulePdfDocument from "@/components/schedule/SchedulePdfDocument";
 import type { ScheduleEventDTO } from "@/types/schedule";
@@ -16,7 +17,7 @@ export const useScheduleExport = () => {
     try {
       // Generate PDF blob
       const blob = await pdf(
-        SchedulePdfDocument({ events, title })
+        React.createElement(SchedulePdfDocument, { events, title })
       ).toBlob();
 
       // Create download link

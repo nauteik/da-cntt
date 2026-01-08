@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Empty, Pagination, Tag, Divider, Image, List } from "antd";
+import { Card, Empty, Pagination, Tag, Divider, Image } from "antd";
 import {
   CalendarOutlined,
-  ClockCircleOutlined,
   UserOutlined,
   FileTextOutlined,
   CheckCircleOutlined,
@@ -285,7 +284,7 @@ export default function PatientNotesHistory({
                       Meal Information
                     </div>
                     <div className="space-y-3">
-                      {selectedNote.mealInfo.map((meal: any, index: number) => {
+                      {selectedNote.mealInfo.map((meal: MealInfo, index: number) => {
                         const mealData = typeof meal === 'string' ? JSON.parse(meal) : meal;
                         const mealName = mealData.meal || mealData.mealType || 'Meal ' + (index + 1);
                         const offered = mealData.offered || mealData.whatOffered;

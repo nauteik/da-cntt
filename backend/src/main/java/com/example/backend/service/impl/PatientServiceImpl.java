@@ -432,7 +432,7 @@ public class PatientServiceImpl implements PatientService {
         
         // 7. Generate client ID (can be customized based on business rules)
         // For now, using simple format: last 6 chars of UUID
-        savedPatient.setClientId("CL-" + savedPatient.getId().toString().substring(0, 6).toUpperCase());
+        savedPatient.setClientId(savedPatient.getId().toString().substring(0, 6).toUpperCase());
         savedPatient = patientRepository.save(savedPatient);
         
         // 8. Create and save PatientProgram
@@ -682,6 +682,8 @@ public class PatientServiceImpl implements PatientService {
         patientAddress.setEmail(updateDTO.getEmail() != null && !updateDTO.getEmail().trim().isEmpty() 
                 ? updateDTO.getEmail().trim() : null);
         patientAddress.setIsMain(updateDTO.getIsMain() != null ? updateDTO.getIsMain() : false);
+        patientAddress.setLatitude(updateDTO.getLatitude());
+        patientAddress.setLongitude(updateDTO.getLongitude());
         
         // 7. Save PatientAddress
         try {
@@ -765,6 +767,12 @@ public class PatientServiceImpl implements PatientService {
                 }
             }
             patientAddress.setIsMain(updateDTO.getIsMain());
+        }
+        if (updateDTO.getLatitude() != null) {
+            patientAddress.setLatitude(updateDTO.getLatitude());
+        }
+        if (updateDTO.getLongitude() != null) {
+            patientAddress.setLongitude(updateDTO.getLongitude());
         }
         
         // 6. Save PatientAddress

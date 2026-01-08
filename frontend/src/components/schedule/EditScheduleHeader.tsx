@@ -48,14 +48,50 @@ export default function EditScheduleHeader({
     }
   };
 
-  // Format time range
+  // Helper function to extract time from ISO string without timezone conversion
+  // This matches the formatTime function used in ScheduleEventsTable
+  const extractTimeFromISO = (isoString: string): { hours: number; minutes: number } | null => {
+    if (!isoString) return null;
+    try {
+      // Extract time part directly from ISO string (e.g., "00:30:00" from "2026-01-05T00:30:00Z")
+      const timePart = isoString.split('T')[1];
+      if (!timePart) return null;
+      
+      const [hoursStr, minutesStr] = timePart.split(':');
+      const hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
+      
+      return { hours, minutes };
+    } catch {
+      return null;
+    }
+  };
+
+  // Format time range - extracts time directly from ISO string without timezone conversion
   const formatTimeRange = (startAt: string, endAt: string): string => {
     try {
-      const start = dayjs(startAt);
-      const end = dayjs(endAt);
-      const startTime = start.format("h:mm A");
-      const endTime = end.format("h:mm A");
-      return `${startTime} - ${endTime}`;
+      const startTime = extractTimeFromISO(startAt);
+      const endTime = extractTimeFromISO(endAt);
+      
+      if (!startTime || !endTime) return "—";
+      
+      // Format start time
+      let startHours = startTime.hours;
+      const startAmPm = startHours >= 12 ? 'PM' : 'AM';
+      startHours = startHours % 12;
+      startHours = startHours ? startHours : 12; // the hour '0' should be '12'
+      const startMinutes = startTime.minutes < 10 ? `0${startTime.minutes}` : startTime.minutes;
+      const startFormatted = `${startHours}:${startMinutes} ${startAmPm}`;
+      
+      // Format end time
+      let endHours = endTime.hours;
+      const endAmPm = endHours >= 12 ? 'PM' : 'AM';
+      endHours = endHours % 12;
+      endHours = endHours ? endHours : 12; // the hour '0' should be '12'
+      const endMinutes = endTime.minutes < 10 ? `0${endTime.minutes}` : endTime.minutes;
+      const endFormatted = `${endHours}:${endMinutes} ${endAmPm}`;
+      
+      return `${startFormatted} - ${endFormatted}`;
     } catch {
       return "—";
     }

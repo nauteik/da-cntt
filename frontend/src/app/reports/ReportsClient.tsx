@@ -11,7 +11,7 @@ import {
 import buttonStyles from '@/styles/buttons.module.css';
 import layoutStyles from '@/styles/table-layout.module.css';
 import ReportFilterModal from '@/components/ReportFilterModal';
-import type { ReportMetadata } from '@/types/report';
+import type { ReportMetadata, ReportType } from '@/types/report';
 
 const { Panel } = Collapse;
 const { Title } = Typography;
@@ -105,7 +105,7 @@ export default function ReportsClient() {
     
     if (report) {
       setSelectedReport({
-        key: reportKey as any,
+        key: reportKey as ReportType,
         name: report.name,
         categoryKey,
       });

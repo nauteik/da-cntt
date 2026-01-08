@@ -87,10 +87,12 @@ export interface PaginationParams {
 
 export interface PageResponse<T> {
   content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
+  page: {
+    number: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  };
 }
 
 // Filter field configs for each report type

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Tabs, Card, Button, Space, Typography, Badge } from "antd";
-import { PlusOutlined, HistoryOutlined, WarningOutlined, MedicineBoxOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import MedicationOrderList from "../medications/MedicationOrderList";
 import MedicationMAR from "../medications/MedicationMAR";
 import PatientAllergies from "../medications/PatientAllergies";
@@ -17,7 +17,7 @@ interface PatientMedicationProps {
   patient: PatientHeaderDTO;
 }
 
-export default function PatientMedication({ patientId, patient }: PatientMedicationProps) {
+export default function PatientMedication({ patientId }: PatientMedicationProps) {
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
   
   const { data: activeOrders } = useActiveOrders(patientId);

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, Table, Button, Space, message, Typography } from 'antd';
 import { ArrowLeftOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import type { SorterResult } from 'antd/es/table/interface';
+import type { SorterResult, FilterValue } from 'antd/es/table/interface';
 import type {
   ReportType,
   ReportFilters,
@@ -48,7 +48,7 @@ export default function ReportPreviewClient() {
   const fetchReportData = async (page: number, pageSize: number, sort?: string) => {
     setLoading(true);
     try {
-      let response: PageResponse<any>;
+      let response: PageResponse<ReportData>;
       const paginationParams = {
         page: page - 1, // Backend uses 0-based indexing
         size: pageSize,
@@ -77,7 +77,7 @@ export default function ReportPreviewClient() {
       setPagination({
         current: page,
         pageSize,
-        total: response.totalElements,
+        total: response.page?.totalElements || 0,
       });
     } catch (error) {
       console.error('Error fetching report data:', error);
@@ -99,8 +99,8 @@ export default function ReportPreviewClient() {
 
   const handleTableChange = (
     pagination: TablePaginationConfig,
-    _filters: any,
-    sorter: SorterResult<any> | SorterResult<any>[]
+    _filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<ReportData> | SorterResult<ReportData>[]
   ) => {
     const sortInfo = Array.isArray(sorter) ? sorter[0] : sorter;
     
@@ -144,7 +144,7 @@ export default function ReportPreviewClient() {
   };
 
   // Define columns based on report type
-  const columns = useMemo((): ColumnsType<any> => {
+  const columns = useMemo((): ColumnsType<ReportData> => {
     switch (reportType) {
       case 'auth-vs-actual':
         return [

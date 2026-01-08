@@ -29,6 +29,45 @@ import dayjs from "dayjs";
 const { TextArea } = Input;
 const { Option } = Select;
 
+// Helper function to extract time from ISO string without timezone conversion
+// This matches the formatTime function used in ScheduleEventsTable
+const extractTimeFromISO = (isoString: string): dayjs.Dayjs | null => {
+  if (!isoString) return null;
+  try {
+    // Extract time part directly from ISO string (e.g., "00:30:00" from "2026-01-05T00:30:00Z")
+    const timePart = isoString.split('T')[1];
+    if (!timePart) return null;
+    
+    const [hoursStr, minutesStr] = timePart.split(':');
+    const hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+    
+    // Create a dayjs object with today's date but the extracted time
+    // This preserves the time value without timezone conversion
+    const today = dayjs();
+    return today.hour(hours).minute(minutes).second(0).millisecond(0);
+  } catch {
+    return null;
+  }
+};
+
+// Helper function to extract time parts as numbers from ISO string
+const extractTimeParts = (isoString: string): { hours: number; minutes: number } | null => {
+  if (!isoString) return null;
+  try {
+    const timePart = isoString.split('T')[1];
+    if (!timePart) return null;
+    
+    const [hoursStr, minutesStr] = timePart.split(':');
+    const hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+    
+    return { hours, minutes };
+  } catch {
+    return null;
+  }
+};
+
 interface EditScheduleClientProps {
   initialEvent: ScheduleEventDTO;
   patients: PatientSelectDTO[];
@@ -119,10 +158,10 @@ export default function EditScheduleClient({
         eventDate: dayjs(currentEvent.eventDate),
         eventCode: currentEvent.eventCode || "NONE",
         status: currentEvent.status,
-        proposedStartTime: dayjs(currentEvent.startAt),
-        proposedEndTime: dayjs(currentEvent.endAt),
-        actualStartTime: currentEvent.actualStartAt ? dayjs(currentEvent.actualStartAt) : null,
-        actualEndTime: currentEvent.actualEndAt ? dayjs(currentEvent.actualEndAt) : null,
+        proposedStartTime: extractTimeFromISO(currentEvent.startAt),
+        proposedEndTime: extractTimeFromISO(currentEvent.endAt),
+        actualStartTime: currentEvent.actualStartAt ? extractTimeFromISO(currentEvent.actualStartAt) : null,
+        actualEndTime: currentEvent.actualEndAt ? extractTimeFromISO(currentEvent.actualEndAt) : null,
         employeeId: currentEvent.employeeId,
         comments: currentEvent.comments || "",
       });
@@ -211,14 +250,28 @@ export default function EditScheduleClient({
   const patient = patients.find((p) => p.id === currentEvent.patientId);
   const selectedStaff = staff.find((s) => s.id === currentEvent.employeeId);
   
-  // Calculate hours
+  // Calculate hours - extracts time directly from ISO string without timezone conversion
   // Note: 1 unit = 15 minutes. To calculate units from duration in minutes: units = minutes / 15
   const calculateHours = (start: string | undefined, end: string | undefined): string => {
     if (!start || !end) return "0.00";
     try {
-      const startDate = dayjs(start);
-      const endDate = dayjs(end);
-      const hours = endDate.diff(startDate, "hour", true);
+      // Extract time parts directly from ISO strings
+      const startTime = extractTimeParts(start);
+      const endTime = extractTimeParts(end);
+      
+      if (!startTime || !endTime) return "0.00";
+      
+      // Calculate difference in minutes
+      const startMinutes = startTime.hours * 60 + startTime.minutes;
+      const endMinutes = endTime.hours * 60 + endTime.minutes;
+      
+      // Handle case where end time is on next day (e.g., 23:00 to 01:00)
+      let diffMinutes = endMinutes - startMinutes;
+      if (diffMinutes < 0) {
+        diffMinutes += 24 * 60; // Add 24 hours
+      }
+      
+      const hours = diffMinutes / 60;
       return hours.toFixed(2);
     } catch {
       return "0.00";
@@ -323,7 +376,6 @@ export default function EditScheduleClient({
                   >
                     <Select className={formStyles.formSelect}>
                       <Option value="PLANNED">Planned</Option>
-                      <Option value="CONFIRMED">Confirmed</Option>
                       <Option value="IN_PROGRESS">In Progress</Option>
                       <Option value="COMPLETED">Completed</Option>
                       <Option value="CANCELLED">Cancelled</Option>
@@ -370,7 +422,7 @@ export default function EditScheduleClient({
                           format="h:mm A"
                           style={{ width: "100%" }}
                           disabled
-                          value={currentEvent.actualStartAt ? dayjs(currentEvent.actualStartAt) : null}
+                          value={currentEvent.actualStartAt ? extractTimeFromISO(currentEvent.actualStartAt) : null}
                         />
                       </Form.Item>
                       <Form.Item label="Out Time" name="actualEndTime">
@@ -379,7 +431,7 @@ export default function EditScheduleClient({
                           format="h:mm A"
                           style={{ width: "100%" }}
                           disabled
-                          value={currentEvent.actualEndAt ? dayjs(currentEvent.actualEndAt) : null}
+                          value={currentEvent.actualEndAt ? extractTimeFromISO(currentEvent.actualEndAt) : null}
                         />
                       </Form.Item>
                     </div>

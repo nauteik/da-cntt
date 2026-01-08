@@ -4,6 +4,25 @@ import React from "react";
 import { Modal, Form, Input, Select, DatePicker, Checkbox, Row, Col, InputNumber, message } from "antd";
 import { useCreateOrder, useDrugForms } from "@/hooks/useMedications";
 import { DrugForm } from "@/types/medication";
+import type { Dayjs } from "dayjs";
+
+interface MedicationOrderFormValues {
+  drugName: string;
+  drugForm: DrugForm;
+  dosage: string;
+  route: string;
+  frequency: string;
+  startAt: Dayjs;
+  endAt?: Dayjs;
+  isPrn: boolean;
+  isControlled: boolean;
+  prescribingProvider?: string;
+  pharmacyInfo?: string;
+  currentStock?: number;
+  reorderLevel?: number;
+  unitOfMeasure?: string;
+  indication?: string;
+}
 
 interface MedicationOrderFormProps {
   visible: boolean;
@@ -16,19 +35,19 @@ export default function MedicationOrderForm({ visible, onCancel, patientId }: Me
   const { data: drugForms } = useDrugForms();
   const createOrderMutation = useCreateOrder();
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: MedicationOrderFormValues) => {
     try {
       await createOrderMutation.mutateAsync({
         ...values,
         patientId,
         startAt: values.startAt.format("YYYY-MM-DD"),
-        endAt: values.endAt ? values.endAt.format("YYYY-MM-DD") : null,
+        endAt: values.endAt ? values.endAt.format("YYYY-MM-DD") : undefined,
       });
       message.success("Medication order created successfully");
       onCancel();
       form.resetFields();
-    } catch (err: any) {
-      message.error(err.message || "Failed to create medication order");
+    } catch (err: unknown) {
+      message.error((err as { message?: string })?.message || "Failed to create medication order");
     }
   };
 
@@ -39,7 +58,7 @@ export default function MedicationOrderForm({ visible, onCancel, patientId }: Me
       onCancel={onCancel}
       onOk={() => form.submit()}
       width={800}
-      confirmLoading={createOrderMutation.isLoading}
+      confirmLoading={createOrderMutation.isPending}
     >
       <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ isPrn: false, isControlled: false }}>
         <Row gutter={16}>

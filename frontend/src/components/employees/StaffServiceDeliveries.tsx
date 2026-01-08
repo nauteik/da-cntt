@@ -19,7 +19,6 @@ import {
   CloseCircleOutlined,
   InfoCircleOutlined,
   EnvironmentOutlined,
-  FileTextOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import { useStaffServiceDeliveries } from "@/hooks/useStaffServiceDeliveries";

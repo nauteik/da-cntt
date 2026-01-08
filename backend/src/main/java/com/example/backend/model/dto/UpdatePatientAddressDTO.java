@@ -50,5 +50,13 @@ public class UpdatePatientAddressDTO {
     private String email;
 
     private Boolean isMain;
+
+    @jakarta.validation.constraints.DecimalMin(value = "-90.0", message = "Latitude must be between -90 and 90")
+    @jakarta.validation.constraints.DecimalMax(value = "90.0", message = "Latitude must be between -90 and 90")
+    private Double latitude;
+
+    @jakarta.validation.constraints.DecimalMin(value = "-180.0", message = "Longitude must be between -180 and 180")
+    @jakarta.validation.constraints.DecimalMax(value = "180.0", message = "Longitude must be between -180 and 180")
+    private Double longitude;
 }
 

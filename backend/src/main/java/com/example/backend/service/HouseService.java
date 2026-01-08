@@ -89,6 +89,14 @@ public interface HouseService {
      * @return current stay DTO or null if no active patient
      */
     PatientHouseStayDTO getHouseCurrentPatient(UUID houseId);
+
+    /**
+     * Get all stays for a house
+     *
+     * @param houseId house ID
+     * @return list of house stays
+     */
+    List<PatientHouseStayDTO> getHouseStays(UUID houseId);
 }
 
 
