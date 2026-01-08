@@ -14,7 +14,7 @@ import {
   Card,
   Checkbox,
   Badge,
-  message,
+  App,
 } from 'antd';
 import {
   SearchOutlined,
@@ -34,6 +34,7 @@ import layoutStyles from '@/styles/table-layout.module.css';
 import buttonStyles from '@/styles/buttons.module.css';
 import { getVisits } from '@/lib/api/visitMaintenance';
 import type { VisitMaintenanceDTO, VisitStatus as VisitStatusType } from '@/types/visitMaintenance';
+import { exportApi } from '@/lib/api/exportApi';
 
 dayjs.extend(isBetween);
 
@@ -52,8 +53,10 @@ export enum VisitStatus {
 
 export default function VisitMaintenanceClient() {
   const router = useRouter();
+  const { message } = App.useApp();
   const [visits, setVisits] = useState<VisitMaintenanceDTO[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<VisitStatusType | 'all'>('all');
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
@@ -181,6 +184,24 @@ export default function VisitMaintenanceClient() {
 
   const handleEdit = (record: VisitMaintenanceDTO) => {
     router.push(`/visit-maintenance/${record.serviceDeliveryId}`);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportApi.exportVisits({
+        startDate: dateRange?.[0]?.format('YYYY-MM-DD') || undefined,
+        endDate: dateRange?.[1]?.format('YYYY-MM-DD') || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchText || undefined,
+      });
+      message.success("Visits exported successfully");
+    } catch (error) {
+      console.error("Error exporting visits:", error);
+      message.error("Failed to export visits");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleRowClick = (record: VisitMaintenanceDTO) => {
@@ -444,6 +465,8 @@ export default function VisitMaintenanceClient() {
             <Button
               icon={<ExportOutlined />}
               className={buttonStyles.btnSecondary}
+              onClick={handleExport}
+              loading={exporting}
             >
               EXPORT
             </Button>

@@ -36,6 +36,7 @@ import buttonStyles from "@/styles/buttons.module.css";
 import EditHouseModal from "@/components/housing/EditHouseModal";
 import AssignPatientModal from "@/components/housing/AssignPatientModal";
 import UnassignPatientModal from "@/components/housing/UnassignPatientModal";
+import { exportApi } from "@/lib/api/exportApi";
 
 interface HousingClientProps {
   initialData: PaginatedHouses;
@@ -69,6 +70,7 @@ export default function HousingClient({
   const [editingHouse, setEditingHouse] = React.useState<HouseDTO | null>(null);
   const [assigningHouse, setAssigningHouse] = React.useState<HouseDTO | null>(null);
   const [unassigningHouse, setUnassigningHouse] = React.useState<HouseDTO | null>(null);
+  const [exporting, setExporting] = React.useState(false);
 
   // Debounce search input to prevent excessive API calls (500ms delay)
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -356,6 +358,22 @@ export default function HousingClient({
   //   router.refresh();
   // };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportApi.exportHouses({
+        officeId: officeFilter || undefined,
+        search: searchText || undefined,
+      });
+      message.success("Houses exported successfully");
+    } catch (error) {
+      console.error("Error exporting houses:", error);
+      message.error("Failed to export houses");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className={layoutStyles.pageContainer}>
       <Card className={layoutStyles.controlBar} variant="borderless">
@@ -400,6 +418,8 @@ export default function HousingClient({
               type="default"
               icon={<ExportOutlined />}
               className={buttonStyles.btnSecondary}
+              onClick={handleExport}
+              loading={exporting}
             >
               EXPORT DATA
             </Button>

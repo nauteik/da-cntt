@@ -148,7 +148,6 @@ public class ReportController {
         @RequestParam(required = true) Integer expiresAfterDays,
         @PageableDefault(size = 25) Pageable pageable
     ) {
-        log.info("GET /api/reports/authorization/expiring-auth - fromDate: {}, toDate: {}, expiresAfterDays: {}", fromDate, toDate, expiresAfterDays);
         
         ReportFilterDTO filters = new ReportFilterDTO();
         filters.setFromDate(fromDate);

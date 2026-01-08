@@ -100,8 +100,8 @@ public class PatientDataLoader {
         Set<String> usedMedicaidIds = new HashSet<>();
         Set<String> usedSsns = new HashSet<>();
         
-        log.info("Generating 100 patients...");
-        for (int i = 0; i < 100; i++) {
+        log.info("Generating 1000 patients...");
+        for (int i = 0; i < 1000; i++) {
             Patient patient = new Patient();
             // Set UUID manually for bulk insert
             patient.setId(java.util.UUID.randomUUID());

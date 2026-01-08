@@ -37,6 +37,18 @@ interface ReportFilterModalProps {
   onClose: () => void;
 }
 
+interface ReportFormValues {
+  dateRange?: [dayjs.Dayjs, dayjs.Dayjs];
+  fromTime?: dayjs.Dayjs;
+  toTime?: dayjs.Dayjs;
+  payerIds?: string[];
+  programIds?: string[];
+  serviceTypeIds?: string[];
+  clientMedicaidId?: string;
+  clientSearch?: string;
+  expiresAfterDays?: number;
+}
+
 export default function ReportFilterModal({
   open,
   reportMetadata,
@@ -71,7 +83,7 @@ export default function ReportFilterModal({
       const startOfMonth = now.startOf('month');
       const endOfMonth = now.endOf('month');
       
-      const defaultValues: any = {
+      const defaultValues: ReportFormValues = {
         dateRange: [startOfMonth, endOfMonth],
         fromTime: dayjs().startOf('day'),
         toTime: dayjs().endOf('day').subtract(1, 'minute'), // 11:59 PM
@@ -93,7 +105,7 @@ export default function ReportFilterModal({
     const startOfMonth = now.startOf('month');
     const endOfMonth = now.endOf('month');
     
-    const defaultValues: any = {
+    const defaultValues: ReportFormValues = {
       dateRange: [startOfMonth, endOfMonth],
       fromTime: dayjs().startOf('day'),
       toTime: dayjs().endOf('day').subtract(1, 'minute'),

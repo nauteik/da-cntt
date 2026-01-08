@@ -9,6 +9,7 @@ import {
   Button,
   Space,
   Tag,
+  App,
   type TablePaginationConfig,
 } from "antd";
 import {
@@ -31,6 +32,7 @@ import type { OfficeDTO } from "@/types/office";
 import type { RoleDTO } from "@/types/role";
 import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
+import { exportApi } from "@/lib/api/exportApi";
 
 interface EmployeesClientProps {
   initialData: PaginatedStaff;
@@ -45,6 +47,7 @@ export default function EmployeesClient({
 }: EmployeesClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { message } = App.useApp();
 
   // Derive all state from URL - single source of truth
   // URL uses 1-based pagination (page=1 is first page, matching UI)
@@ -61,6 +64,7 @@ export default function EmployeesClient({
   
   // State for create modal
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
 
   // Debounce search input to prevent excessive API calls (500ms delay)
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -337,6 +341,23 @@ export default function EmployeesClient({
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportApi.exportStaff({
+        search: searchText || undefined,
+        status: statusFilter.length > 0 ? statusFilter : undefined,
+        role: roleFilter.length > 0 ? roleFilter : undefined,
+      });
+      message.success("Staff exported successfully");
+    } catch (error) {
+      console.error("Error exporting staff:", error);
+      message.error("Failed to export staff");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className={layoutStyles.pageContainer}>
       <Card className={layoutStyles.controlBar} variant="borderless">
@@ -370,6 +391,8 @@ export default function EmployeesClient({
               type="default"
               icon={<ExportOutlined />}
               className={buttonStyles.btnSecondary}
+              onClick={handleExport}
+              loading={exporting}
             >
               EXPORT DATA
             </Button>
