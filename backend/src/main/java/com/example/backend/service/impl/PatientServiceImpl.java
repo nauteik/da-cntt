@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -740,6 +741,12 @@ public class PatientServiceImpl implements PatientService {
             }
             if (updateDTO.getType() != null) {
                 address.setType(updateDTO.getType());
+            }
+            if (updateDTO.getLatitude() != null){
+                address.setLatitude(BigDecimal.valueOf(updateDTO.getLatitude()));
+            }
+            if (updateDTO.getLongitude() != null){
+                address.setLongitude(BigDecimal.valueOf(updateDTO.getLongitude()));
             }
             
             addressRepository.save(address);
