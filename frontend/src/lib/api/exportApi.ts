@@ -7,7 +7,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL + "/api";
 /**
  * Helper to build query string from filters
  */
-function buildQueryString(filters: Record<string, any>): string {
+function buildQueryString(filters: Record<string, string | string[] | number | boolean | undefined | null>): string {
   const params = new URLSearchParams();
   
   Object.entries(filters).forEach(([key, value]) => {

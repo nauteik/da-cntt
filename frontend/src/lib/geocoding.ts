@@ -63,6 +63,7 @@ export async function geocodeAddressWithFallback(
   city?: string,
   state?: string,
   postalCode?: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _county?: string // County is included for API compatibility but not used in geocoding
 ): Promise<GeocodingResult | null> {
   // Build alternative address strings
@@ -101,6 +102,7 @@ export function buildAddressString(
   city?: string,
   state?: string,
   postalCode?: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _county?: string // County not used in geocoding as it's less reliable
 ): string {
   const parts: string[] = [];
