@@ -63,12 +63,13 @@ export async function deleteISP(ispId: string): Promise<ApiResponse<void>> {
 }
 
 /**
- * Upload ISP file (PDF) to Cloudinary
+ * Upload ISP file (PDF) to Cloudinary with progress tracking
  * Uses the existing file upload endpoint
  */
 export async function uploadISPFile(
   file: File,
-  officeId?: string
+  officeId?: string,
+  onProgress?: (progress: number) => void
 ): Promise<ApiResponse<FileObject>> {
   const formData = new FormData();
   formData.append("file", file);
@@ -76,19 +77,48 @@ export async function uploadISPFile(
     formData.append("officeId", officeId);
   }
 
-  const response = await fetch(`${BACKEND_URL}/files/upload`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    // Track upload progress
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable && onProgress) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        onProgress(percentComplete);
+      }
+    });
+
+    // Handle completion
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const result: ApiResponse<FileObject> = JSON.parse(xhr.responseText);
+          resolve(result);
+        } catch (error) {
+          reject(new Error("Failed to parse response"));
+        }
+      } else {
+        try {
+          const errorData = JSON.parse(xhr.responseText);
+          reject(new Error(errorData.message || "Failed to upload file"));
+        } catch {
+          reject(new Error("Failed to upload file"));
+        }
+      }
+    });
+
+    // Handle errors
+    xhr.addEventListener("error", () => {
+      reject(new Error("Network error during file upload"));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("File upload was cancelled"));
+    });
+
+    // Open and send request
+    xhr.open("POST", `${BACKEND_URL}/files/upload`);
+    xhr.withCredentials = true;
+    xhr.send(formData);
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({
-      message: "Failed to upload file",
-    }));
-    throw new Error(errorData.message || "Failed to upload file");
-  }
-
-  const result: ApiResponse<FileObject> = await response.json();
-  return result;
 }
