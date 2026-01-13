@@ -105,7 +105,7 @@ export default function VisitMaintenanceClient() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, dateRange, searchText, statusFilter]);
+  }, [currentPage, pageSize, dateRange, searchText, statusFilter, message]);
 
   // Load visits data
   useEffect(() => {
