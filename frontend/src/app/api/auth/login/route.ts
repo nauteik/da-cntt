@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
-      sameSite: 'lax', // 'lax' is safer and sufficient for first-party contexts
+      sameSite: 'none', // 'lax' is safer and sufficient for first-party contexts
       maxAge: 60 * 60 * 2, // 2 hours in seconds
       // Don't set domain to let browser handle it automatically
     });
