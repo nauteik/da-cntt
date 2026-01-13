@@ -31,7 +31,7 @@ export function usePatientHeader(
     ["patient-header", patientId] as const,
     endpoint,
     {
-      staleTime: 0, // Always refetch when invalidated (no stale time)
+      staleTime: 60 * 1000, // Trust SSR data for 1 minute, don't refetch immediately
       gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
       enabled: !!patientId, // Only fetch if patientId is provided
       ...options,
@@ -64,7 +64,7 @@ export function usePatientPersonal(
     ["patient-personal", patientId] as const,
     endpoint,
     {
-      staleTime: 0, // Always refetch when invalidated (no stale time)
+      staleTime: 60 * 1000, // Trust SSR data for 1 minute, don't refetch immediately
       gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
       enabled: !!patientId, // Only fetch if patientId is provided
       ...options,
@@ -97,7 +97,7 @@ export function usePatientProgram(
     ["patient-program", patientId] as const,
     endpoint,
     {
-      staleTime: 0, // Always refetch when invalidated (no stale time)
+      staleTime: 60 * 1000, // Trust SSR data for 1 minute, don't refetch immediately
       gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
       enabled: !!patientId, // Only fetch if patientId is provided
       ...options,

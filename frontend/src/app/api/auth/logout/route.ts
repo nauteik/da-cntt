@@ -49,6 +49,7 @@ export async function POST() {
     const isProduction = process.env.NODE_ENV === 'production';
     const cookieDomain = isProduction ? '.nauteik.dev' : undefined;
     
+    // 1. Delete cookie with wildcard domain (Shared cookie)
     response.cookies.set('accessToken', '', {
       httpOnly: true,
       secure: isProduction,
@@ -57,6 +58,18 @@ export async function POST() {
       maxAge: 0, // Delete cookie
       domain: cookieDomain,
     });
+
+    // 2. Force delete potential HostOnly cookie (Legacy/Fallback)
+    // This ensures that if a user has an old cookie set without the domain attribute, it gets cleared too.
+    if (isProduction) {
+      response.cookies.set('accessToken', '', {
+        httpOnly: true,
+        secure: isProduction,
+        path: '/',
+        sameSite: 'lax', // Try lax which is default for most HostOnly cookies
+        maxAge: 0,
+      });
+    }
 
     return response;
   } catch (error) {
