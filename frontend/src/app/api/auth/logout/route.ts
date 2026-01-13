@@ -12,10 +12,6 @@ export async function POST() {
     // Get the access token before deleting (for backend logout)
     const accessToken = cookieStore.get('accessToken');
 
-    // Delete the cookie from Next.js/Browser
-    // This is the key step - only Next.js can delete HttpOnly cookies it set
-    cookieStore.delete('accessToken');
-
     // Optionally call backend logout to invalidate token server-side
     // This is best practice but not strictly required since we're deleting the cookie
     if (accessToken) {
@@ -39,7 +35,8 @@ export async function POST() {
       }
     }
 
-    return NextResponse.json(
+    // Create response
+    const response = NextResponse.json(
       {
         success: true,
         message: 'Logged out successfully',
@@ -47,6 +44,21 @@ export async function POST() {
       },
       { status: 200 }
     );
+
+    // Clear cookie with same domain settings as login
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieDomain = isProduction ? '.nauteik.dev' : undefined;
+    
+    response.cookies.set('accessToken', '', {
+      httpOnly: true,
+      secure: isProduction,
+      path: '/',
+      sameSite: 'none',
+      maxAge: 0, // Delete cookie
+      domain: cookieDomain,
+    });
+
+    return response;
   } catch (error) {
     console.error('Logout error:', error);
     return NextResponse.json(

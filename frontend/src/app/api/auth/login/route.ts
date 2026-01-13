@@ -36,24 +36,24 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { token, ...userInfo } = userInfoWithToken;
 
-    // Set the HttpOnly cookie from the Next.js server
-    const cookieStore = await cookies();
+    // Create response
+    const response = NextResponse.json({ success: true, data: userInfo });
+
+    // Set cookie with domain for cross-subdomain sharing
+    // This allows cookie to be shared between nauteik.dev and api.nauteik.dev
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieDomain = isProduction ? '.nauteik.dev' : undefined;
     
-    // Clear any existing accessToken cookie first
-    cookieStore.delete('accessToken');
-    
-    // Set the new cookie
-    cookieStore.set('accessToken', accessToken, {
+    response.cookies.set('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction, // HTTPS required in production
       path: '/',
-      sameSite: 'none', // 'lax' is safer and sufficient for first-party contexts
-      maxAge: 60 * 60 * 2, // 2 hours in seconds
-      // Don't set domain to let browser handle it automatically
+      sameSite: 'none', // Required for cross-site requests
+      maxAge: 60 * 60 * 2, // 2 hours
+      domain: cookieDomain, // Set domain for subdomain sharing
     });
 
-    // Return user info to the client, but not the token
-    return NextResponse.json({ success: true, data: userInfo });
+    return response;
 
   } catch (error) {
     console.error('Login proxy error:', error);
