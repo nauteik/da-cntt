@@ -159,7 +159,7 @@ public class PatientDataLoader {
         }
         
         // Bulk insert patients using JDBC batch processing for maximum performance
-        log.info("Bulk inserting 100 patients to database using JDBC batch processing...");
+        log.info("Bulk inserting 1000 patients to database using JDBC batch processing...");
         bulkInsertService.bulkInsertPatients(patients);
         
         return patients;
@@ -167,7 +167,7 @@ public class PatientDataLoader {
 
     private List<Address> loadAddressData(Faker faker) {
         List<Address> addresses = new ArrayList<>();
-        log.info("Generating 100 addresses with GPS coordinates...");
+        log.info("Generating 1000 addresses with GPS coordinates...");
         
         // Define GPS coordinates for different districts in Ho Chi Minh City
         double[][] districtCenters = {
@@ -183,8 +183,8 @@ public class PatientDataLoader {
             {10.741139, 106.632631}   // District 6
         };
 
-        for (int i = 0; i < 100; i++) {
-            int districtIdx = i / 10; // 10 addresses per district
+        for (int i = 0; i < 1000; i++) {
+            int districtIdx = i / 100; // 100 addresses per district
             double baseLat = districtCenters[districtIdx][0];
             double baseLng = districtCenters[districtIdx][1];
             
@@ -207,7 +207,7 @@ public class PatientDataLoader {
             addresses.add(address);
         }
         
-        log.info("Bulk inserting 100 addresses to database...");
+        log.info("Bulk inserting 1000 addresses to database...");
         bulkInsertService.bulkInsertAddresses(addresses);
         
         return addresses;
@@ -222,6 +222,7 @@ public class PatientDataLoader {
             patientAddress.setId(java.util.UUID.randomUUID());
             patientAddress.setPatient(patients.get(i));
             
+            // Each patient gets a unique address (1000 addresses for 1000 patients)
             Address address = addresses.get(i);
             patientAddress.setAddress(address);
             

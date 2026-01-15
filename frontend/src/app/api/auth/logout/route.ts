@@ -54,7 +54,7 @@ export async function POST() {
       httpOnly: true,
       secure: isProduction,
       path: '/',
-      sameSite: 'none',
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 0, // Delete cookie
       domain: cookieDomain,
     });

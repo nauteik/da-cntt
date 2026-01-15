@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: isProduction, // HTTPS required in production
       path: '/',
-      sameSite: 'none', // Required for cross-site requests
+      sameSite: isProduction ? 'none' : 'lax', // Localhost (HTTP) requires Lax, Prod (HTTPS/Cross-domain) requires None
       maxAge: 60 * 60 * 2, // 2 hours
       domain: cookieDomain, // Set domain for subdomain sharing
     });

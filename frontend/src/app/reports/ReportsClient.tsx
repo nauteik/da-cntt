@@ -40,13 +40,6 @@ const reportCategories: ReportCategory[] = [
     ],
   },
   {
-    key: 'billing',
-    title: 'Billing',
-    reports: [
-      { key: 'visits-claims-verification', name: 'Visits Claims Verification Status' },
-    ],
-  },
-  {
     key: 'daily-reports',
     title: 'Daily Reports',
     reports: [

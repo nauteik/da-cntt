@@ -326,6 +326,56 @@ export default function ReportFilterModal({
           </Form.Item>
         )}
 
+        {config.showEmployeeName && (
+          <Form.Item
+            label="Employee Name"
+            name="employeeName"
+          >
+            <Input placeholder="Enter employee name" />
+          </Form.Item>
+        )}
+
+        {config.showDepartment && (
+          <Form.Item
+            label="Department"
+            name="department"
+          >
+            <Input placeholder="Enter department" />
+          </Form.Item>
+        )}
+
+        {config.showSupervisor && (
+          <Form.Item
+            label="Supervisor"
+            name="supervisorId"
+          >
+            <Select
+              placeholder="Select supervisor"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+            >
+              {/* TODO: Load supervisors from API */}
+            </Select>
+          </Form.Item>
+        )}
+
+        {config.showOffice && (
+          <Form.Item
+            label="Office"
+            name="officeId"
+          >
+            <Select
+              placeholder="Select office"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+            >
+              {/* TODO: Load offices from API */}
+            </Select>
+          </Form.Item>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
           <Button
             onClick={handleClear}
