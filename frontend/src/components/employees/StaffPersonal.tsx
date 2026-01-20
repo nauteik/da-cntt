@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Empty, Badge } from "antd";
+import { Card, Empty } from "antd";
 import {
   PhoneOutlined,
   MailOutlined,

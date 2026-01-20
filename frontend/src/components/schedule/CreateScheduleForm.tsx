@@ -602,7 +602,6 @@ export default function CreateScheduleForm({
                 >
                   <Select className={formStyles.formSelect}>
                     <Option value="PLANNED">Planned</Option>
-                    <Option value="CONFIRMED">Confirmed</Option>
                   </Select>
                 </Form.Item>
                 

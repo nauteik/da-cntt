@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table,
@@ -14,12 +14,11 @@ import {
   Card,
   Checkbox,
   Badge,
-  message,
+  App,
 } from 'antd';
 import {
   SearchOutlined,
   EditOutlined,
-  FilterOutlined,
   ReloadOutlined,
   ExportOutlined,
   CheckCircleOutlined,
@@ -36,7 +35,7 @@ import buttonStyles from '@/styles/buttons.module.css';
 import styles from '@/styles/VisitMaintenance.module.css';
 import { getVisits } from '@/lib/api/visitMaintenance';
 import type { VisitMaintenanceDTO, VisitStatus as VisitStatusType } from '@/types/visitMaintenance';
-import CreateUnscheduledVisitModal from '@/components/visit-maintenance/CreateUnscheduledVisitModal';
+import { exportApi } from '@/lib/api/exportApi';
 
 dayjs.extend(isBetween);
 
@@ -55,8 +54,10 @@ export enum VisitStatus {
 
 export default function VisitMaintenanceClient() {
   const router = useRouter();
+  const { message } = App.useApp();
   const [visits, setVisits] = useState<VisitMaintenanceDTO[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<VisitStatusType | 'all'>('all');
   const [visitTypeFilter, setVisitTypeFilter] = useState<'all' | 'scheduled' | 'unscheduled'>('all');
@@ -66,12 +67,7 @@ export default function VisitMaintenanceClient() {
   const [total, setTotal] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Load visits data
-  useEffect(() => {
-    loadVisits();
-  }, [currentPage, pageSize, dateRange, visitTypeFilter]);
-
-  const loadVisits = async () => {
+  const loadVisits = useCallback(async () => {
     setLoading(true);
     try {
       const startDate = dateRange?.[0]?.format('YYYY-MM-DD');
@@ -100,17 +96,17 @@ export default function VisitMaintenanceClient() {
         setVisits(filteredVisits);
         setTotal(filteredVisits.length);
       } else {
-        setVisits([]);
-        setTotal(0);
-        message.error(response.message || 'Failed to load visit records. Please check your connection and try again.');
+      setVisits([]);
+      setTotal(0);
+      message.error(response.message || 'Failed to load visit records. Please check your connection and try again.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load visits:', error);
       setVisits([]);
       setTotal(0);
       
-      const errorMessage = error?.response?.data?.message 
-        || error?.message 
+      const errorMessage = (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message 
+        || (error as { message?: string })?.message 
         || 'Unable to connect to server. Please check your network connection and try again.';
       
       message.error({
@@ -120,7 +116,12 @@ export default function VisitMaintenanceClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, dateRange, searchText, statusFilter, message]);
+
+  // Load visits data
+  useEffect(() => {
+    loadVisits();
+  }, [loadVisits]);
 
   // Search effect with debounce
   useEffect(() => {
@@ -133,7 +134,7 @@ export default function VisitMaintenanceClient() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchText, statusFilter, visitTypeFilter]);
+  }, [searchText, statusFilter, currentPage, loadVisits]);
 
   const getStatusColor = (status: VisitStatusType) => {
     const colorMap = {
@@ -186,7 +187,7 @@ export default function VisitMaintenanceClient() {
           : visit
       ));
       message.success(checked ? 'Visit marked as Do Not Bill' : 'Do Not Bill removed');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update do not bill status:', error);
       message.error('Failed to update do not bill status. Please try again.');
     }
@@ -194,6 +195,24 @@ export default function VisitMaintenanceClient() {
 
   const handleEdit = (record: VisitMaintenanceDTO) => {
     router.push(`/visit-maintenance/${record.serviceDeliveryId}`);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportApi.exportVisits({
+        startDate: dateRange?.[0]?.format('YYYY-MM-DD') || undefined,
+        endDate: dateRange?.[1]?.format('YYYY-MM-DD') || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchText || undefined,
+      });
+      message.success("Visits exported successfully");
+    } catch (error) {
+      console.error("Error exporting visits:", error);
+      message.error("Failed to export visits");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleRowClick = (record: VisitMaintenanceDTO) => {
@@ -561,6 +580,8 @@ export default function VisitMaintenanceClient() {
             <Button
               icon={<ExportOutlined />}
               className={buttonStyles.btnSecondary}
+              onClick={handleExport}
+              loading={exporting}
             >
               EXPORT
             </Button>

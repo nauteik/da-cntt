@@ -10,6 +10,7 @@ import PatientProgram from "@/components/patients/PatientProgram";
 import PatientMedication from "@/components/patients/PatientMedication";
 import PatientSchedule from "@/components/patients/PatientSchedule";
 import PatientNotesHistory from "@/components/patients/PatientNotesHistory";
+import PatientISP from "@/components/patients/PatientISP";
 import TabLoading from "@/components/common/TabLoading";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import InlineError from "@/components/common/InlineError";
@@ -104,6 +105,11 @@ export default function PatientDetailClient({
       ) : (
         <PatientProgram patient={programData!} patientId={patientId} />
       ),
+    },
+    {
+      key: "isp",
+      label: "ISP",
+      children: <PatientISP patientId={patientId} />,
     },
     {
       key: "medication",

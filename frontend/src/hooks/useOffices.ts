@@ -10,7 +10,7 @@ import type {
   OfficeUpdateRequest,
 } from "@/types/office";
 import type { UseQueryOptions, UseMutationOptions } from "@tanstack/react-query";
-import type { ApiError, ApiResponse } from "@/types/api";
+import type { ApiError } from "@/types/api";
 
 /**
  * Fetch all offices (including inactive)

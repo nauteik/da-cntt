@@ -7,6 +7,13 @@ import { usePatientAllergies, useAddAllergy } from "@/hooks/useMedications";
 import TabLoading from "@/components/common/TabLoading";
 import InlineError from "@/components/common/InlineError";
 
+interface AllergyFormValues {
+  allergen: string;
+  reaction?: string;
+  severity: string;
+  isActive: boolean;
+}
+
 interface PatientAllergiesProps {
   patientId: string;
 }
@@ -18,7 +25,7 @@ export default function PatientAllergies({ patientId }: PatientAllergiesProps) {
   const { data: allergies, isLoading, error } = usePatientAllergies(patientId);
   const addAllergyMutation = useAddAllergy();
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: AllergyFormValues) => {
     try {
       await addAllergyMutation.mutateAsync({
         ...values,
@@ -28,8 +35,8 @@ export default function PatientAllergies({ patientId }: PatientAllergiesProps) {
       message.success("Allergy added successfully");
       setIsModalVisible(false);
       form.resetFields();
-    } catch (err: any) {
-      message.error(err.message || "Failed to add allergy");
+    } catch (err: unknown) {
+      message.error((err as { message?: string })?.message || "Failed to add allergy");
     }
   };
 
@@ -92,7 +99,7 @@ export default function PatientAllergies({ patientId }: PatientAllergiesProps) {
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         onOk={() => form.submit()}
-        confirmLoading={addAllergyMutation.isLoading}
+        confirmLoading={addAllergyMutation.isPending}
       >
         <Form form={form} layout="vertical" onFinish={onFinish}>
           <Form.Item name="allergen" label="Allergen (Medication, Food, etc.)" rules={[{ required: true }]}>

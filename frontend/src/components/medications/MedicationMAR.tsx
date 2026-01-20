@@ -2,10 +2,26 @@
 
 import React, { useState } from "react";
 import { Table, Tag, Button, DatePicker, Space, Card, Typography, Modal, Form, Input, InputNumber, Checkbox, Row, Col, message } from "antd";
-import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined, HeartOutlined } from "@ant-design/icons";
+import { PlusOutlined, HeartOutlined } from "@ant-design/icons";
 import { usePatientMAR, useActiveOrders, useRecordAdministration } from "@/hooks/useMedications";
 import { useAuth } from "@/contexts/AuthContext";
 import { MedicationOrder, MedicationAdministration } from "@/types/medication";
+
+interface MedicationAdministrationFormValues {
+  medicationOrderId: string;
+  patientId: string;
+  administeredAt: dayjs.Dayjs;
+  doseGiven: string;
+  isPrn: boolean;
+  status: string;
+  staffId?: string;
+  systolicBP?: number;
+  diastolicBP?: number;
+  pulse?: number;
+  glucose?: number;
+  notes?: string;
+  witnessStaffId?: string;
+}
 import dayjs from "dayjs";
 import TabLoading from "@/components/common/TabLoading";
 import InlineError from "@/components/common/InlineError";
@@ -41,7 +57,7 @@ export default function MedicationMAR({ patientId }: MedicationMARProps) {
     setIsAdminModalVisible(true);
   };
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: MedicationAdministrationFormValues) => {
     try {
       await recordAdminMutation.mutateAsync({
         ...values,
@@ -51,8 +67,8 @@ export default function MedicationMAR({ patientId }: MedicationMARProps) {
       message.success("Administration recorded successfully");
       setIsAdminModalVisible(false);
       form.resetFields();
-    } catch (err: any) {
-      message.error(err.message || "Failed to record administration");
+    } catch (err: unknown) {
+      message.error((err as { message?: string })?.message || "Failed to record administration");
     }
   };
 
@@ -69,7 +85,7 @@ export default function MedicationMAR({ patientId }: MedicationMARProps) {
     {
       title: "Medication",
       key: "medication",
-      render: (_: any, record: MedicationAdministration) => (
+      render: (_: unknown, record: MedicationAdministration) => (
         <Space direction="vertical" size={0}>
           <Text strong>{record.medicationOrder?.drugName || "Unknown Medication"}</Text>
           <Text type="secondary" style={{ fontSize: "12px" }}>
@@ -95,7 +111,7 @@ export default function MedicationMAR({ patientId }: MedicationMARProps) {
     {
       title: "Vitals",
       key: "vitals",
-      render: (_: any, record: MedicationAdministration) => (
+      render: (_: unknown, record: MedicationAdministration) => (
         <Text type="secondary" style={{ fontSize: "12px" }}>
           {record.systolicBP && `BP: ${record.systolicBP}/${record.diastolicBP} `}
           {record.pulse && `P: ${record.pulse} `}
@@ -128,7 +144,7 @@ export default function MedicationMAR({ patientId }: MedicationMARProps) {
             { 
               title: "Action", 
               key: "action",
-              render: (_: any, record: MedicationOrder) => (
+              render: (_: unknown, record: MedicationOrder) => (
                 <Button 
                   type="primary" 
                   size="small" 
@@ -155,7 +171,7 @@ export default function MedicationMAR({ patientId }: MedicationMARProps) {
             { 
               title: "Action", 
               key: "action",
-              render: (_: any, record: MedicationOrder) => (
+              render: (_: unknown, record: MedicationOrder) => (
                 <Button 
                   type="default" 
                   size="small" 
@@ -185,7 +201,7 @@ export default function MedicationMAR({ patientId }: MedicationMARProps) {
         onCancel={() => setIsAdminModalVisible(false)}
         onOk={() => form.submit()}
         width={700}
-        confirmLoading={recordAdminMutation.isLoading}
+        confirmLoading={recordAdminMutation.isPending}
       >
         <Form form={form} layout="vertical" onFinish={onFinish}>
           {/* Hidden fields for required IDs */}

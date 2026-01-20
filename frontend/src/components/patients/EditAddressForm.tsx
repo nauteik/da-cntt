@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Modal, Input, Select, Checkbox, Button, App } from "antd";
+import { Modal, Input, Select, Checkbox, Button, App, Spin } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useApiMutation } from "@/hooks/useApi";
 import { addressSchema, type AddressFormData } from "@/lib/validation/patientSchemas";
@@ -11,6 +11,18 @@ import { ADDRESS_TYPES, US_STATES } from "@/lib/validation/validation";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import type { AddressDTO, PatientPersonalDTO } from "@/types/patient";
+import { geocodeAddressWithFallback } from "@/lib/geocoding";
+import dynamic from "next/dynamic";
+
+// Dynamically import map to avoid SSR issues
+const DynamicAddressMap = dynamic(() => import("@/components/common/AddressMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[400px] flex items-center justify-center bg-gray-100">
+      <Spin size="large" />
+    </div>
+  ),
+});
 
 interface EditAddressFormProps {
   open: boolean;
@@ -30,11 +42,13 @@ export default function EditAddressForm({
   const [showSuccess, setShowSuccess] = React.useState(false);
   const previousOpenRef = React.useRef(open);
   const { modal } = App.useApp();
+  const [isGeocoding, setIsGeocoding] = React.useState(false);
 
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
@@ -52,8 +66,20 @@ export default function EditAddressForm({
       phone: "",
       email: "",
       isMain: false,
+      latitude: null,
+      longitude: null,
     },
   });
+
+  // Watch address fields
+  const line1 = useWatch({ control, name: "line1" });
+  const line2 = useWatch({ control, name: "line2" });
+  const city = useWatch({ control, name: "city" });
+  const state = useWatch({ control, name: "state" });
+  const postalCode = useWatch({ control, name: "postalCode" });
+  const county = useWatch({ control, name: "county" });
+  const latitude = useWatch({ control, name: "latitude" });
+  const longitude = useWatch({ control, name: "longitude" });
 
   // Determine if creating or updating based on initialData.id
   const isCreating = !initialData?.id;
@@ -95,6 +121,72 @@ export default function EditAddressForm({
     }
   );
 
+  // Manual geocoding function - called when user clicks sync button
+  const handleSyncCoordinates = async () => {
+    const hasAddressInfo = line1 && city && state;
+    
+    if (!hasAddressInfo) {
+      modal.warning({
+        title: "Incomplete Address",
+        content: "Please fill in at least Address Line 1, City, and State before syncing coordinates.",
+        centered: true,
+      });
+      return;
+    }
+
+    setIsGeocoding(true);
+    try {
+      // Use fallback geocoding with multiple strategies
+      const result = await geocodeAddressWithFallback(
+        line1,
+        line2,
+        city,
+        state,
+        postalCode,
+        county
+      );
+      
+      if (result) {
+        setValue("latitude", result.latitude);
+        setValue("longitude", result.longitude);
+        modal.success({
+          title: "Coordinates Synced",
+          content: (
+            <div>
+              <p>Found coordinates: {result.latitude.toFixed(6)}, {result.longitude.toFixed(6)}</p>
+              <p className="text-xs text-gray-500 mt-2">Location: {result.displayName}</p>
+            </div>
+          ),
+          centered: true,
+        });
+      } else {
+        modal.error({
+          title: "Geocoding Failed",
+          content: (
+            <div>
+              <p>Could not find coordinates for this address.</p>
+              <p className="text-xs mt-2">Please check that:</p>
+              <ul className="text-xs list-disc list-inside mt-1">
+                <li>Address Line 1, City, and State are correct</li>
+                <li>Or set coordinates manually using the map below</li>
+              </ul>
+            </div>
+          ),
+          centered: true,
+        });
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      modal.error({
+        title: "Geocoding Error",
+        content: "An error occurred while fetching coordinates. Please try again or set coordinates manually.",
+        centered: true,
+      });
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
   // Reset form when modal opens
   React.useEffect(() => {
     if (open && !previousOpenRef.current) {
@@ -103,6 +195,8 @@ export default function EditAddressForm({
         ? {
             ...initialData,
             type: initialData.type?.toUpperCase() as "HOME" | "COMMUNITY" | "SENIOR" | "BUSINESS" | undefined,
+            latitude: initialData.latitude ?? null,
+            longitude: initialData.longitude ?? null,
           }
         : {
             label: "",
@@ -116,6 +210,8 @@ export default function EditAddressForm({
             phone: "",
             email: "",
             isMain: false,
+            latitude: null,
+            longitude: null,
           };
 
       reset(formValues);
@@ -126,7 +222,18 @@ export default function EditAddressForm({
   }, [open, initialData, reset, mutation]);
 
   const onSubmit = async (data: AddressFormData) => {
-    await mutation.mutateAsync(data);
+    // Include coordinates in submission
+    const submitData = {
+      ...data,
+      latitude: data.latitude ?? undefined,
+      longitude: data.longitude ?? undefined,
+    };
+    await mutation.mutateAsync(submitData);
+  };
+
+  const handleCoordinateChange = (lat: number, lng: number) => {
+    setValue("latitude", lat);
+    setValue("longitude", lng);
   };
 
   const handleCancel = () => {
@@ -445,6 +552,99 @@ export default function EditAddressForm({
                   </Checkbox>
                 )}
               />
+            </div>
+
+            {/* GPS Coordinates Section */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-theme-primary">
+                  GPS Coordinates
+                </label>
+                <Button
+                  type="default"
+                  onClick={handleSyncCoordinates}
+                  loading={isGeocoding}
+                  disabled={!line1 || !city || !state}
+                  size="small"
+                  className={buttonStyles.btnSecondary}
+                >
+                  {isGeocoding ? "Syncing..." : "Sync Coordinates"}
+                </Button>
+              </div>
+              <p className="text-xs text-theme-secondary">
+                Click &quot;Sync Coordinates&quot; to automatically find coordinates from the address. You can also adjust them by clicking or dragging the marker on the map, or edit them directly below.
+              </p>
+              
+              {/* Map */}
+              <div className="w-full border border-theme rounded overflow-hidden">
+                <DynamicAddressMap
+                  latitude={latitude ?? undefined}
+                  longitude={longitude ?? undefined}
+                  onCoordinateChange={handleCoordinateChange}
+                  height="300px"
+                />
+              </div>
+
+              {/* Coordinate Input Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-theme-primary">
+                    Latitude
+                  </label>
+                  <Controller
+                    name="latitude"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="number"
+                        step="any"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === "" ? null : parseFloat(value));
+                        }}
+                        placeholder="e.g., 40.7128"
+                        className={formStyles.formInput}
+                      />
+                    )}
+                  />
+                  {errors.latitude && (
+                    <span className="text-sm text-red-500">
+                      {errors.latitude.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-theme-primary">
+                    Longitude
+                  </label>
+                  <Controller
+                    name="longitude"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="number"
+                        step="any"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === "" ? null : parseFloat(value));
+                        }}
+                        placeholder="e.g., -74.0060"
+                        className={formStyles.formInput}
+                      />
+                    )}
+                  />
+                  {errors.longitude && (
+                    <span className="text-sm text-red-500">
+                      {errors.longitude.message}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

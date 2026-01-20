@@ -24,8 +24,8 @@ export default function MedicationOrderList({ patientId }: MedicationOrderListPr
     try {
       await discontinueMutation.mutateAsync({ orderId, patientId });
       message.success("Medication discontinued");
-    } catch (err: any) {
-      message.error(err.message || "Failed to discontinue medication");
+    } catch (err: unknown) {
+      message.error((err as { message?: string })?.message || "Failed to discontinue medication");
     }
   };
 
@@ -52,7 +52,7 @@ export default function MedicationOrderList({ patientId }: MedicationOrderListPr
     {
       title: "Route & Frequency",
       key: "routeFreq",
-      render: (_: any, record: MedicationOrder) => (
+      render: (_: unknown, record: MedicationOrder) => (
         <Space direction="vertical" size={0}>
           <span>{record.route}</span>
           <span className="text-xs font-medium">{record.frequency}</span>
@@ -70,12 +70,14 @@ export default function MedicationOrderList({ patientId }: MedicationOrderListPr
     {
       title: "Stock",
       key: "stock",
-      render: (_: any, record: MedicationOrder) => {
-        const isLow = record.currentStock !== undefined && record.reorderLevel !== undefined && record.currentStock <= record.reorderLevel;
+      render: (_: unknown, record: MedicationOrder) => {
+        const currentStock = record.currentStock ?? 0;
+        const reorderLevel = record.reorderLevel ?? 0;
+        const isLow = currentStock <= reorderLevel && reorderLevel > 0;
         return (
           <Space>
             <span className={isLow ? "text-red-500 font-bold" : ""}>
-              {record.currentStock} {record.unitOfMeasure}
+              {currentStock} {record.unitOfMeasure || ''}
             </span>
             {isLow && (
               <Tooltip title="Low Stock Alert">
@@ -94,7 +96,7 @@ export default function MedicationOrderList({ patientId }: MedicationOrderListPr
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: MedicationOrder) => (
+      render: (_: unknown, record: MedicationOrder) => (
         <Space>
           <Tooltip title="View Details">
             <Button 
@@ -115,7 +117,7 @@ export default function MedicationOrderList({ patientId }: MedicationOrderListPr
                 icon={<StopOutlined />} 
                 danger 
                 size="small" 
-                loading={discontinueMutation.isLoading}
+                loading={discontinueMutation.isPending}
               />
             </Tooltip>
           </Popconfirm>

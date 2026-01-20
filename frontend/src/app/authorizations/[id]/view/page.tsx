@@ -7,7 +7,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import LoadingFallback from "@/components/common/LoadingFallback";
 import { apiClient } from "@/lib/apiClient";
 import type { ApiResponse } from "@/types/api";
-import type { AuthorizationDetailDTO } from "@/types/authorization";
+import type { AuthorizationDetailDTO, PatientServiceDTO } from "@/types/authorization";
+import type { PatientProgramDTO, ServiceDetailDTO } from "@/types/patient";
 
 interface ViewAuthorizationPageProps {
   params: Promise<{ id: string }>;
@@ -35,18 +36,28 @@ async function getAuthorizationDetail(
 // Fetch patient services for the Service Limitations section
 async function getPatientServices(
   patientId: string
-): Promise<{ data: any[] | null; error?: string }> {
+): Promise<{ data: PatientServiceDTO[] | null; error?: string }> {
   try {
     const endpoint = `/patients/${patientId}/program`;
-    const response: ApiResponse<any> = await apiClient<any>(endpoint);
+    const response: ApiResponse<PatientProgramDTO> = await apiClient<PatientProgramDTO>(endpoint);
 
     if (!response.success || !response.data) {
       return { data: null, error: response.message || "Failed to fetch patient services" };
     }
 
-    // Extract services from the program data
-    const services = response.data.services || [];
-    return { data: services };
+    // Extract services from the program data and map to PatientServiceDTO
+    const services: ServiceDetailDTO[] = response.data.services || [];
+    const mappedServices: PatientServiceDTO[] = services
+      .filter((service) => service.patientServiceId && service.serviceCode && service.serviceName)
+      .map((service) => ({
+        id: service.patientServiceId!,
+        serviceCode: service.serviceCode!,
+        serviceName: service.serviceName!,
+        startDate: service.startDate || "",
+        endDate: service.endDate,
+        totalUnits: undefined, // Not available in ServiceDetailDTO
+      }));
+    return { data: mappedServices };
   } catch (error) {
     console.error("Error fetching patient services:", error);
     return { data: null, error: "An unexpected error occurred" };

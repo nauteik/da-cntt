@@ -11,6 +11,7 @@ import {
   DatePicker,
   Tag,
   Switch,
+  App,
 } from "antd";
 import {
   PlusOutlined,
@@ -25,9 +26,9 @@ import type {
   PaginatedScheduleEvents,
 } from "@/types/schedule";
 import type { PatientSelectDTO, StaffSelectDTO } from "@/types/patient";
-import { message } from "antd";
 import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
+import { exportApi } from "@/lib/api/exportApi";
 import CreateScheduleForm from "@/components/schedule/CreateScheduleForm";
 import ScheduleEventsTable from "@/components/patients/schedule/ScheduleEventsTable";
 import WeeklyCalendar from "@/components/schedule/WeeklyCalendar";
@@ -50,6 +51,7 @@ export default function ScheduleClient({
 }: ScheduleClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { message } = App.useApp();
 
   // Derive state from URL
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
@@ -87,6 +89,7 @@ export default function ScheduleClient({
   
   // Export hook
   const { exportPdf, isExporting } = useScheduleExport();
+  const [exportingExcel, setExportingExcel] = React.useState(false);
   
   // Calendar date state
   const weekStart = useMemo(() => {
@@ -273,6 +276,26 @@ export default function ScheduleClient({
     } catch (error) {
       console.error("Export error:", error);
       message.error("Failed to export PDF. Please try again.");
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      await exportApi.exportScheduleEvents({
+        from: defaultFrom,
+        to: defaultTo,
+        patientId: patientFilter || undefined,
+        staffId: staffFilter || undefined,
+        status: statusFilter || undefined,
+        search: searchText || undefined,
+      });
+      message.success("Schedule events exported successfully");
+    } catch (error) {
+      console.error("Error exporting schedule events:", error);
+      message.error("Failed to export schedule events");
+    } finally {
+      setExportingExcel(false);
     }
   };
 
@@ -499,7 +522,16 @@ export default function ScheduleClient({
               onClick={handleExport}
               loading={isExporting}
             >
-              EXPORT
+              EXPORT PDF
+            </Button>
+            <Button
+              type="default"
+              icon={<ExportOutlined />}
+              className={buttonStyles.btnSecondary}
+              onClick={handleExportExcel}
+              loading={exportingExcel}
+            >
+              EXPORT EXCEL
             </Button>
           </Space>
         </div>

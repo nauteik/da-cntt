@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Modal, InputNumber, Select, Checkbox, Radio, DatePicker, Space } from "antd";
+import { Modal, InputNumber, Select, Radio, DatePicker, Space } from "antd";
 import type { RepeatConfigDTO } from "@/types/schedule";
 import buttonStyles from "@/styles/buttons.module.css";
 import formStyles from "@/styles/form.module.css";

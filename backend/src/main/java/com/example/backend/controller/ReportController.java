@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.model.ApiResponse;
 import com.example.backend.model.dto.AuthorizationSearchDTO;
 import com.example.backend.model.dto.report.*;
 import com.example.backend.service.ExcelExportService;
@@ -41,7 +42,7 @@ public class ReportController {
      * Get Authorization vs Actual Used by Client report
      */
     @GetMapping("/auth-vs-actual")
-    public ResponseEntity<Page<AuthVsActualReportDTO>> getAuthVsActualReport(
+    public ResponseEntity<ApiResponse<Page<AuthVsActualReportDTO>>> getAuthVsActualReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -67,14 +68,14 @@ public class ReportController {
         filters.setClientSearch(clientSearch);
         
         Page<AuthVsActualReportDTO> result = reportService.getAuthVsActualReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**
      * Get Authorizations report
      */
     @GetMapping("/authorizations")
-    public ResponseEntity<Page<AuthorizationSearchDTO>> getAuthorizationsReport(
+    public ResponseEntity<ApiResponse<Page<AuthorizationSearchDTO>>> getAuthorizationsReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -100,14 +101,14 @@ public class ReportController {
         filters.setClientSearch(clientSearch);
         
         Page<AuthorizationSearchDTO> result = reportService.getAuthorizationsReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**
      * Get Clients Without Authorizations report
      */
     @GetMapping("/clients-without-auth")
-    public ResponseEntity<Page<ClientsWithoutAuthReportDTO>> getClientsWithoutAuthReport(
+    public ResponseEntity<ApiResponse<Page<ClientsWithoutAuthReportDTO>>> getClientsWithoutAuthReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -127,14 +128,14 @@ public class ReportController {
         filters.setClientSearch(clientSearch);
         
         Page<ClientsWithoutAuthReportDTO> result = reportService.getClientsWithoutAuthReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**
      * Get Expiring Authorizations report
      */
     @GetMapping("/expiring-auth")
-    public ResponseEntity<Page<ExpiringAuthReportDTO>> getExpiringAuthReport(
+    public ResponseEntity<ApiResponse<Page<ExpiringAuthReportDTO>>> getExpiringAuthReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
         @RequestParam(required = false) LocalTime fromTime,
@@ -144,9 +145,9 @@ public class ReportController {
         @RequestParam(required = false) List<UUID> serviceTypeIds,
         @RequestParam(required = false) String clientMedicaidId,
         @RequestParam(required = false) String clientSearch,
+        @RequestParam(required = true) Integer expiresAfterDays,
         @PageableDefault(size = 25) Pageable pageable
     ) {
-        log.info("GET /api/reports/authorization/expiring-auth - fromDate: {}, toDate: {}", fromDate, toDate);
         
         ReportFilterDTO filters = new ReportFilterDTO();
         filters.setFromDate(fromDate);
@@ -158,9 +159,10 @@ public class ReportController {
         filters.setServiceTypeIds(serviceTypeIds);
         filters.setClientMedicaidId(clientMedicaidId);
         filters.setClientSearch(clientSearch);
+        filters.setExpiresAfterDays(expiresAfterDays);
         
         Page<ExpiringAuthReportDTO> result = reportService.getExpiringAuthReport(filters, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result, "Report generated successfully"));
     }
 
     /**
@@ -177,9 +179,10 @@ public class ReportController {
         @RequestParam(required = false) List<UUID> programIds,
         @RequestParam(required = false) List<UUID> serviceTypeIds,
         @RequestParam(required = false) String clientMedicaidId,
-        @RequestParam(required = false) String clientSearch
+        @RequestParam(required = false) String clientSearch,
+        @RequestParam(required = false) Integer expiresAfterDays
     ) {
-        log.info("GET /api/reports/authorization/{}/export - fromDate: {}, toDate: {}", reportType, fromDate, toDate);
+        log.info("GET /api/reports/authorization/{}/export - fromDate: {}, toDate: {}, expiresAfterDays: {}", reportType, fromDate, toDate, expiresAfterDays);
         
         try {
             ReportFilterDTO filters = new ReportFilterDTO();
@@ -192,6 +195,9 @@ public class ReportController {
             filters.setServiceTypeIds(serviceTypeIds);
             filters.setClientMedicaidId(clientMedicaidId);
             filters.setClientSearch(clientSearch);
+            if (expiresAfterDays != null) {
+                filters.setExpiresAfterDays(expiresAfterDays);
+            }
             
             // Fetch all data without pagination for export
             Pageable unpaged = Pageable.unpaged();
@@ -218,6 +224,9 @@ public class ReportController {
                     break;
                     
                 case "expiring-auth":
+                    if (expiresAfterDays == null || expiresAfterDays <= 0) {
+                        return ResponseEntity.badRequest().build();
+                    }
                     Page<ExpiringAuthReportDTO> expiringData = reportService.getExpiringAuthReport(filters, unpaged);
                     excelData = excelExportService.exportExpiringAuthReport(expiringData.getContent(), "Expiring Authorizations");
                     filename = "ExpiringAuth_" + getCurrentTimestamp() + ".xlsx";

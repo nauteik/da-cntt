@@ -94,12 +94,12 @@ export default function MedicationOrderDetail({ order, visible, onClose }: Medic
 
         <Descriptions bordered column={2} size="small">
           <Descriptions.Item label="Current Stock">
-            <Text strong className={order.currentStock <= order.reorderLevel ? "text-red-500" : ""}>
-              {order.currentStock} {order.unitOfMeasure}
+            <Text strong className={(order.currentStock ?? 0) <= (order.reorderLevel ?? 0) ? "text-red-500" : ""}>
+              {order.currentStock ?? 0} {order.unitOfMeasure || ''}
             </Text>
           </Descriptions.Item>
           <Descriptions.Item label="Reorder Level">
-            {order.reorderLevel} {order.unitOfMeasure}
+            {order.reorderLevel ?? 0} {order.unitOfMeasure || ''}
           </Descriptions.Item>
         </Descriptions>
 
@@ -109,7 +109,7 @@ export default function MedicationOrderDetail({ order, visible, onClose }: Medic
             <div>
               <Text strong className="text-red-700">Controlled Substance Warning</Text>
               <br />
-              <Text size="small" className="text-red-600">
+              <Text style={{ fontSize: '12px' }} className="text-red-600">
                 This medication requires double-signature verification for every administration and strict inventory tracking.
               </Text>
             </div>

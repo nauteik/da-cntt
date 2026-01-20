@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Modal, Form, DatePicker, TimePicker, Select, Input, Button, Alert, Space } from "antd";
+import React, { useEffect } from "react";
+import { Modal, Form, DatePicker, TimePicker, Select, Input, InputNumber, Button, Alert, Space } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import type { ReportType, ReportMetadata, ReportFilters } from "@/types/report";
 import { REPORT_FILTER_CONFIGS } from "@/types/report";
 import { useApiQuery } from "@/hooks/useApi";
@@ -35,6 +35,18 @@ interface ReportFilterModalProps {
   open: boolean;
   reportMetadata: ReportMetadata | null;
   onClose: () => void;
+}
+
+interface ReportFormValues {
+  dateRange?: [dayjs.Dayjs, dayjs.Dayjs];
+  fromTime?: dayjs.Dayjs;
+  toTime?: dayjs.Dayjs;
+  payerIds?: string[];
+  programIds?: string[];
+  serviceTypeIds?: string[];
+  clientMedicaidId?: string;
+  clientSearch?: string;
+  expiresAfterDays?: number;
 }
 
 export default function ReportFilterModal({
@@ -71,13 +83,20 @@ export default function ReportFilterModal({
       const startOfMonth = now.startOf('month');
       const endOfMonth = now.endOf('month');
       
-      form.setFieldsValue({
+      const defaultValues: ReportFormValues = {
         dateRange: [startOfMonth, endOfMonth],
         fromTime: dayjs().startOf('day'),
         toTime: dayjs().endOf('day').subtract(1, 'minute'), // 11:59 PM
-      });
+      };
+      
+      // Set default expiresAfterDays for expiring-auth report
+      if (reportMetadata?.key === 'expiring-auth') {
+        defaultValues.expiresAfterDays = 90;
+      }
+      
+      form.setFieldsValue(defaultValues);
     }
-  }, [open, form]);
+  }, [open, form, reportMetadata]);
 
   const handleClear = () => {
     form.resetFields();
@@ -86,11 +105,18 @@ export default function ReportFilterModal({
     const startOfMonth = now.startOf('month');
     const endOfMonth = now.endOf('month');
     
-    form.setFieldsValue({
+    const defaultValues: ReportFormValues = {
       dateRange: [startOfMonth, endOfMonth],
       fromTime: dayjs().startOf('day'),
       toTime: dayjs().endOf('day').subtract(1, 'minute'),
-    });
+    };
+    
+    // Re-apply default expiresAfterDays for expiring-auth report
+    if (reportMetadata?.key === 'expiring-auth') {
+      defaultValues.expiresAfterDays = 90;
+    }
+    
+    form.setFieldsValue(defaultValues);
   };
 
   const handleRunReport = async () => {
@@ -122,6 +148,7 @@ export default function ReportFilterModal({
         serviceTypeIds: values.serviceTypeIds,
         clientMedicaidId: values.clientMedicaidId,
         clientSearch: values.clientSearch,
+        expiresAfterDays: values.expiresAfterDays,
       };
 
       // Encode filters as query params
@@ -282,6 +309,70 @@ export default function ReportFilterModal({
             name="clientMedicaidId"
           >
             <Input placeholder="Enter Medicaid ID" />
+          </Form.Item>
+        )}
+
+        {config.showExpiresAfter && (
+          <Form.Item
+            label="Expires after"
+            name="expiresAfterDays"
+            rules={[{ required: true, message: 'Please enter number of days' }]}
+          >
+            <InputNumber
+              min={1}
+              placeholder="Enter number of days"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+        )}
+
+        {config.showEmployeeName && (
+          <Form.Item
+            label="Employee Name"
+            name="employeeName"
+          >
+            <Input placeholder="Enter employee name" />
+          </Form.Item>
+        )}
+
+        {config.showDepartment && (
+          <Form.Item
+            label="Department"
+            name="department"
+          >
+            <Input placeholder="Enter department" />
+          </Form.Item>
+        )}
+
+        {config.showSupervisor && (
+          <Form.Item
+            label="Supervisor"
+            name="supervisorId"
+          >
+            <Select
+              placeholder="Select supervisor"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+            >
+              {/* TODO: Load supervisors from API */}
+            </Select>
+          </Form.Item>
+        )}
+
+        {config.showOffice && (
+          <Form.Item
+            label="Office"
+            name="officeId"
+          >
+            <Select
+              placeholder="Select office"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+            >
+              {/* TODO: Load offices from API */}
+            </Select>
           </Form.Item>
         )}
 

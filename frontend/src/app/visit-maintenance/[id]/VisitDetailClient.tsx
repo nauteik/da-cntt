@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Tabs, Button, message, Input, DatePicker, Select, Checkbox, Tag } from 'antd';
-import { SaveOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Tabs, Button, Input, DatePicker, Select, Checkbox, Tag } from 'antd';
+import Image from 'next/image';
+import { CheckCircleOutlined } from '@ant-design/icons';
 import type { VisitMaintenanceDTO } from '@/types/visitMaintenance';
 import VisitHeader from '@/components/visit-maintenance/VisitHeader';
 import CancelVisitModal from '@/components/visit-maintenance/CancelVisitModal';
@@ -13,10 +14,8 @@ import { useClients } from '@/hooks/useClients';
 import { useEmployees } from '@/hooks/useEmployees';
 import { usePatientPersonal } from '@/hooks/usePatientDetail';
 import { dailyNoteApi } from '@/lib/api/dailyNoteApi';
-import type { DailyNoteDTO } from '@/types/dailyNote';
-import dayjs from 'dayjs';
+import type { DailyNoteDTO, MealInfo } from '@/types/dailyNote';
 
-const { TextArea } = Input;
 const { Option } = Select;
 
 interface VisitDetailClientProps {
@@ -29,14 +28,8 @@ export default function VisitDetailClient({
   const [visit, setVisit] = useState<VisitMaintenanceDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadVisitDetail();
-  }, [visitId]);
-
-  const loadVisitDetail = async () => {
+  const loadVisitDetail = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -47,26 +40,17 @@ export default function VisitDetailClient({
       } else {
         setError(response.message || 'Failed to load visit details');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load visit detail:', err);
-      setError(err?.message || 'An unexpected error occurred');
+      setError((err as { message?: string })?.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
-  };
+  }, [visitId]);
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      // TODO: Call API to update visit
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('Visit saved');
-    } catch (error) {
-      console.error('Failed to save visit:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
+  useEffect(() => {
+    loadVisitDetail();
+  }, [loadVisitDetail]);
 
   const handleGenerateGroupCode = async () => {
     try {
@@ -84,61 +68,16 @@ export default function VisitDetailClient({
   };
 
   // Tab Content Components
-  const GeneralTab = () => (
-    <div className="mx-6 p-6 bg-white rounded">
-      {/* Cancellation Alert - Show if visit is cancelled */}
-      {visit.cancelled && (
-        <div style={{
-          backgroundColor: '#fff1f0',
-          border: '2px solid #ff4d4f',
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 24,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-            <CloseCircleOutlined style={{ fontSize: 24, color: '#ff4d4f', marginRight: 12 }} />
-            <h3 style={{ margin: 0, color: '#cf1322', fontSize: 16, fontWeight: 600 }}>
-              This Visit Has Been Cancelled
-            </h3>
-          </div>
-          
-          {visit.cancelReason && (
-            <div style={{ marginBottom: 8 }}>
-              <strong style={{ color: '#8c1c1c' }}>Cancellation Reason:</strong>
-              <div style={{ 
-                marginTop: 4, 
-                padding: 12, 
-                backgroundColor: '#fff', 
-                borderRadius: 4,
-                color: '#000',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word'
-              }}>
-                {visit.cancelReason}
-              </div>
-            </div>
-          )}
-          
-          <div style={{ display: 'flex', gap: 24, fontSize: 14, color: '#8c1c1c' }}>
-            {visit.cancelledAt && (
-              <div>
-                <strong>Cancelled At:</strong> {dayjs(visit.cancelledAt).format('MM/DD/YYYY HH:mm:ss')}
-              </div>
-            )}
-            {visit.cancelledByStaffName && (
-              <div>
-                <strong>Cancelled By:</strong> {visit.cancelledByStaffName}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Schedule Information */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
-        <div>
-          <label className="block text-sm mb-1">Schedule In</label>
-          <Input value={`${visit.visitDate} ${visit.scheduledTimeIn}`} readOnly />
+  const GeneralTab = () => {
+    if (!visit) return null;
+    
+    return (
+      <div className="mx-6 p-6 bg-white rounded">
+        {/* Schedule Information */}
+        <div className="grid grid-cols-4 gap-4 mb-4">
+          <div>
+            <label className="block text-sm mb-1">Schedule In</label>
+            <Input value={`${visit.visitDate} ${visit.scheduledTimeIn}`} readOnly />
         </div>
         <div>
           <label className="block text-sm mb-1">Schedule Out</label>
@@ -312,7 +251,8 @@ export default function VisitDetailClient({
         </Button>
       </div>
     </div>
-  );
+    );
+  };
 
   const ClientTab = () => {
     const [clientSearch, setClientSearch] = useState('');
@@ -784,28 +724,29 @@ export default function VisitDetailClient({
     const [dailyNote, setDailyNote] = useState<DailyNoteDTO | null>(null);
     const [loadingNote, setLoadingNote] = useState(false);
     const [noteError, setNoteError] = useState<string | null>(null);
+    const dailyNoteId = visit?.dailyNoteId;
 
-    useEffect(() => {
-      if (visit?.dailyNoteId) {
-        loadDailyNote();
-      }
-    }, [visit?.dailyNoteId]);
-
-    const loadDailyNote = async () => {
-      if (!visit?.dailyNoteId) return;
+    const loadDailyNote = useCallback(async () => {
+      if (!dailyNoteId) return;
       
       setLoadingNote(true);
       setNoteError(null);
       try {
-        const note = await dailyNoteApi.getDailyNoteById(visit.dailyNoteId);
+        const note = await dailyNoteApi.getDailyNoteById(dailyNoteId);
         setDailyNote(note);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to load daily note:', err);
-        setNoteError(err?.message || 'Failed to load daily note');
+        setNoteError((err as { message?: string })?.message || 'Failed to load daily note');
       } finally {
         setLoadingNote(false);
       }
-    };
+    }, [dailyNoteId]);
+
+    useEffect(() => {
+      if (dailyNoteId) {
+        loadDailyNote();
+      }
+    }, [dailyNoteId, loadDailyNote]);
 
     const hasDailyNote = visit?.dailyNoteId && dailyNote;
 
@@ -875,7 +816,7 @@ export default function VisitDetailClient({
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <label className="block text-sm font-semibold text-blue-700 mb-3">Meal Information:</label>
                 <div className="space-y-3">
-                  {dailyNote.mealInfo.map((meal: any, index: number) => (
+                  {dailyNote.mealInfo.map((meal: MealInfo, index: number) => (
                     <div key={index} className="bg-white rounded p-3 border border-blue-100">
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {meal.meal && (
@@ -939,21 +880,31 @@ export default function VisitDetailClient({
                 {dailyNote.patientSignature && (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Patient Signature:</label>
-                    <img 
-                      src={dailyNote.patientSignature} 
-                      alt="Patient Signature" 
-                      className="max-h-32 w-full object-contain border border-gray-300 rounded bg-white p-2"
-                    />
+                    <div className="relative max-h-32 w-full border border-gray-300 rounded bg-white p-2">
+                      <Image 
+                        src={dailyNote.patientSignature} 
+                        alt="Patient Signature" 
+                        width={400}
+                        height={128}
+                        className="w-full h-auto object-contain"
+                        unoptimized
+                      />
+                    </div>
                   </div>
                 )}
                 {dailyNote.staffSignature && (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Staff Signature:</label>
-                    <img 
-                      src={dailyNote.staffSignature} 
-                      alt="Staff Signature" 
-                      className="max-h-32 w-full object-contain border border-gray-300 rounded bg-white p-2"
-                    />
+                    <div className="relative max-h-32 w-full border border-gray-300 rounded bg-white p-2">
+                      <Image 
+                        src={dailyNote.staffSignature} 
+                        alt="Staff Signature" 
+                        width={400}
+                        height={128}
+                        className="w-full h-auto object-contain"
+                        unoptimized
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -994,7 +945,7 @@ export default function VisitDetailClient({
     );
   };
 
-  const PlaceholderTab = ({ title }: { title: string }) => (
+  const PlaceholderTab = () => (
     <div className="mx-6 p-6 bg-white rounded">
       <div className="min-h-[400px] flex items-center justify-center text-center text-gray-400 text-base">
         No Data Found
@@ -1022,22 +973,22 @@ export default function VisitDetailClient({
     {
       key: 'authorizations',
       label: 'Authorizations',
-      children: <PlaceholderTab title="Authorizations" />,
+      children: <PlaceholderTab />,
     },
     {
       key: 'callLog',
       label: 'Call Log',
-      children: <PlaceholderTab title="Call Log" />,
+      children: <PlaceholderTab />,
     },
     {
       key: 'mergeCalls',
       label: 'Merge Calls',
-      children: <PlaceholderTab title="Merge Calls" />,
+      children: <PlaceholderTab />,
     },
     {
       key: 'exceptions',
       label: 'Exceptions',
-      children: <PlaceholderTab title="Exceptions" />,
+      children: <PlaceholderTab />,
     },
     {
       key: 'gps',
@@ -1052,12 +1003,12 @@ export default function VisitDetailClient({
     {
       key: 'claims',
       label: 'Claims',
-      children: <PlaceholderTab title="Claims" />,
+      children: <PlaceholderTab />,
     },
     {
       key: 'history',
       label: 'History',
-      children: <PlaceholderTab title="History" />,
+      children: <PlaceholderTab />,
     },
   ];
 

@@ -12,6 +12,7 @@ import {
   Select,
   Row,
   Col,
+  App,
   type TablePaginationConfig,
 } from "antd";
 import {
@@ -32,6 +33,7 @@ import type { StaffSelectDTO } from "@/types/staff";
 import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import formStyles from "@/styles/form.module.css";
+import { exportApi } from "@/lib/api/exportApi";
 
 const { RangePicker } = DatePicker;
 
@@ -52,6 +54,7 @@ export default function AuthorizationsClient({
 }: AuthorizationsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { message } = App.useApp();
 
   // Derive all state from URL - single source of truth
   // URL uses 1-based pagination (page=1 is first page, matching UI)
@@ -409,10 +412,32 @@ export default function AuthorizationsClient({
     router.push("/authorizations", { scroll: false });
   };
 
-  // Handle export (placeholder)
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log("Export clicked");
+  const [exporting, setExporting] = React.useState(false);
+
+  // Handle export
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportApi.exportAuthorizations({
+        startDate: startDateParam || undefined,
+        endDate: endDateParam || undefined,
+        payerId: payerId,
+        supervisorId: supervisorId,
+        programId: programId,
+        serviceTypeId: serviceTypeId,
+        authorizationNo: authorizationNo || undefined,
+        clientId: clientId || undefined,
+        clientFirstName: clientFirstName || undefined,
+        clientLastName: clientLastName || undefined,
+        status: status,
+      });
+      message.success("Authorizations exported successfully");
+    } catch (error) {
+      console.error("Error exporting authorizations:", error);
+      message.error("Failed to export authorizations");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -602,6 +627,7 @@ export default function AuthorizationsClient({
               icon={<ExportOutlined />}
               className={buttonStyles.btnSecondary}
               onClick={handleExport}
+              loading={exporting}
             >
               EXPORT
             </Button>

@@ -10,6 +10,7 @@ import {
   Button,
   Space,
   Tag,
+  App,
   type TablePaginationConfig,
 } from "antd";
 import {
@@ -33,6 +34,7 @@ import buttonStyles from "@/styles/buttons.module.css";
 import CreateClientModal from "@/components/clients/CreateClientForm";
 import type { OfficeDTO } from "@/types/office";
 import type { PatientFilterOptions } from "@/types/patientFilterOptions";
+import { exportApi } from "@/lib/api/exportApi";
 
 interface ClientsClientProps {
   initialData: PaginatedPatients;
@@ -48,6 +50,7 @@ export default function ClientsClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   // Derive all state from URL - single source of truth
   // URL uses 1-based pagination (page=1 is first page, matching UI)
@@ -65,6 +68,7 @@ export default function ClientsClient({
 
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
 
   // Debounce search input to prevent excessive API calls (500ms delay)
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -91,7 +95,7 @@ export default function ClientsClient({
 
   // Use React Query with URL-derived state
   // Convert 1-based URL page to 0-based backend page
-  const { data, isLoading, error } = useClients(
+  const { data, isLoading } = useClients(
     {
       page: currentPage - 1, // Backend uses 0-based indexing
       size: pageSize,
@@ -379,6 +383,24 @@ export default function ClientsClient({
     router.refresh();
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportApi.exportPatients({
+        search: searchText || undefined,
+        status: statusFilter.length > 0 ? statusFilter : undefined,
+        program: programFilter.length > 0 ? programFilter : undefined,
+        services: servicesFilter.length > 0 ? servicesFilter : undefined,
+      });
+      message.success("Patients exported successfully");
+    } catch (error) {
+      console.error("Error exporting patients:", error);
+      message.error("Failed to export patients");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className={layoutStyles.pageContainer}>
       <Card className={layoutStyles.controlBar} variant="borderless">
@@ -412,6 +434,8 @@ export default function ClientsClient({
               type="default"
               icon={<ExportOutlined />}
               className={buttonStyles.btnSecondary}
+              onClick={handleExport}
+              loading={exporting}
             >
               EXPORT DATA
             </Button>

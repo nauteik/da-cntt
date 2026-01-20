@@ -166,5 +166,18 @@ public class HouseController {
         }
         return ResponseEntity.ok(ApiResponse.success(stay));
     }
+
+    /**
+     * Get all stays for a house
+     * GET /api/house/{id}/stays
+     */
+    @GetMapping("/{id}/stays")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    public ResponseEntity<ApiResponse<List<PatientHouseStayDTO>>> getHouseStays(
+            @PathVariable UUID id) {
+        log.info("Request to get stays for house: {}", id);
+        List<PatientHouseStayDTO> stays = houseService.getHouseStays(id);
+        return ResponseEntity.ok(ApiResponse.success(stays));
+    }
 }
 

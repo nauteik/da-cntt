@@ -221,6 +221,16 @@ public class HouseServiceImpl implements HouseService {
                 .orElse(null);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientHouseStayDTO> getHouseStays(UUID houseId) {
+        log.info("Fetching stays for house: {}", houseId);
+        List<PatientHouseStay> stays = patientHouseStayRepository.findByHouseIdOrderByMoveInDateDesc(houseId);
+        return stays.stream()
+                .map(this::convertStayToDTO)
+                .collect(Collectors.toList());
+    }
+
     /**
      * Validate that patient has an active authorization with residential care setting
      */

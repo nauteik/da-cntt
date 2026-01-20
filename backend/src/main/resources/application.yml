@@ -2,6 +2,13 @@ spring:
   application:
     name: backend
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 15MB          # Maximum size per file
+      max-request-size: 15MB       # Maximum size for entire request
+      file-size-threshold: 2KB     # Size threshold after which files will be written to disk
+
   # Database Configuration - only these use environment variables
   datasource:
     url: ${DATABASE_URL}
@@ -86,6 +93,10 @@ app:
   jwt:
     secret: ${JWT_SECRET:mySecretKeyThatIsAtLeast32CharactersLong123456}
     expiration: ${JWT_EXPIRATION:86400} # 24 hours in seconds
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME}
+    api-key: ${CLOUDINARY_API_KEY}
+    api-secret: ${CLOUDINARY_API_SECRET}
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -95,7 +106,5 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
     display-request-duration: true
-    customCssUrl: /swagger-ui/custom.css
-    customJsUrl: /swagger-ui/custom.js
   # Ensures your Record-based DTOs (Java 21) are handled correctly
   default-produces-media-type: application/json

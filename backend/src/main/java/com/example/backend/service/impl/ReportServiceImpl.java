@@ -38,8 +38,10 @@ public class ReportServiceImpl implements ReportService {
             filters.getProgramIds() != null ? filters.getProgramIds().size() : 0,
             filters.getServiceTypeIds() != null ? filters.getServiceTypeIds().size() : 0);
 
-        int offset = (int) pageable.getOffset();
-        int limit = pageable.getPageSize();
+        // Handle unpaged requests (for exports)
+        boolean isUnpaged = pageable.isUnpaged();
+        int offset = isUnpaged ? 0 : (int) pageable.getOffset();
+        int limit = isUnpaged ? Integer.MAX_VALUE : pageable.getPageSize();
 
         // Convert List to Array for PostgreSQL array parameters
         UUID[] payerIds = filters.getPayerIds() != null && !filters.getPayerIds().isEmpty() 
@@ -94,8 +96,13 @@ public class ReportServiceImpl implements ReportService {
             filters.getClientSearch()
         );
 
-        log.info("Found {} authorization vs actual records out of {} total (page {}/{})",
-            content.size(), total, pageable.getPageNumber() + 1, (int) Math.ceil((double) total / limit));
+        if (isUnpaged) {
+            log.info("Found {} authorization vs actual records out of {} total (unpaged export)",
+                content.size(), total);
+        } else {
+            log.info("Found {} authorization vs actual records out of {} total (page {}/{})",
+                content.size(), total, pageable.getPageNumber() + 1, (int) Math.ceil((double) total / limit));
+        }
 
         return new PageImpl<>(content, pageable, total);
     }
@@ -149,8 +156,10 @@ public class ReportServiceImpl implements ReportService {
         log.info("Generating Clients Without Authorizations report with filters: fromDate={}, toDate={}",
             filters.getFromDate(), filters.getToDate());
 
-        int offset = (int) pageable.getOffset();
-        int limit = pageable.getPageSize();
+        // Handle unpaged requests (for exports)
+        boolean isUnpaged = pageable.isUnpaged();
+        int offset = isUnpaged ? 0 : (int) pageable.getOffset();
+        int limit = isUnpaged ? Integer.MAX_VALUE : pageable.getPageSize();
 
         // Fetch results using projection
         List<ClientsWithoutAuthProjection> projections = authorizationRepository.findClientsWithoutAuthReport(
@@ -184,8 +193,13 @@ public class ReportServiceImpl implements ReportService {
             filters.getClientSearch()
         );
 
-        log.info("Found {} clients without authorizations out of {} total (page {}/{})",
-            content.size(), total, pageable.getPageNumber() + 1, (int) Math.ceil((double) total / limit));
+        if (isUnpaged) {
+            log.info("Found {} clients without authorizations out of {} total (unpaged export)",
+                content.size(), total);
+        } else {
+            log.info("Found {} clients without authorizations out of {} total (page {}/{})",
+                content.size(), total, pageable.getPageNumber() + 1, (int) Math.ceil((double) total / limit));
+        }
 
         return new PageImpl<>(content, pageable, total);
     }
@@ -193,11 +207,18 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional(readOnly = true)
     public Page<ExpiringAuthReportDTO> getExpiringAuthReport(ReportFilterDTO filters, Pageable pageable) {
-        log.info("Generating Expiring Authorizations report with filters: fromDate={}, toDate={}",
-            filters.getFromDate(), filters.getToDate());
+        log.info("Generating Expiring Authorizations report with filters: fromDate={}, toDate={}, expiresAfterDays={}",
+            filters.getFromDate(), filters.getToDate(), filters.getExpiresAfterDays());
 
-        int offset = (int) pageable.getOffset();
-        int limit = pageable.getPageSize();
+        // Validate expiresAfterDays
+        if (filters.getExpiresAfterDays() == null || filters.getExpiresAfterDays() <= 0) {
+            throw new IllegalArgumentException("expiresAfterDays must be provided and greater than 0");
+        }
+
+        // Handle unpaged requests (for exports)
+        boolean isUnpaged = pageable.isUnpaged();
+        int offset = isUnpaged ? 0 : (int) pageable.getOffset();
+        int limit = isUnpaged ? Integer.MAX_VALUE : pageable.getPageSize();
 
         // Convert List to Array for PostgreSQL array parameters
         UUID[] payerIds = filters.getPayerIds() != null && !filters.getPayerIds().isEmpty() 
@@ -216,6 +237,7 @@ public class ReportServiceImpl implements ReportService {
             serviceTypeIds,
             filters.getClientMedicaidId(),
             filters.getClientSearch(),
+            filters.getExpiresAfterDays(),
             limit,
             offset
         );
@@ -249,11 +271,17 @@ public class ReportServiceImpl implements ReportService {
             programIds,
             serviceTypeIds,
             filters.getClientMedicaidId(),
-            filters.getClientSearch()
+            filters.getClientSearch(),
+            filters.getExpiresAfterDays()
         );
 
-        log.info("Found {} expiring authorizations out of {} total (page {}/{})",
-            content.size(), total, pageable.getPageNumber() + 1, (int) Math.ceil((double) total / limit));
+        if (isUnpaged) {
+            log.info("Found {} expiring authorizations out of {} total (unpaged export)",
+                content.size(), total);
+        } else {
+            log.info("Found {} expiring authorizations out of {} total (page {}/{})",
+                content.size(), total, pageable.getPageNumber() + 1, (int) Math.ceil((double) total / limit));
+        }
 
         return new PageImpl<>(content, pageable, total);
     }

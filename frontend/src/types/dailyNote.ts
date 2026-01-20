@@ -25,7 +25,7 @@ export interface DailyNoteDTO {
   staffId: string;
   staffName: string;
   content: string;
-  mealInfo: MealInfo[] | any[]; // Can be MealInfo or generic object array from backend
+  mealInfo: MealInfo[]; // MealInfo array from backend
   checkInTime?: string; // ISO datetime string
   checkOutTime?: string; // ISO datetime string
   patientSignature?: string; // base64 image

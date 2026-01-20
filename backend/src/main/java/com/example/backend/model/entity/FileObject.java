@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +26,7 @@ public class FileObject extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")
+    @JsonIgnore
     private Office office;
 
     @Column(name = "filename", nullable = false)
@@ -48,6 +50,7 @@ public class FileObject extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
+    @JsonIgnore
     private AppUser createdByUser;
 
     public FileObject(String filename, String mimeType, Long sizeBytes, String storageUri) {

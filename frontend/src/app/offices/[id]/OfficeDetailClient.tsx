@@ -63,12 +63,10 @@ export default function OfficeDetailClient({
   const {
     data: staff,
     isLoading: staffLoading,
-    error: staffError,
   } = useOfficeStaff(officeId, staffActiveOnly);
   const {
     data: patients,
     isLoading: patientsLoading,
-    error: patientsError,
   } = useOfficePatients(officeId, patientsActiveOnly);
 
   if (officeError) {

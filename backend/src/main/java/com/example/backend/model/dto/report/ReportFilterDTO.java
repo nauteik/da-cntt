@@ -37,5 +37,8 @@ public class ReportFilterDTO {
     
     // Client ID for specific filtering
     private String clientId;
+    
+    // Expires after days (for expiring auth report)
+    private Integer expiresAfterDays;
 }
 

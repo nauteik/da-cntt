@@ -69,19 +69,20 @@ public class HouseDataLoader {
         
         log.info("Creating houses for {} offices...", offices.size());
         
-        // House data: [code, name, description]
+        // House data: [name, description]
         String[][] houseData = {
-            {"HOUSE-001", "Sunshine House", "A comfortable group home with 24/7 support"},
-            {"HOUSE-002", "Harmony House", "Community living facility with shared spaces"},
-            {"HOUSE-003", "Peaceful Place", "Independent living with support services"},
-            {"HOUSE-004", "Hope Haven", "Family-style residential facility"},
-            {"HOUSE-005", "Comfort Corner", "Group home with specialized care"},
-            {"HOUSE-006", "Serenity House", "Supported living facility"},
-            {"HOUSE-007", "Tranquil Terrace", "Community living with staff support"},
-            {"HOUSE-008", "Wellness Way", "Residential facility with medical support"},
+            {"Sunshine House", "A comfortable group home with 24/7 support"},
+            {"Harmony House", "Community living facility with shared spaces"},
+            {"Peaceful Place", "Independent living with support services"},
+            {"Hope Haven", "Family-style residential facility"},
+            {"Comfort Corner", "Group home with specialized care"},
+            {"Serenity House", "Supported living facility"},
+            {"Tranquil Terrace", "Community living with staff support"},
+            {"Wellness Way", "Residential facility with medical support"},
         };
 
         Random random = new Random();
+        int houseCounter = 1;
         
         // Create 2-3 houses per office
         for (Office office : offices) {
@@ -89,9 +90,10 @@ public class HouseDataLoader {
             
             for (int i = 0; i < housesPerOffice && i < houseData.length; i++) {
                 String[] data = houseData[i % houseData.length];
-                String code = data[0] + "-" + office.getCode();
-                String name = data[1] + " - " + office.getName();
-                String description = data[2];
+                // Format: H001, H002, H003, etc.
+                String code = "H" + String.format("%03d", houseCounter);
+                String name = data[0]; // Short name without office suffix
+                String description = data[1];
                 
                 // Check if house code already exists for this office
                 if (!houseRepository.existsByCodeAndOfficeId(code, office.getId())) {
@@ -101,6 +103,7 @@ public class HouseDataLoader {
                     
                     house = houseRepository.save(house);
                     houses.add(house);
+                    houseCounter++;
                     log.info("Created house: {} - {} for office {}", code, name, office.getName());
                 }
             }
