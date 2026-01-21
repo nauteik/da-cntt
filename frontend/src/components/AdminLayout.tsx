@@ -69,6 +69,27 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
     return "dashboard";
   }, [pathname]);
 
+  // Helper function to check if a segment looks like a UUID/ID
+  const isLikelyId = (segment: string): boolean => {
+    // Check if it's a long alphanumeric string (UUID pattern or similar)
+    // UUIDs are typically 32+ characters, but we'll be more lenient
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const longAlphanumeric = /^[0-9a-f-]{20,}$/i; // 20+ chars of hex/alphanumeric
+    return uuidPattern.test(segment) || (longAlphanumeric.test(segment) && segment.length >= 20);
+  };
+
+  // Map parent segments to their detail page labels
+  const detailLabelMap: Record<string, string> = {
+    clients: "Patient Detail",
+    employees: "Employee Detail",
+    offices: "Office Detail",
+    schedule: "Schedule Detail",
+    "visit-maintenance": "Visit Detail",
+    housing: "Housing Detail",
+    reports: "Report Detail",
+    authorizations: "Authorization Detail",
+  };
+
   // Generate breadcrumb items based on pathname
   const breadcrumbItems = useMemo(() => {
     const items: { title: React.ReactNode }[] = [
@@ -127,8 +148,17 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
           });
         }
       } else {
-        // For dynamic segments (like IDs), capitalize first letter
-        const title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+        // For dynamic segments (like IDs), replace with appropriate detail label
+        let title: string;
+        if (isLikelyId(segment)) {
+          // Get the previous segment to determine the context
+          const previousSegment = index > 0 ? pathSegments[index - 1] : "";
+          title = detailLabelMap[previousSegment] || "Detail";
+        } else {
+          // For non-ID segments, capitalize first letter
+          title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+        }
+        
         if (isLast) {
           items.push({ title: <span>{title}</span> });
         } else {

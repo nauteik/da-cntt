@@ -74,9 +74,9 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="staff-schedule-container flex flex-col gap-6">
       {/* Schedule Events Section */}
-      <Card className="border-none shadow-none" variant="borderless">
+      <Card className="schedule-card border-none shadow-none" variant="borderless">
         {/* Controls */}
         <div className="p-4 border-b border-[var(--border-color)]">
           <div className="flex flex-wrap justify-between items-center gap-4">
@@ -188,20 +188,15 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
         preselectedStaffId={staffId}
       />
 
-      {/* Apply custom styles to Ant Design Card */}
-      <style jsx global>{`
-        .ant-card .ant-card-body {
+      {/* Apply custom styles to Ant Design Card - scoped to this component only */}
+      <style jsx>{`
+        .staff-schedule-container :global(.schedule-card) :global(.ant-card-body) {
           border-radius: 0 !important;
           border: 0 !important;
           padding: 0 !important;
         }
-        .ant-card-head {
+        .staff-schedule-container :global(.schedule-card) :global(.ant-card-head) {
           border-bottom: none !important;
-          border-radius: 0 !important;
-          border: 0 !important;
-          padding: 0 !important;
-        }
-        .ant-card-body {
           border-radius: 0 !important;
           border: 0 !important;
           padding: 0 !important;
