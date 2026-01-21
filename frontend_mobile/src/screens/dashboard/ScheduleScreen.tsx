@@ -126,6 +126,9 @@ export default function ScheduleScreen() {
       // Fetch unscheduled visits (service deliveries where isUnscheduled = true)
       let unscheduledVisits: Schedule[] = [];
       try {
+        if (!authState.user?.staffId) {
+          throw new Error('Staff ID not found');
+        }
         const serviceDeliveries = await serviceDeliveryService.getByStaff(authState.user.staffId);
         
         // Filter unscheduled and convert to Schedule format
@@ -134,7 +137,7 @@ export default function ScheduleScreen() {
         const unscheduledDeliveries = serviceDeliveries.filter(sd => 
           sd.isUnscheduled && 
           sd.startAt.startsWith(from) && 
-          sd.actualStaffId === authState.user.staffId &&
+          sd.actualStaffId === authState.user?.staffId &&
           // Show if not cancelled, OR if cancelled but not completed yet (staff needs to check-out)
           (!sd.cancelled || sd.status !== 'COMPLETED')
         );

@@ -59,22 +59,45 @@ export default function CreateUnscheduledVisitModal({
     setLoadingEvents(true);
     try {
       // Get upcoming schedule events (next 7 days)
+      // Include PLANNED and CONFIRMED schedules that can have staff replacements
       const today = dayjs().format('YYYY-MM-DD');
       const nextWeek = dayjs().add(7, 'days').format('YYYY-MM-DD');
       
+      console.log('Fetching schedule events from:', today, 'to:', nextWeek);
+      
       const response: ApiResponse<any> = await apiClient(
-        `/schedules?from=${today}&to=${nextWeek}&status=CONFIRMED`
+        `/schedules?from=${today}&to=${nextWeek}&size=100`
       );
 
+      console.log('Schedule events response:', response);
+
       if (response.success && response.data) {
-        // Backend returns Page<ScheduleEventDTO>
-        const events = response.data.content || [];
-        setScheduleEvents(events);
-        console.log('Loaded schedule events:', events);
+        // Backend returns Page<ScheduleEventDTO> structure
+        const events = response.data.content || response.data || [];
+        
+        // Filter out cancelled schedules and only show upcoming/active schedules
+        const activeEvents = events.filter((e: ScheduleEventDTO) => 
+          e.status !== 'CANCELLED' && e.status !== 'COMPLETED'
+        );
+        
+        console.log('Loaded schedule events:', events.length, 'total,', activeEvents.length, 'active');
+        console.log('Events data:', activeEvents);
+        setScheduleEvents(activeEvents);
+        
+        if (activeEvents.length === 0) {
+          console.warn('No active schedule events found for the date range');
+          if (events.length > 0) {
+            console.log('Found', events.length, 'events but all are cancelled or completed');
+          }
+        }
+      } else {
+        console.error('Failed response:', response.message);
+        message.error(response.message || 'Failed to load schedule events');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load schedule events:', error);
-      message.error('Failed to load schedule events');
+      console.error('Error details:', error.response || error);
+      message.error(error.response?.data?.message || error.message || 'Failed to load schedule events');
     } finally {
       setLoadingEvents(false);
     }
@@ -83,14 +106,22 @@ export default function CreateUnscheduledVisitModal({
   const loadStaff = async () => {
     setLoadingStaff(true);
     try {
+      console.log('Fetching staff list...');
       const response: ApiResponse<StaffSelectDTO[]> = await apiClient('/staff/select');
 
+      console.log('Staff response:', response);
+
       if (response.success && response.data) {
+        console.log('Loaded staff:', response.data.length, 'staff members');
         setStaff(response.data);
+      } else {
+        console.error('Failed staff response:', response.message);
+        message.error(response.message || 'Failed to load staff list');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load staff:', error);
-      message.error('Failed to load staff list');
+      console.error('Error details:', error.response || error);
+      message.error(error.response?.data?.message || error.message || 'Failed to load staff list');
     } finally {
       setLoadingStaff(false);
     }
@@ -204,7 +235,13 @@ export default function CreateUnscheduledVisitModal({
           name="scheduleEventId"
           label="Select Schedule to Replace"
           rules={[{ required: true, message: 'Please select a schedule' }]}
-          extra={scheduleEvents.length === 0 && !loadingEvents ? 'No confirmed schedules found for the next 7 days' : `${scheduleEvents.length} schedule(s) available`}
+          extra={
+            loadingEvents 
+              ? 'Loading schedules...' 
+              : scheduleEvents.length === 0 
+                ? 'No active schedules found for the next 7 days. Make sure schedules are created and not cancelled/completed.' 
+                : ``
+          }
         >
           <Select
             showSearch
@@ -226,6 +263,8 @@ export default function CreateUnscheduledVisitModal({
             {scheduleEvents.map((event) => {
               const date = dayjs(event.eventDate).format('MMM DD, YYYY');
               const time = `${dayjs(event.startAt).format('HH:mm')} - ${dayjs(event.endAt).format('HH:mm')}`;
+              const hasServiceDelivery = !!event.serviceDeliveryId;
+              
               return (
                 <Option 
                   key={event.id} 
@@ -241,10 +280,11 @@ export default function CreateUnscheduledVisitModal({
                   }}>
                     <strong style={{ fontSize: '14px' }}>{event.patientName}</strong>
                     <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.3' }}>
-                      {date} • {time}
+                      {date} • {time} • {event.status}
                     </div>
                     <div style={{ fontSize: '11px', color: '#999' }}>
                       Original: {event.employeeName}
+                      {hasServiceDelivery && ' • Has Visit Record'}
                     </div>
                   </div>
                 </Option>

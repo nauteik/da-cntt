@@ -36,6 +36,7 @@ import styles from '@/styles/VisitMaintenance.module.css';
 import { getVisits } from '@/lib/api/visitMaintenance';
 import type { VisitMaintenanceDTO, VisitStatus as VisitStatusType } from '@/types/visitMaintenance';
 import { exportApi } from '@/lib/api/exportApi';
+import CreateUnscheduledVisitModal from '@/components/visit-maintenance/CreateUnscheduledVisitModal';
 
 dayjs.extend(isBetween);
 

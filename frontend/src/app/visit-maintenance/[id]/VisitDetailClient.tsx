@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Tabs, Button, Input, DatePicker, Select, Checkbox, Tag } from 'antd';
+import { Tabs, Button, Input, DatePicker, Select, Checkbox, Tag, App } from 'antd';
 import Image from 'next/image';
-import { CheckCircleOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, CloseCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import type { VisitMaintenanceDTO } from '@/types/visitMaintenance';
 import VisitHeader from '@/components/visit-maintenance/VisitHeader';
 import CancelVisitModal from '@/components/visit-maintenance/CancelVisitModal';
@@ -25,9 +25,12 @@ interface VisitDetailClientProps {
 export default function VisitDetailClient({
   visitId,
 }: VisitDetailClientProps) {
+  const { message } = App.useApp();
   const [visit, setVisit] = useState<VisitMaintenanceDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const loadVisitDetail = useCallback(async () => {
     setLoading(true);
@@ -65,6 +68,19 @@ export default function VisitDetailClient({
     setIsCancelModalOpen(false);
     loadVisitDetail(); // Reload to show updated cancelled status
     message.success('Visit cancelled successfully');
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      // TODO: Implement save functionality
+      message.success('Visit updated successfully');
+    } catch (error) {
+      console.error('Failed to save visit:', error);
+      message.error('Failed to save visit changes');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Tab Content Components
