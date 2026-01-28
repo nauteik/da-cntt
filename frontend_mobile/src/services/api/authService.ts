@@ -48,13 +48,14 @@ export class AuthService {
         id: userInfo.userId,
         staffId: userInfo.staffId, // Staff ID for DSP role - use this for Schedule API
         name: userInfo.displayName,
-        employeeId: userInfo.userId, // Use userId as employeeId for now
+        employeeId: userInfo.staffId || userInfo.userId, // staffId (UUID) for API, fallback to userId
         email: userInfo.email,
         department: 'Patient Care', // Default value
         role: userInfo.roles[0] || 'DSP',
         phone: '', // Not provided by backend
         token: userInfo.token,
         officeId: userInfo.officeId,
+        employeeCode: userInfo.employeeCode ?? null, // Human-readable Staff.employeeId for display
       };
 
       // Set auth token for future requests

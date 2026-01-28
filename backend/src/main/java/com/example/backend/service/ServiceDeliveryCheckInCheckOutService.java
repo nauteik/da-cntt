@@ -17,10 +17,13 @@ import com.example.backend.exception.ValidationException;
 import com.example.backend.model.entity.CheckEvent;
 import com.example.backend.model.entity.Patient;
 import com.example.backend.model.entity.PatientAddress;
+import com.example.backend.model.entity.ScheduleEvent;
 import com.example.backend.model.entity.ServiceDelivery;
 import com.example.backend.model.entity.Staff;
 import com.example.backend.model.enums.CheckEventStatus;
 import com.example.backend.model.enums.CheckEventType;
+import com.example.backend.model.enums.ScheduleEventStatus;
+import com.example.backend.repository.ScheduleEventRepository;
 import com.example.backend.repository.ServiceDeliveryRepository;
 import com.example.backend.repository.StaffRepository;
 import com.example.backend.util.GeoUtils;
@@ -34,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ServiceDeliveryCheckInCheckOutService {
 
     private final ServiceDeliveryRepository serviceDeliveryRepository;
+    private final ScheduleEventRepository scheduleEventRepository;
     private final StaffRepository staffRepository;
 
     /**
@@ -185,6 +189,14 @@ public class ServiceDeliveryCheckInCheckOutService {
         }
         
         serviceDeliveryRepository.save(serviceDelivery);
+
+        // Cập nhật ScheduleEvent sang COMPLETED khi check-out thành công
+        ScheduleEvent scheduleEvent = serviceDelivery.getScheduleEvent();
+        if (scheduleEvent != null) {
+            scheduleEvent.setStatus(ScheduleEventStatus.COMPLETED);
+            scheduleEventRepository.save(scheduleEvent);
+            log.info("Updated schedule event {} to COMPLETED", scheduleEvent.getId());
+        }
 
         return mapToResponse(serviceDelivery, patient, patientAddress);
     }

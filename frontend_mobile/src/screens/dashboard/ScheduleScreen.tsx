@@ -402,6 +402,9 @@ export default function ScheduleScreen() {
         serviceDeliveryId: sdId,
         patientId: scheduleEvent.patientId,
         patientName: scheduleEvent.patient.name,
+        patientClientId: scheduleEvent.patientClientId,
+        startTime: scheduleEvent.startTime,
+        endTime: scheduleEvent.endTime,
       },
     });
   };
@@ -425,6 +428,7 @@ export default function ScheduleScreen() {
         serviceDeliveryId: scheduleEvent.serviceDeliveryId,
         patientId: scheduleEvent.patientId,
         patientName: scheduleEvent.patient.name,
+        patientClientId: scheduleEvent.patientClientId,
       },
     });
   };
@@ -448,14 +452,16 @@ export default function ScheduleScreen() {
         serviceDeliveryId: scheduleEvent.serviceDeliveryId,
         patientId: scheduleEvent.patientId,
         patientName: scheduleEvent.patient.name,
+        patientClientId: scheduleEvent.patientClientId,
       },
     });
   };
 
   const handleDetails = (scheduleEvent: Schedule) => {
+    const idLine = scheduleEvent.patientClientId ? `Client ID: ${scheduleEvent.patientClientId}\n` : '';
     showAlert(
       'Patient Details',
-      `Name: ${scheduleEvent.patient.name}\nID: ${scheduleEvent.patientId}\nAddress: ${scheduleEvent.location}\nTime: ${scheduleEvent.startTime} - ${scheduleEvent.endTime}\nStatus: ${scheduleEvent.status}${scheduleEvent.notes ? `\nNotes: ${scheduleEvent.notes}` : ''}`,
+      `Name: ${scheduleEvent.patient.name}\n${idLine}Address: ${scheduleEvent.location}\nTime: ${scheduleEvent.startTime} - ${scheduleEvent.endTime}\nStatus: ${scheduleEvent.status}${scheduleEvent.notes ? `\nNotes: ${scheduleEvent.notes}` : ''}`,
       [{ text: 'OK', style: 'default' }],
       'information-circle',
       '#2196F3'
@@ -669,9 +675,11 @@ export default function ScheduleScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.patientId, isCancelled && styles.cancelledText]}>
-                    ID: {event.patientId}
-                  </Text>
+                  {event.patientClientId ? (
+                    <Text style={[styles.patientId, isCancelled && styles.cancelledText]}>
+                      Client ID: {event.patientClientId}
+                    </Text>
+                  ) : null}
                 </View>
                 {allCompleted ? (
                   <View style={styles.completedBadge}>

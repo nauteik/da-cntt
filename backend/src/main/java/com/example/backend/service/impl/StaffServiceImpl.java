@@ -300,6 +300,7 @@ public class StaffServiceImpl implements StaffService {
         return StaffSelectDTO.builder()
                 .id(staff.getId())
                 .displayName(displayName)
+                .employeeId(staff.getEmployeeId())
                 .build();
     }
 

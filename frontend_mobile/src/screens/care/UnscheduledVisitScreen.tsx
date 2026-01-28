@@ -361,7 +361,6 @@ export default function UnscheduledVisitScreen() {
             <Text style={[styles.patientName, isCancelled && styles.cancelledText]}>
               {item.patient.name}
             </Text>
-            <Text style={styles.patientId}>Patient ID: {item.patientId}</Text>
           </View>
           {allCompleted && !isCancelled && (
             <View style={styles.completedBadge}>

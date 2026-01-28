@@ -348,14 +348,9 @@ export default function EditScheduleClient({
                       rules={[{ required: true, message: "Please select date" }]}
                     >
                       <DatePicker
-                        className={formStyles.formDatePicker}
                         format="MM/DD/YYYY"
-                        style={{ width: "100%" }}
-                        onChange={(date) => {
-                          if (date) {
-                            form.setFieldValue("eventDate", date);
-                          }
-                        }}
+                        className={`${formStyles.formDatePicker} w-full`}
+                        placeholder="Select date"
                       />
                     </Form.Item>
                     
@@ -392,18 +387,20 @@ export default function EditScheduleClient({
                     <div className="grid grid-cols-2 gap-4">
                       <Form.Item label="In Time" name="proposedStartTime">
                         <TimePicker
-                          className={formStyles.formInput}
                           format="h:mm A"
-                          style={{ width: "100%" }}
+                          className={`${formStyles.formDatePicker} w-full`}
+                          placeholder="Select time"
                           minuteStep={15}
+                          needConfirm={false}
                         />
                       </Form.Item>
                       <Form.Item label="Out Time" name="proposedEndTime">
                         <TimePicker
-                          className={formStyles.formInput}
                           format="h:mm A"
-                          style={{ width: "100%" }}
+                          className={`${formStyles.formDatePicker} w-full`}
+                          placeholder="Select time"
                           minuteStep={15}
+                          needConfirm={false}
                         />
                       </Form.Item>
                     </div>
@@ -418,18 +415,16 @@ export default function EditScheduleClient({
                     <div className="grid grid-cols-2 gap-4">
                       <Form.Item label="In Time" name="actualStartTime">
                         <TimePicker
-                          className={formStyles.formInputDisabled}
                           format="h:mm A"
-                          style={{ width: "100%" }}
+                          className={`${formStyles.formInputDisabled} w-full`}
                           disabled
                           value={currentEvent.actualStartAt ? extractTimeFromISO(currentEvent.actualStartAt) : null}
                         />
                       </Form.Item>
                       <Form.Item label="Out Time" name="actualEndTime">
                         <TimePicker
-                          className={formStyles.formInputDisabled}
                           format="h:mm A"
-                          style={{ width: "100%" }}
+                          className={`${formStyles.formInputDisabled} w-full`}
                           disabled
                           value={currentEvent.actualEndAt ? extractTimeFromISO(currentEvent.actualEndAt) : null}
                         />

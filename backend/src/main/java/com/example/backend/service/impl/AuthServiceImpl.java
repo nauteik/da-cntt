@@ -67,6 +67,10 @@ public class AuthServiceImpl implements AuthService {
                 .map(staff -> staff.getOffice().getId().toString())
                 .orElse(null);
 
+        String employeeCode = Optional.ofNullable(user.getStaff())
+                .map(Staff::getEmployeeId)
+                .orElse(null);
+
         // Get user role
         List<String> roles = List.of(user.getRole().getCode());
 
@@ -87,7 +91,8 @@ public class AuthServiceImpl implements AuthService {
                 expiresAt,
                 user.isMfaEnabled(),
                 officeId,
-                token // Include token for BFF pattern
+                token, // Include token for BFF pattern
+                employeeCode
         );
 
         // Update last login

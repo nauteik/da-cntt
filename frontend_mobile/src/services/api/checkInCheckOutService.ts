@@ -66,7 +66,9 @@ class CheckInCheckOutService {
     
     const response = await apiClient.post<CheckInCheckOutResponse>(
       '/service-delivery/check-in-check-out/check-in',
-      request
+      request,
+      undefined,
+      30000
     );
     
     console.log('[CheckInCheckOutService] API response:', JSON.stringify(response, null, 2));
@@ -88,7 +90,9 @@ class CheckInCheckOutService {
     
     const response = await apiClient.post<CheckInCheckOutResponse>(
       '/service-delivery/check-in-check-out/check-out',
-      request
+      request,
+      undefined,
+      30000
     );
     
     if (!response.success || !response.data) {

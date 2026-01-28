@@ -9,7 +9,6 @@ import {
   EnvironmentOutlined,
   PhoneOutlined,
   MailOutlined,
-  ReloadOutlined,
   ExportOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -143,13 +142,6 @@ export default function OfficesClient() {
                   className={layoutStyles.searchInput}
                   allowClear
                 />
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={() => window.location.reload()}
-                  className={buttonStyles.btnSecondary}
-                >
-                  REFRESH
-                </Button>
                 <Button
                   icon={<ExportOutlined />}
                   disabled

@@ -879,6 +879,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                     return StaffSelectDTO.builder()
                             .id(staff.getId())
                             .displayName(displayName)
+                            .employeeId(staff.getEmployeeId())
                             .build();
                 })
                 .sorted((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()))

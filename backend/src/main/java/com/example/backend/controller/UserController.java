@@ -64,6 +64,10 @@ public class UserController {
                 .map(staff -> staff.getOffice().getId().toString())
                 .orElse(null);
 
+        String employeeCode = Optional.ofNullable(user.getStaff())
+                .map(Staff::getEmployeeId)
+                .orElse(null);
+
         // Get user roles from authentication (already loaded by Spring Security)
         List<String> roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -79,7 +83,8 @@ public class UserController {
                 LocalDateTime.now().plusHours(1), // Token expiry (you might want to extract this from JWT)
                 user.isMfaEnabled(),
                 officeId,
-                null // No token needed for /me endpoint - token is only for login response
+                null, // No token needed for /me endpoint - token is only for login response
+                employeeCode
         );
 
         return ResponseEntity.ok(ApiResponse.success(userInfo, "User info retrieved successfully"));

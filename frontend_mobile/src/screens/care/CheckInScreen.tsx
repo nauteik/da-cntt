@@ -30,6 +30,9 @@ export default function CheckInScreen() {
   const serviceDeliveryId = params.serviceDeliveryId as string;
   const patientId = params.patientId as string;
   const patientName = params.patientName as string;
+  const patientClientId = params.patientClientId as string | undefined;
+  const startTime = params.startTime as string | undefined;
+  const endTime = params.endTime as string | undefined;
   const visitId = params.visitId as string; // For unscheduled visits
   
   const [isLoading, setIsLoading] = useState(false);
@@ -356,8 +359,12 @@ export default function CheckInScreen() {
             <Ionicons name="person-circle" size={48} color="#2196F3" />
             <View style={styles.patientInfo}>
               <Text style={styles.patientName}>{mockPatientName}</Text>
-              <Text style={styles.patientId}>ID: {mockPatientId}</Text>
-              {scheduleEventId && <Text style={styles.scheduleId}>Schedule: {scheduleEventId}</Text>}
+              {patientClientId ? (
+                <Text style={styles.patientId}>Client ID: {patientClientId}</Text>
+              ) : null}
+              {startTime && endTime ? (
+                <Text style={styles.scheduleId}>Time: {startTime} – {endTime}</Text>
+              ) : null}
             </View>
           </View>
         </View>

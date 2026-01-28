@@ -13,6 +13,7 @@ import {
   Table,
   Space,
   Tooltip,
+  Alert,
 } from "antd";
 import { DeleteOutlined, UserOutlined, WarningOutlined } from "@ant-design/icons";
 import type { PatientSelectDTO, StaffSelectDTO, PatientProgramDTO } from "@/types/patient";
@@ -34,6 +35,8 @@ import type { AuthorizationDTO } from "@/types/patient";
 
 const { TextArea } = Input;
 const { Option } = Select;
+
+type PreviewNotice = { type: "success" | "error"; text: string } | null;
 
 interface CreateScheduleFormProps {
   open: boolean;
@@ -68,6 +71,7 @@ export default function CreateScheduleForm({
   // State for preview
   const [previewData, setPreviewData] = useState<CreateSchedulePreviewResponseDTO | null>(null);
   const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
+  const [previewNotice, setPreviewNotice] = useState<PreviewNotice>(null);
   
   // State for change employee modal
   const [changeEmployeeModalOpen, setChangeEmployeeModalOpen] = useState(false);
@@ -155,6 +159,7 @@ export default function CreateScheduleForm({
       loadStaff();
       setErrorMessage(null);
       setShowSuccess(false);
+      setPreviewNotice(null);
       previewMutation.reset();
       createMutation.reset();
     }
@@ -214,6 +219,7 @@ export default function CreateScheduleForm({
   const handleCreatePreview = async () => {
     setErrorMessage(null);
     setShowSuccess(false);
+    setPreviewNotice(null);
     
     try {
       const values = await form.validateFields();
@@ -281,14 +287,16 @@ export default function CreateScheduleForm({
   };
 
   const handleSave = async () => {
+    setPreviewNotice(null);
+
     if (!previewData) {
-      setErrorMessage("No preview data available");
+      setPreviewNotice({ type: "error", text: "No preview data available" });
       return;
     }
     
     // Check if any events are selected
     if (selectedEventIds.size === 0) {
-      setErrorMessage("Please select at least one event to save");
+      setPreviewNotice({ type: "error", text: "Please select at least one event to save" });
       return;
     }
     
@@ -299,12 +307,14 @@ export default function CreateScheduleForm({
     });
     
     if (selectedEventsWithConflicts.length > 0) {
-      setErrorMessage(`Please resolve all conflicts before saving. ${selectedEventsWithConflicts.length} selected event(s) have conflicts.`);
+      setPreviewNotice({
+        type: "error",
+        text: `Please resolve all conflicts before saving. ${selectedEventsWithConflicts.length} selected event(s) have conflicts.`,
+      });
       return;
     }
     
     setErrorMessage(null);
-    setShowSuccess(false);
     
     try {
       // Only save selected events
@@ -315,7 +325,7 @@ export default function CreateScheduleForm({
       });
       
       if (eventsToSave.length === 0) {
-        setErrorMessage("Please select at least one event to save");
+        setPreviewNotice({ type: "error", text: "Please select at least one event to save" });
         return;
       }
       
@@ -347,9 +357,8 @@ export default function CreateScheduleForm({
         }),
       });
       
-      setShowSuccess(true);
+      setPreviewNotice({ type: "success", text: "Schedule events created successfully!" });
       setTimeout(() => {
-        setShowSuccess(false);
         onSuccess();
         handleClose();
       }, 3000);
@@ -369,11 +378,11 @@ export default function CreateScheduleForm({
         "message" in error.response.data &&
         typeof error.response.data.message === "string"
       ) {
-        setErrorMessage(error.response.data.message);
+        setPreviewNotice({ type: "error", text: error.response.data.message });
       } else if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
-        setErrorMessage(error.message);
+        setPreviewNotice({ type: "error", text: error.message });
       } else {
-        setErrorMessage("Failed to create schedule events. Please try again.");
+        setPreviewNotice({ type: "error", text: "Failed to create schedule events. Please try again." });
       }
     }
   };
@@ -389,6 +398,7 @@ export default function CreateScheduleForm({
     setAuthorizations([]);
     setErrorMessage(null);
     setShowSuccess(false);
+    setPreviewNotice(null);
     setSelectedEventIds(new Set());
     setChangeEmployeeModalOpen(false);
     setNewEmployeeId(undefined);
@@ -889,6 +899,13 @@ export default function CreateScheduleForm({
                 </div>
 
                 {/* Save Button */}
+                {previewNotice && (
+                  <div>
+                    <p className="text-sm text-green-600 font-[550] m-0">
+                      {previewNotice.text}
+                    </p>
+                  </div>
+                )}
                 <Button
                   type="primary"
                   onClick={handleSave}

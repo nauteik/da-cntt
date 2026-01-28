@@ -9,11 +9,11 @@ const getBaseURL = () => {
     if (Platform.OS === 'android') {
       return 'http://10.0.2.2:8080/api';  // Android emulator -> host machine
     } else {
-      return 'http://192.168.1.177:8080/api';  // iOS physical device - UPDATE THIS IP
+      return 'https://api.nauteik.dev/api';  // iOS physical device - UPDATE THIS IP
     }
   } else {
     // Production mode
-    return 'https://api.blueangelscare.com';
+    return 'https://api.nauteik.dev';
   }
 };
 

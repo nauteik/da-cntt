@@ -148,6 +148,7 @@ export class ScheduleService {
       return events.map((event) => ({
         id: event.id,
         patientId: event.patientId,
+        patientClientId: event.patientClientId,
         patient: {
           id: event.patientId,
           name: this.formatPatientName(event.patientName), // Format from "Last, First" to "First Last"
@@ -209,6 +210,7 @@ export class ScheduleService {
       return {
         id: event.id,
         patientId: event.patientId,
+        patientClientId: event.patientClientId,
         patient: {
           id: event.patientId,
           name: this.formatPatientName(event.patientName), // Format from "Last, First" to "First Last"

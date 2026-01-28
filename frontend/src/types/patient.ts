@@ -211,6 +211,7 @@ export interface PatientSelectDTO {
 export interface StaffSelectDTO {
   id: string;
   displayName: string; // Format: "fullName (employeeCode) - officeName"
+  employeeId?: string; // Human-readable staff code (e.g. EMP-001), from Staff.employeeId
 }
 
 export interface ProgramSelectDTO {

@@ -22,11 +22,11 @@ export default function SettingsScreen() {
   const currentUser = authState.user;
   const userInfo = {
     name: currentUser?.name || 'N/A',
-    employeeId: currentUser?.staffId || currentUser?.id || 'N/A',
     email: currentUser?.email || 'N/A',
     department: 'Patient Care', // TODO: Get from backend
     role: currentUser?.role || 'N/A',
     phone: currentUser?.phone || 'N/A',
+    employeeCode: currentUser?.employeeCode || null, // Staff.employeeId (human-readable), not UUID
   };
 
   const handleLogout = () => {
@@ -150,7 +150,9 @@ export default function SettingsScreen() {
         {/* User Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>User Information</Text>
-          {renderUserInfoItem('card-outline', 'Employee ID', userInfo.employeeId)}
+          {userInfo.employeeCode != null && userInfo.employeeCode !== '' && (
+            renderUserInfoItem('card-outline', 'Employee ID', userInfo.employeeCode)
+          )}
           {renderUserInfoItem('mail-outline', 'Email', userInfo.email)}
           {renderUserInfoItem('call-outline', 'Phone', userInfo.phone)}
         </View>

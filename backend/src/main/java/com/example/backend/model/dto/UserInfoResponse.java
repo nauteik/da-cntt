@@ -25,4 +25,5 @@ public class UserInfoResponse {
     private boolean mfaEnabled;
     private String officeId; // Multi-office support (UUID as string)
     private String token; // JWT token for BFF pattern
+    private String employeeCode; // Staff.employeeId (human-readable, e.g. EMP-001) when user has Staff
 }

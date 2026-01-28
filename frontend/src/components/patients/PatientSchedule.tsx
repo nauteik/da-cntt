@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, Button, Input, Select, Space, App, DatePicker } from "antd";
 import type { Dayjs } from "dayjs";
 import {
@@ -95,6 +96,7 @@ function WeekSection({ weekIndex, events, isCollapsed, onEditEvent, onDeleteEven
 
 
 export default function PatientSchedule({ patientId }: PatientScheduleProps) {
+  const router = useRouter();
   const { modal } = App.useApp();
   const queryClient = useQueryClient();
 
@@ -565,8 +567,8 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
               }}
               onSortChange={handleSortChange}
               context="patient"
-              onEdit={() => {
-                // TODO: implement edit
+              onEdit={(event) => {
+                router.push(`/schedule/${event.id}/edit`);
               }}
             />
           </div>

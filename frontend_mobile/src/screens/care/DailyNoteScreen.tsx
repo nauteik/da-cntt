@@ -446,13 +446,8 @@ export default function DailyNoteScreen() {
               />
             </View>
             <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Employee ID *</Text>
-              <TextInput
-                style={styles.input}
-                value={form.employeeId}
-                onChangeText={(text) => setForm(prev => ({ ...prev, employeeId: text }))}
-                placeholder="Enter employee ID"
-              />
+              <Text style={styles.label}>Employee ID</Text>
+              <Text style={styles.readOnlyValue}>{currentUser?.employeeCode || '—'}</Text>
             </View>
           </View>
         </View>
@@ -471,13 +466,8 @@ export default function DailyNoteScreen() {
               />
             </View>
             <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Patient ID *</Text>
-              <TextInput
-                style={styles.input}
-                value={form.patientId}
-                onChangeText={(text) => setForm(prev => ({ ...prev, patientId: text }))}
-                placeholder="Enter patient ID"
-              />
+              <Text style={styles.label}>Patient</Text>
+              <Text style={styles.readOnlyValue}>{form.patientName || patientName || '—'}</Text>
             </View>
           </View>
         </View>
@@ -714,6 +704,11 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: '#f8f9fa',
+  },
+  readOnlyValue: {
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 6,
   },
   textArea: {
     height: 80,

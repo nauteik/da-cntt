@@ -2,7 +2,6 @@ package com.example.backend.service.impl;
 
 import com.example.backend.model.dto.report.*;
 import com.example.backend.repository.DailyReportRepository;
-import com.example.backend.repository.PatientRepository;
 import com.example.backend.service.DailyReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 public class DailyReportServiceImpl implements DailyReportService {
 
     private final DailyReportRepository dailyReportRepository;
-    private final PatientRepository patientRepository;
 
     @Override
     @Transactional(readOnly = true)

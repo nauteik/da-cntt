@@ -20,6 +20,7 @@ export interface UserInfoResponse {
   mfaEnabled: boolean;
   officeId: string | null;
   token: string;
+  employeeCode?: string | null; // Staff.employeeId (human-readable, e.g. EMP-001)
 }
 
 export interface User {
@@ -33,6 +34,7 @@ export interface User {
   phone: string;
   token?: string;
   officeId?: string | null;
+  employeeCode?: string | null; // Staff.employeeId (human-readable, e.g. EMP-001) for display
 }
 
 // Patient and Schedule Types
@@ -54,6 +56,7 @@ export interface Patient {
 export interface Schedule {
   id: string;
   patientId: string;
+  patientClientId?: string;
   patient: Patient;
   employeeId: string;
   employeeName?: string;
