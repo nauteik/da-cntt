@@ -19,19 +19,19 @@ import {
   CalendarOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BellOutlined,
-  SettingOutlined,
   LogoutOutlined,
   ToolOutlined,
   BarChartOutlined,
   CheckCircleOutlined,
   EnvironmentOutlined,
   HomeOutlined,
+  KeyOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
+import ChangePasswordModal from "./auth/ChangePasswordModal";
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
 
@@ -42,6 +42,7 @@ interface AdminLayoutProps {
 function AdminLayoutComponent({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const { isDarkMode } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -69,29 +70,29 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
     return "dashboard";
   }, [pathname]);
 
-  // Helper function to check if a segment looks like a UUID/ID
-  const isLikelyId = (segment: string): boolean => {
-    // Check if it's a long alphanumeric string (UUID pattern or similar)
-    // UUIDs are typically 32+ characters, but we'll be more lenient
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const longAlphanumeric = /^[0-9a-f-]{20,}$/i; // 20+ chars of hex/alphanumeric
-    return uuidPattern.test(segment) || (longAlphanumeric.test(segment) && segment.length >= 20);
-  };
-
-  // Map parent segments to their detail page labels
-  const detailLabelMap: Record<string, string> = {
-    clients: "Patient Detail",
-    employees: "Employee Detail",
-    offices: "Office Detail",
-    schedule: "Schedule Detail",
-    "visit-maintenance": "Visit Detail",
-    housing: "Housing Detail",
-    reports: "Report Detail",
-    authorizations: "Authorization Detail",
-  };
-
   // Generate breadcrumb items based on pathname
   const breadcrumbItems = useMemo(() => {
+    // Helper function to check if a segment looks like a UUID/ID
+    const isLikelyId = (segment: string): boolean => {
+      // Check if it's a long alphanumeric string (UUID pattern or similar)
+      // UUIDs are typically 32+ characters, but we'll be more lenient
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const longAlphanumeric = /^[0-9a-f-]{20,}$/i; // 20+ chars of hex/alphanumeric
+      return uuidPattern.test(segment) || (longAlphanumeric.test(segment) && segment.length >= 20);
+    };
+
+    // Map parent segments to their detail page labels
+    const detailLabelMap: Record<string, string> = {
+      clients: "Patient Detail",
+      employees: "Employee Detail",
+      offices: "Office Detail",
+      schedule: "Schedule Detail",
+      "visit-maintenance": "Visit Detail",
+      housing: "Housing Detail",
+      reports: "Report Detail",
+      authorizations: "Authorization Detail",
+    };
+
     const items: { title: React.ReactNode }[] = [
       {
         title: (
@@ -263,15 +264,10 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
   const userMenuItems = useMemo(
     () => [
       {
-        key: "profile",
-        icon: <UserOutlined />,
-        label: "Profile",
-      },
-      {
-        key: "settings",
-        icon: <SettingOutlined />,
-        label: "Settings",
-        onClick: () => handleLogout,
+        key: "change-password",
+        icon: <KeyOutlined />,
+        label: "Change Password",
+        onClick: () => setIsChangePasswordModalOpen(true),
       },
       {
         type: "divider" as const,
@@ -374,7 +370,6 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
 
           <Space size="middle">
             <ThemeToggle />
-            <Button type="text" icon={<BellOutlined />} size="large" />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div className="flex items-center cursor-pointer">
                 <Avatar size="default" icon={<UserOutlined />} />
@@ -389,6 +384,12 @@ function AdminLayoutComponent({ children }: AdminLayoutProps) {
 
         <Content className={styles.contentArea}>{children}</Content>
       </Layout>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        open={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </Layout>
   );
 }

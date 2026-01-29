@@ -11,39 +11,46 @@ import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import type { OfficeDTO } from "@/types/office";
 import type { RoleDTO } from "@/types/role";
+import { VALIDATION_REGEX, VALIDATION_MESSAGES, FIELD_CONSTRAINTS } from "@/lib/validation/validation";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Validation schema matching CreateStaffDTO constraints
 const createStaffSchema = z.object({
   firstName: z
     .string()
     .min(1, "First name is required")
-    .max(100, "First name must not exceed 100 characters"),
+    .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX))
+    .regex(/^[A-Za-z\s'-]+$/, "First name can only contain letters, spaces, hyphens, and apostrophes")
+    .refine((val) => val.trim().length > 0, "First name cannot be only spaces"),
   lastName: z
     .string()
     .min(1, "Last name is required")
-    .max(100, "Last name must not exceed 100 characters"),
+    .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX))
+    .regex(/^[A-Za-z\s'-]+$/, "Last name can only contain letters, spaces, hyphens, and apostrophes")
+    .refine((val) => val.trim().length > 0, "Last name cannot be only spaces"),
   officeId: z.string().min(1, "Office is required"),
   roleId: z.string().min(1, "Role is required"),
   ssn: z
     .string()
     .min(1, "SSN is required")
-    .regex(/^\d{3}-?\d{2}-?\d{4}$/, "SSN must be in format XXX-XX-XXXX")
-    .max(11, "SSN must not exceed 11 characters"),
+    .regex(VALIDATION_REGEX.SSN, VALIDATION_MESSAGES.SSN_INVALID)
+    .max(FIELD_CONSTRAINTS.SSN_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.SSN_MAX)),
   phone: z
     .string()
-    .regex(
-      /^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/,
-      "Invalid phone number format"
-    )
-    .max(20, "Phone number must not exceed 20 characters"),
+    .regex(VALIDATION_REGEX.PHONE, VALIDATION_MESSAGES.PHONE_INVALID)
+    .max(FIELD_CONSTRAINTS.PHONE_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.PHONE_MAX))
+    .optional()
+    .or(z.literal("")),
   nationalProviderId: z
     .string()
     .max(50, "National Provider ID must not exceed 50 characters")
-    .optional(),
-  email: z.string()
+    .optional()
+    .or(z.literal("")),
+  email: z
+    .string()
     .min(1, "Email is required")
-    .email("Invalid email format")
-    .max(255, "Email must not exceed 255 characters"),
+    .email(VALIDATION_MESSAGES.EMAIL_INVALID)
+    .max(FIELD_CONSTRAINTS.EMAIL_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.EMAIL_MAX)),
   isSupervisor: z.boolean().optional(),
 });
 
@@ -65,19 +72,23 @@ export default function CreateStaffModal({
   onCreateSuccess,
 }: CreateStaffModalProps) {
   const [showSuccess, setShowSuccess] = React.useState(false);
+  const queryClient = useQueryClient();
 
   const {
     control,
     handleSubmit,
     reset,
+    trigger,
     formState: { errors, isDirty },
   } = useForm<CreateStaffFormData>({
     resolver: zodResolver(createStaffSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: {
       firstName: "",
       lastName: "",
-      officeId: "",
-      roleId: "",
+      officeId: undefined,
+      roleId: undefined,
       ssn: "",
       phone: "",
       nationalProviderId: "",
@@ -94,7 +105,17 @@ export default function CreateStaffModal({
   // Reset form when modal opens
   React.useEffect(() => {
     if (open) {
-      reset();
+      reset({
+        firstName: "",
+        lastName: "",
+        officeId: undefined,
+        roleId: undefined,
+        ssn: "",
+        phone: "",
+        nationalProviderId: "",
+        email: "",
+        isSupervisor: false,
+      });
       setShowSuccess(false);
       createStaffMutation.reset();
     }
@@ -102,11 +123,17 @@ export default function CreateStaffModal({
   }, [open]);
 
   const onSubmit = async (data: CreateStaffFormData) => {
+    const isValid = await trigger();
+    if (!isValid) return;
+
     try {
       await createStaffMutation.mutateAsync(data);
 
       // Show success message
       setShowSuccess(true);
+      
+      // Invalidate queries
+      await queryClient.invalidateQueries({ queryKey: ["staff-list"] });
 
       // Wait 1 second then close and refresh
       setTimeout(() => {
@@ -300,7 +327,7 @@ export default function CreateStaffModal({
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-theme-primary mb-0">
-                  Phone <span className="text-red-500 ml-1">*</span>
+                  Phone
                 </label>
                 {errors.phone && (
                   <span className="text-xs text-red-500">
@@ -366,6 +393,7 @@ export default function CreateStaffModal({
                 render={({ field }) => (
                   <Input
                     {...field}
+                    type="email"
                     placeholder="john.smith@example.com"
                     status={errors.email ? "error" : ""}
                     className={formStyles.formInput}

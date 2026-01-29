@@ -5,6 +5,7 @@ import { Modal, Input, Select, Checkbox, Button, App } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApiMutation } from "@/hooks/useApi";
 import { contactSchema, type ContactFormData } from "@/lib/validation/patientSchemas";
 import { RELATIONSHIP_OPTIONS } from "@/lib/validation/validation";
@@ -30,40 +31,69 @@ export default function EditContactForm({
   const [showSuccess, setShowSuccess] = React.useState(false);
   const previousOpenRef = React.useRef(open);
   const { modal } = App.useApp();
+  const queryClient = useQueryClient();
 
   const {
     control,
     handleSubmit,
     reset,
     formState: { errors, isDirty },
-  } = useForm<ContactFormData>({
+  } = useForm({
     resolver: zodResolver(contactSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
-    defaultValues: initialData || {
-      relation: "",
-      name: "",
-      phone: "",
-      email: "",
-      line1: "",
-      line2: "",
-      isPrimary: false,
-    },
-  });
-
-  // Reset form when modal opens
-  React.useEffect(() => {
-    if (open && !previousOpenRef.current) {
-      reset(
-        initialData || {
+    defaultValues: initialData
+      ? {
+          relation: initialData.relation || "",
+          firstName: initialData.name?.split(" ")[0] || "",
+          lastName: initialData.name?.split(" ").slice(1).join(" ") || "",
+          name: initialData.name || "",
+          phone: initialData.phone || "",
+          email: initialData.email || "",
+          line1: initialData.line1 || "",
+          line2: initialData.line2 || "",
+          isPrimary: initialData.isPrimary || false,
+        }
+      : {
           relation: "",
+          firstName: "",
+          lastName: "",
           name: "",
           phone: "",
           email: "",
           line1: "",
           line2: "",
           isPrimary: false,
-        }
+        },
+  });
+
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (open && !previousOpenRef.current) {
+      reset(
+        initialData
+          ? {
+              relation: initialData.relation || "",
+              firstName: initialData.name?.split(" ")[0] || "",
+              lastName: initialData.name?.split(" ").slice(1).join(" ") || "",
+              name: initialData.name || "",
+              phone: initialData.phone || "",
+              email: initialData.email || "",
+              line1: initialData.line1 || "",
+              line2: initialData.line2 || "",
+              isPrimary: initialData.isPrimary || false,
+            }
+          : {
+              relation: "",
+              firstName: "",
+              lastName: "",
+              name: "",
+              phone: "",
+              email: "",
+              line1: "",
+              line2: "",
+              isPrimary: false,
+            }
       );
       setShowSuccess(false);
     }
@@ -82,11 +112,18 @@ export default function EditContactForm({
     endpoint,
     method,
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        
+        // Invalidate React Query cache to refetch updated data
+        await queryClient.invalidateQueries({
+          queryKey: ["patient-personal", patientId],
+        });
+        
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
+        
         setTimeout(() => {
           setShowSuccess(false);
         }, 3000);
@@ -98,11 +135,18 @@ export default function EditContactForm({
     `/patients/${patientId}/contacts/${initialData?.id}`,
     "DELETE",
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        
+        // Invalidate React Query cache to refetch updated data
+        await queryClient.invalidateQueries({
+          queryKey: ["patient-personal", patientId],
+        });
+        
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
+        
         setTimeout(() => {
           setShowSuccess(false);
           onClose();
@@ -112,7 +156,12 @@ export default function EditContactForm({
   );
 
   const onSubmit = async (data: ContactFormData) => {
-    await mutation.mutateAsync(data);
+    // Combine firstName and lastName into name field for backend
+    const submitData: ContactFormData = {
+      ...data,
+      name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim(),
+    };
+    await mutation.mutateAsync(submitData);
   };
 
   const handleCancel = () => {
@@ -175,51 +224,75 @@ export default function EditContactForm({
           className="flex flex-col min-h-[450px]"
         >
           <div className="flex-1 px-8 py-8 bg-theme-surface flex flex-col gap-6">
-            {/* Relation & Name (2 columns) */}
+            {/* Relation */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-theme-primary">
+                Relation <span className="text-red-500">*</span>
+              </label>
+              <Controller
+                name="relation"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    placeholder="Select relationship"
+                    status={errors.relation ? "error" : ""}
+                    className={formStyles.formSelect}
+                    options={RELATIONSHIP_OPTIONS}
+                  />
+                )}
+              />
+              {errors.relation && (
+                <span className="text-sm text-red-500">
+                  {errors.relation.message || "Relation is required"}
+                </span>
+              )}
+            </div>
+
+            {/* First Name & Last Name (2 columns) */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-theme-primary">
-                  Relation <span className="text-red-500">*</span>
+                  First Name <span className="text-red-500">*</span>
                 </label>
                 <Controller
-                  name="relation"
+                  name="firstName"
                   control={control}
                   render={({ field }) => (
-                    <Select
+                    <Input
                       {...field}
-                      placeholder="Select relationship"
-                      status={errors.relation ? "error" : ""}
-                      className={formStyles.formSelect}
-                      options={RELATIONSHIP_OPTIONS}
+                      placeholder="Enter first name"
+                      status={errors.firstName ? "error" : ""}
+                      className={formStyles.formInput}
                     />
                   )}
                 />
-                {errors.relation && (
+                {errors.firstName && (
                   <span className="text-sm text-red-500">
-                    {errors.relation.message}
+                    {errors.firstName.message || "First name is required"}
                   </span>
                 )}
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-theme-primary">
-                  Name <span className="text-red-500">*</span>
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <Controller
-                  name="name"
+                  name="lastName"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
-                      placeholder="Enter full name"
-                      status={errors.name ? "error" : ""}
+                      placeholder="Enter last name"
+                      status={errors.lastName ? "error" : ""}
                       className={formStyles.formInput}
                     />
                   )}
                 />
-                {errors.name && (
+                {errors.lastName && (
                   <span className="text-sm text-red-500">
-                    {errors.name.message}
+                    {errors.lastName.message || "Last name is required"}
                   </span>
                 )}
               </div>
@@ -245,7 +318,7 @@ export default function EditContactForm({
                 />
                 {errors.phone && (
                   <span className="text-sm text-red-500">
-                    {errors.phone.message}
+                    {errors.phone.message || "Phone number is required"}
                   </span>
                 )}
               </div>
@@ -294,7 +367,7 @@ export default function EditContactForm({
               />
               {errors.line1 && (
                 <span className="text-sm text-red-500">
-                  {errors.line1.message}
+                  {errors.line1.message || "Address line 1 is invalid"}
                 </span>
               )}
             </div>
@@ -318,7 +391,7 @@ export default function EditContactForm({
               />
               {errors.line2 && (
                 <span className="text-sm text-red-500">
-                  {errors.line2.message}
+                  {errors.line2.message || "Address line 2 is invalid"}
                 </span>
               )}
             </div>

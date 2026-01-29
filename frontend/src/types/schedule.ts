@@ -91,7 +91,6 @@ export interface ScheduleEventDTO {
 
 export enum ScheduleEventStatus {
   PLANNED = "PLANNED",
-  CONFIRMED = "CONFIRMED",
   IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",

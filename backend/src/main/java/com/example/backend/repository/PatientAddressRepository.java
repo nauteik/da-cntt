@@ -17,8 +17,11 @@ public interface PatientAddressRepository extends JpaRepository<PatientAddress, 
     @Query("SELECT pa FROM PatientAddress pa WHERE pa.patient.id = :patientId AND pa.isMain = true")
     List<PatientAddress> findMainAddressesByPatientId(@Param("patientId") UUID patientId);
     
-    @Query("SELECT pa FROM PatientAddress pa WHERE pa.patient.id = :patientId ORDER BY pa.createdAt ASC")
+    @Query("SELECT pa FROM PatientAddress pa LEFT JOIN FETCH pa.address WHERE pa.patient.id = :patientId ORDER BY pa.createdAt ASC")
     List<PatientAddress> findAllByPatientIdOrderByCreatedAtAsc(@Param("patientId") UUID patientId);
+    
+    @Query("SELECT COUNT(pa) FROM PatientAddress pa WHERE pa.address.id = :addressId")
+    long countByAddressId(@Param("addressId") UUID addressId);
     
     /**
      * Bulk insert patient addresses using native SQL for better performance

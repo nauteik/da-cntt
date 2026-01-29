@@ -7,7 +7,6 @@ import type { Dayjs } from "dayjs";
 import {
   PlusOutlined,
   SearchOutlined,
-  ExportOutlined,
   CheckCircleOutlined,
   UpOutlined,
   DownOutlined,
@@ -381,7 +380,7 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
       await generateScheduleMutation.mutateAsync({ endDate: data.endDate });
       // refresh template (to reflect generatedThrough) and events list
       await queryClient.invalidateQueries({ queryKey: ["patient-template-with-weeks", patientId] });
-      await queryClient.invalidateQueries({ queryKey: ["patient-schedule-events", patientId] });
+      await queryClient.invalidateQueries({ queryKey: ["patient-schedule-events-paginated", patientId] });
     } finally {
       setIsGenerateModalOpen(false);
     }
@@ -528,7 +527,6 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
                     setCurrentPage(1); // Reset to first page
                   }}
                   options={[
-                    { value: "CONFIRMED", label: "Confirmed" },
                     { value: "CANCELLED", label: "Cancelled" },
                     { value: "PLANNED", label: "Planned" },
                     { value: "IN_PROGRESS", label: "In Progress" },
@@ -537,12 +535,6 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
                   ]}
                   allowClear
                 />
-                <Button
-                  icon={<ExportOutlined />}
-                  className={buttonStyles.btnSecondary}
-                >
-                  EXPORT DATA
-                </Button>
               </Space>
             </div>
           </div>
@@ -601,7 +593,7 @@ export default function PatientSchedule({ patientId }: PatientScheduleProps) {
           open={isCreateScheduleOpen}
           onCancel={() => setIsCreateScheduleOpen(false)}
           onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["patient-schedule-events", patientId] });
+            queryClient.invalidateQueries({ queryKey: ["patient-schedule-events-paginated", patientId] });
             setIsCreateScheduleOpen(false);
           }}
           preselectedPatientId={patientId}

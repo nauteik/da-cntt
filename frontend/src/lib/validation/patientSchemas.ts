@@ -95,10 +95,12 @@ export const personalInfoSchema = z.object({
   firstName: z
     .string()
     .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX))
+    .regex(/^[A-Za-z\s]*$/, "First name must contain only letters and spaces")
     .optional(),
   lastName: z
     .string()
     .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX))
+    .regex(/^[A-Za-z\s]*$/, "Last name must contain only letters and spaces")
     .optional(),
   dob: z.string().optional(),
   gender: z.string().optional(),
@@ -113,13 +115,12 @@ export const addressSchema = z.object({
   label: z
     .string()
     .max(FIELD_CONSTRAINTS.LABEL_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.LABEL_MAX))
-    .optional(),
-  type: z.enum(["HOME", "COMMUNITY", "SENIOR", "BUSINESS"] as const, {
-    message: "Address type is required",
-  }),
+    .optional()
+    .or(z.literal("")),
+  type: z.enum(["HOME", "COMMUNITY", "SENIOR", "BUSINESS"] as const),
   line1: z
     .string()
-    .min(1, VALIDATION_MESSAGES.ADDRESS_LINE1_REQUIRED)
+    .min(1, "Address line 1 is required")
     .max(
       FIELD_CONSTRAINTS.ADDRESS_LINE_MAX,
       VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.ADDRESS_LINE_MAX)
@@ -130,21 +131,29 @@ export const addressSchema = z.object({
       FIELD_CONSTRAINTS.ADDRESS_LINE_MAX,
       VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.ADDRESS_LINE_MAX)
     )
-    .optional(),
+    .optional()
+    .or(z.literal("")),
   city: z
     .string()
-    .min(1, VALIDATION_MESSAGES.CITY_REQUIRED)
+    .min(1, "City is required")
     .max(FIELD_CONSTRAINTS.CITY_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.CITY_MAX)),
   state: z
     .string()
-    .min(1, VALIDATION_MESSAGES.STATE_REQUIRED)
+    .min(1, "State is required")
     .max(FIELD_CONSTRAINTS.STATE_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.STATE_MAX)),
-  postalCode: zipCodeSchema,
+  postalCode: z
+    .string()
+    .min(1, "ZIP code is required")
+    .regex(VALIDATION_REGEX.ZIP_CODE, VALIDATION_MESSAGES.ZIP_INVALID)
+    .max(FIELD_CONSTRAINTS.ZIP_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.ZIP_MAX)),
   county: z
     .string()
-    .min(1, VALIDATION_MESSAGES.COUNTY_REQUIRED)
+    .min(1, "County is required")
     .max(FIELD_CONSTRAINTS.COUNTY_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.COUNTY_MAX)),
-  phone: phoneSchema,
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .regex(VALIDATION_REGEX.PHONE, VALIDATION_MESSAGES.PHONE_INVALID),
   email: emailOptionalSchema,
   isMain: z.boolean(),
   latitude: z
@@ -162,25 +171,40 @@ export const addressSchema = z.object({
 });
 
 /**
+ * Name validation schema - for first and last names
+ */
+const namePartSchema = z
+  .string()
+  .min(1, "This field is required")
+  .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX))
+  .regex(/^[A-Za-z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes")
+  .refine((val) => val.trim().length > 0, "Name cannot be only spaces");
+
+/**
  * Patient Contact Form Schema
  * Matches UpdatePatientContactDTO.java
+ * Note: Backend uses single 'name' field, but form uses firstName/lastName for better UX
+ * The name field will be computed from firstName + lastName when submitting
  */
 export const contactSchema = z.object({
   relation: z
     .string()
-    .min(1, VALIDATION_MESSAGES.RELATION_REQUIRED)
+    .min(1, "Relation is required")
     .max(
       FIELD_CONSTRAINTS.RELATION_MAX,
       VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.RELATION_MAX)
     ),
-  name: z
+  firstName: namePartSchema,
+  lastName: namePartSchema,
+  // name is computed from firstName + lastName when submitting, not validated in form
+  name: z.string().optional(),
+  phone: z
     .string()
-    .min(1, VALIDATION_MESSAGES.NAME_REQUIRED)
-    .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX)),
-  phone: phoneSchema,
+    .min(1, "Phone number is required")
+    .regex(VALIDATION_REGEX.PHONE, VALIDATION_MESSAGES.PHONE_INVALID),
   email: emailOptionalSchema,
-  line1: z.string().max(255).optional(),
-  line2: z.string().max(255).optional(),
+  line1: z.string().max(255).optional().or(z.literal("")),
+  line2: z.string().max(255).optional().or(z.literal("")),
   isPrimary: z.boolean(),
 });
 

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, Table, Button, Space, message, Typography } from "antd";
 import {
-  ArrowLeftOutlined,
   DownloadOutlined,
   LeftOutlined,
 } from "@ant-design/icons";

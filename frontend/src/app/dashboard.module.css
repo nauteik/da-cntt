@@ -1,5 +1,14 @@
 /* Dashboard Specific Styles - WCAG AA Compliant */
 
+/* Date Range Picker */
+.dateRangePicker {
+  min-width: 280px;
+}
+
+.dateRangePicker :global(.ant-picker-input input) {
+  color: var(--text-primary);
+}
+
 /* Status Cards */
 .statusCard {
   transition: all 0.3s ease;
@@ -158,5 +167,81 @@
   background: rgba(88, 166, 255, 0.15);
   color: var(--primary);
   border: 1px solid rgba(88, 166, 255, 0.3);
+}
+
+/* Alert Severity Badges */
+.alertHigh {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--error);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.alertMedium {
+  background: rgba(250, 173, 20, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(250, 173, 20, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.alertLow {
+  background: rgba(24, 144, 255, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(24, 144, 255, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.emptyState p {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Chart Containers */
+.chartCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chartCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Dark mode chart improvements */
+.darkMode .chartCard {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dateRangePicker {
+    min-width: 100%;
+    margin-bottom: 1rem;
+  }
 }
 

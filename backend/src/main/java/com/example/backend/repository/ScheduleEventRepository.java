@@ -163,6 +163,48 @@ public interface ScheduleEventRepository extends JpaRepository<ScheduleEvent, UU
             @Param("status") String status,
             Pageable pageable
     );
+
+    // ==================== Dashboard Queries ====================
+    
+    /**
+     * Count schedule events by status and date range
+     */
+    @Query("SELECT COUNT(se) FROM ScheduleEvent se WHERE se.status = :status AND se.eventDate BETWEEN :from AND :to")
+    long countByStatusAndDateRange(@Param("status") com.example.backend.model.enums.ScheduleEventStatus status, 
+                                    @Param("from") LocalDate from, 
+                                    @Param("to") LocalDate to);
+
+    /**
+     * Count all schedule events in date range
+     */
+    @Query("SELECT COUNT(se) FROM ScheduleEvent se WHERE se.eventDate BETWEEN :from AND :to")
+    long countByDateRange(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /**
+     * Count schedule events by office and date range
+     */
+    @Query("SELECT COUNT(se) FROM ScheduleEvent se WHERE se.office.id = :officeId AND se.eventDate BETWEEN :from AND :to")
+    long countByOfficeAndDateRange(@Param("officeId") UUID officeId, 
+                                    @Param("from") LocalDate from, 
+                                    @Param("to") LocalDate to);
+
+    /**
+     * Get recent schedule events for dashboard activities
+     */
+    @Query("SELECT se FROM ScheduleEvent se WHERE se.createdAt >= :fromDateTime ORDER BY se.createdAt DESC")
+    Page<ScheduleEvent> findRecentEvents(@Param("fromDateTime") OffsetDateTime fromDateTime, Pageable pageable);
+
+    /**
+     * Get schedule event statistics grouped by date and status for charts
+     */
+    @Query(value = """
+        SELECT se.event_date as date, se.status as status, COUNT(*) as count
+        FROM schedule_event se
+        WHERE se.event_date BETWEEN :from AND :to
+        GROUP BY se.event_date, se.status
+        ORDER BY se.event_date, se.status
+        """, nativeQuery = true)
+    List<Object[]> getEventStatsByDay(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }
 
 

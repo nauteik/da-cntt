@@ -115,7 +115,6 @@ const styles = StyleSheet.create({
 const getStatusColor = (status: ScheduleEventStatus): string => {
   const colorMap: Record<ScheduleEventStatus, string> = {
     PLANNED: "#faad14", // Orange
-    CONFIRMED: "#ffd700", // Yellow/Gold
     IN_PROGRESS: "#1890ff", // Blue
     COMPLETED: "#52c41a", // Green
     CANCELLED: "#ff4d4f", // Red

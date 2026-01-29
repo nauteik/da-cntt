@@ -11,6 +11,7 @@ import { ADDRESS_TYPES, US_STATES } from "@/lib/validation/validation";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import type { StaffAddressDTO, StaffPersonalDTO } from "@/types/staff";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface EditStaffAddressFormProps {
   open: boolean;
@@ -30,12 +31,14 @@ export default function EditStaffAddressForm({
   const [showSuccess, setShowSuccess] = React.useState(false);
   const previousOpenRef = React.useRef(open);
   const { modal } = App.useApp();
+  const queryClient = useQueryClient();
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    trigger,
+    formState: { errors },
   } = useForm<StaffAddressFormData>({
     resolver: zodResolver(staffAddressSchema),
     mode: "onBlur",
@@ -66,8 +69,11 @@ export default function EditStaffAddressForm({
     endpoint,
     method,
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        await queryClient.invalidateQueries({
+          queryKey: ["staff-personal", staffId],
+        });
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
@@ -82,8 +88,11 @@ export default function EditStaffAddressForm({
     `/staff/${staffId}/addresses/${initialData?.id}`,
     "DELETE",
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        await queryClient.invalidateQueries({
+          queryKey: ["staff-personal", staffId],
+        });
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
@@ -126,6 +135,9 @@ export default function EditStaffAddressForm({
   }, [open, initialData, reset, mutation]);
 
   const onSubmit = async (data: StaffAddressFormData) => {
+    const isValid = await trigger();
+    if (!isValid) return;
+
     await mutation.mutateAsync(data);
   };
 
@@ -215,21 +227,30 @@ export default function EditStaffAddressForm({
                 <Controller
                   name="type"
                   control={control}
+                  rules={{ required: "Please select an address type" }}
                   render={({ field }) => (
                     <Select
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(val) => {
+                        field.onChange(val);
+                        trigger("type");
+                      }}
                       onBlur={field.onBlur}
                       placeholder="Select address type"
                       status={errors.type ? "error" : ""}
                       className={formStyles.formSelect}
                       options={ADDRESS_TYPES}
+                      allowClear={false}
                     />
                   )}
                 />
                 {errors.type && (
-                  <span className="text-sm text-red-500">
-                    {errors.type.message}
+                   <span className="text-sm text-red-500">
+                    {typeof errors.type === 'object' && 'message' in errors.type && typeof errors.type.message === 'string'
+                      ? (errors.type.message.includes("Invalid option") 
+                          ? "Please select an address type" 
+                          : errors.type.message)
+                      : "Please select an address type"}
                   </span>
                 )}
               </div>
@@ -497,7 +518,7 @@ export default function EditStaffAddressForm({
                 type="primary"
                 htmlType="submit"
                 className={buttonStyles.btnPrimary}
-                disabled={!isDirty || mutation.isPending || deleteMutation.isPending}
+                disabled={mutation.isPending || deleteMutation.isPending}
                 loading={mutation.isPending}
               >
                 {isCreating ? "CREATE" : "SAVE CHANGES"}

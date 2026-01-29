@@ -11,6 +11,8 @@ import com.example.backend.model.dto.UpdateStaffIdentifiersDTO;
 import com.example.backend.model.dto.UpdateStaffPersonalDTO;
 import com.example.backend.model.dto.UpdateStaffAddressDTO;
 import com.example.backend.model.dto.UpdateStaffContactDTO;
+import com.example.backend.model.dto.ChangePasswordRequest;
+import com.example.backend.model.dto.ResetPasswordResponse;
 import com.example.backend.service.StaffService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -413,6 +415,62 @@ public class StaffController {
         
         return ResponseEntity.ok(
             ApiResponse.success(updatedPersonal, "Contact deleted successfully")
+        );
+    }
+
+    /**
+     * Change password for the authenticated user.
+     * User must provide their current password for verification.
+     * Requires authentication (any role).
+     * 
+     * @param request change password request with current and new passwords
+     * @param authentication authenticated user
+     * @return success response
+     * 
+     * Example: PATCH /api/staff/change-password
+     * Body: {
+     *   "currentPassword": "oldpass123",
+     *   "newPassword": "newpass456",
+     *   "confirmPassword": "newpass456"
+     * }
+     */
+    @PatchMapping("/change-password")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DSP')")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+        
+        String userEmail = authentication.getName();
+        log.info("Change password request for user: {}", userEmail);
+        
+        staffService.changePassword(userEmail, request);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(null, "Password changed successfully")
+        );
+    }
+
+    /**
+     * Reset password for a staff member.
+     * Generates a new random password and returns it to the admin.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id staff UUID
+     * @return reset password response with new password
+     * 
+     * Example: POST /api/staff/{id}/reset-password
+     */
+    @PostMapping("/{id}/reset-password")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<ResetPasswordResponse>> resetPassword(
+            @PathVariable UUID id) {
+        
+        log.info("Reset password request for staff ID: {}", id);
+        
+        ResetPasswordResponse response = staffService.resetPassword(id);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(response, "Password reset successfully")
         );
     }
 }

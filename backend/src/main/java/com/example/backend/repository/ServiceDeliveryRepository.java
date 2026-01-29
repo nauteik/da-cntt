@@ -73,4 +73,26 @@ public interface ServiceDeliveryRepository extends JpaRepository<ServiceDelivery
      */
     @Query("SELECT CASE WHEN COUNT(sd) > 0 THEN true ELSE false END FROM ServiceDelivery sd WHERE sd.scheduleEvent = :scheduleEvent")
     boolean existsByScheduleEvent(@Param("scheduleEvent") ScheduleEvent scheduleEvent);
+
+    // ==================== Dashboard Queries ====================
+    
+    /**
+     * Count service deliveries by task status and date range
+     */
+    @Query("SELECT COUNT(sd) FROM ServiceDelivery sd WHERE sd.taskStatus = :status AND sd.startAt >= :from AND sd.endAt <= :to AND sd.cancelled = false")
+    long countByTaskStatusAndDateRange(@Param("status") TaskStatus status, 
+                                        @Param("from") LocalDateTime from, 
+                                        @Param("to") LocalDateTime to);
+
+    /**
+     * Count all service deliveries in date range (excluding cancelled)
+     */
+    @Query("SELECT COUNT(sd) FROM ServiceDelivery sd WHERE sd.startAt >= :from AND sd.endAt <= :to AND sd.cancelled = false")
+    long countByDateRange(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /**
+     * Count cancelled service deliveries in date range
+     */
+    @Query("SELECT COUNT(sd) FROM ServiceDelivery sd WHERE sd.cancelled = true AND sd.startAt >= :from AND sd.endAt <= :to")
+    long countCancelledByDateRange(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

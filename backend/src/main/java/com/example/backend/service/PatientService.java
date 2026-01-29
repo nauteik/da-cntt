@@ -177,6 +177,18 @@ public interface PatientService {
     PatientPersonalDTO updatePatientContact(UUID patientId, UUID contactId, UpdatePatientContactDTO updateDTO);
 
     /**
+     * Update patient status.
+     * Updates the patient's status (ACTIVE, INACTIVE, PENDING).
+     *
+     * @param patientId UUID of the patient
+     * @param status new status value
+     * @return updated patient header DTO
+     * @throws com.example.backend.exception.ResourceNotFoundException if patient not found
+     * @throws IllegalArgumentException if status is invalid
+     */
+    PatientHeaderDTO updatePatientStatus(UUID patientId, String status);
+
+    /**
      * Delete a patient address and its associated Address entity.
      * Auto-promotes first remaining address as main if deleted address was main.
      * 
