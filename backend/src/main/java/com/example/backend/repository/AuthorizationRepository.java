@@ -5,6 +5,7 @@ import com.example.backend.model.dto.report.AuthVsActualProjection;
 import com.example.backend.model.dto.report.ClientsWithoutAuthProjection;
 import com.example.backend.model.dto.report.ExpiringAuthProjection;
 import com.example.backend.model.entity.Authorization;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -503,4 +504,18 @@ public interface AuthorizationRepository extends JpaRepository<Authorization, UU
         @Param("clientSearch") String clientSearch,
         @Param("expiresAfterDays") Integer expiresAfterDays
     );
+
+    // ==================== Dashboard Queries ====================
+    
+    /**
+     * Find authorizations expiring within N days for dashboard alerts
+     */
+    @Query("SELECT a FROM Authorization a " +
+           "LEFT JOIN FETCH a.patient p " +
+           "LEFT JOIN FETCH a.patientService ps " +
+           "LEFT JOIN FETCH ps.serviceType st " +
+           "WHERE a.endDate IS NOT NULL " +
+           "AND a.endDate BETWEEN CURRENT_DATE AND :expiryDate " +
+           "ORDER BY a.endDate ASC")
+    List<Authorization> findExpiringAuthorizations(@Param("expiryDate") LocalDate expiryDate, Pageable pageable);
 }

@@ -43,6 +43,7 @@ export default function EditPersonalInfoForm({
     formState: { errors, isDirty },
   } = useForm<PersonalInfoFormData>({
     resolver: zodResolver(personalInfoSchema),
+    mode: "onChange",
     defaultValues: initialData,
   });
 
@@ -133,6 +134,11 @@ export default function EditPersonalInfoForm({
                 render={({ field }) => (
                   <Input
                     {...field}
+                    onChange={(e) => {
+                      // Only allow letters and spaces
+                      const value = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                      field.onChange(value);
+                    }}
                     placeholder="Enter first name"
                     status={errors.firstName ? "error" : ""}
                     className={formStyles.formInput}
@@ -157,6 +163,11 @@ export default function EditPersonalInfoForm({
                 render={({ field }) => (
                   <Input
                     {...field}
+                    onChange={(e) => {
+                      // Only allow letters and spaces
+                      const value = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                      field.onChange(value);
+                    }}
                     placeholder="Enter last name"
                     status={errors.lastName ? "error" : ""}
                     className={formStyles.formInput}

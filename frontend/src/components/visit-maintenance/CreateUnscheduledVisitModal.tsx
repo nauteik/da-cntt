@@ -65,6 +65,7 @@ export default function CreateUnscheduledVisitModal({
       
       console.log('Fetching schedule events from:', today, 'to:', nextWeek);
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response: ApiResponse<any> = await apiClient(
         `/schedules?from=${today}&to=${nextWeek}&size=100`
       );
@@ -94,10 +95,11 @@ export default function CreateUnscheduledVisitModal({
         console.error('Failed response:', response.message);
         message.error(response.message || 'Failed to load schedule events');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load schedule events:', error);
-      console.error('Error details:', error.response || error);
-      message.error(error.response?.data?.message || error.message || 'Failed to load schedule events');
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      console.error('Error details:', err.response || err);
+      message.error(err.response?.data?.message || err.message || 'Failed to load schedule events');
     } finally {
       setLoadingEvents(false);
     }
@@ -118,10 +120,11 @@ export default function CreateUnscheduledVisitModal({
         console.error('Failed staff response:', response.message);
         message.error(response.message || 'Failed to load staff list');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load staff:', error);
-      console.error('Error details:', error.response || error);
-      message.error(error.response?.data?.message || error.message || 'Failed to load staff list');
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      console.error('Error details:', err.response || err);
+      message.error(err.response?.data?.message || err.message || 'Failed to load staff list');
     } finally {
       setLoadingStaff(false);
     }
@@ -190,9 +193,10 @@ export default function CreateUnscheduledVisitModal({
           message.error(response.message || 'Failed to create staff replacement');
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create staff replacement:', error);
-      if (error.errorFields) {
+      const err = error as { errorFields?: unknown[] };
+      if (err.errorFields) {
         message.error('Please fill in all required fields');
       } else {
         message.error('Failed to create staff replacement. Please try again.');
@@ -249,10 +253,11 @@ export default function CreateUnscheduledVisitModal({
             onChange={handleScheduleEventSelect}
             loading={loadingEvents}
             optionFilterProp="children"
-            filterOption={(input, option: any) => {
+            filterOption={(input, option) => {
               const searchText = input.toLowerCase();
               const optionText = option?.children?.toString().toLowerCase() || '';
-              const patientName = option?.patientname?.toLowerCase() || '';
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const patientName = (option as any)?.patientname?.toLowerCase() || '';
               // Prioritize patient name matching
               return patientName.includes(searchText) || optionText.includes(searchText);
             }}

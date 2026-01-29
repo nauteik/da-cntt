@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LeftOutlined, WarningOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { LeftOutlined, WarningOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import type { VisitMaintenanceDTO } from "@/types/visitMaintenance";
 import { VisitStatus } from "@/types/visitMaintenance";

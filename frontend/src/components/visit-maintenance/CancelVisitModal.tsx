@@ -45,9 +45,10 @@ export default function CancelVisitModal({
       } else {
         message.error(response.message || 'Failed to cancel visit');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to cancel visit:', error);
-      if (error.errorFields) {
+      const err = error as { errorFields?: unknown[] };
+      if (err.errorFields) {
         message.error('Please fill in all required fields');
       } else {
         message.error('Failed to cancel visit. Please try again.');

@@ -41,6 +41,7 @@ import com.example.backend.model.dto.UpdatePatientPayerDTO;
 import com.example.backend.model.dto.UpdatePatientPersonalDTO;
 import com.example.backend.model.dto.UpdatePatientProgramDTO;
 import com.example.backend.model.dto.UpdatePatientServiceDTO;
+import com.example.backend.model.dto.UpdatePatientStatusDTO;
 import com.example.backend.model.dto.PatientSelectDTO;
 import com.example.backend.service.PatientService;
 
@@ -273,6 +274,34 @@ public class PatientController {
         
         return ResponseEntity.ok(
             ApiResponse.success(updatedPersonal, "Patient personal information updated successfully")
+        );
+    }
+
+    /**
+     * Update patient status.
+     * Requires ADMIN or MANAGER role.
+     * 
+     * @param id patient UUID
+     * @param updateDTO status update data
+     * @return updated patient header information
+     * 
+     * Example: PATCH /api/patients/123e4567-e89b-12d3-a456-426614174000/status
+     * Body: {
+     *   "status": "ACTIVE"
+     * }
+     */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<PatientHeaderDTO>> updatePatientStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdatePatientStatusDTO updateDTO) {
+        
+        log.info("Updating status for patient ID: {}", id);
+        
+        PatientHeaderDTO updatedHeader = patientService.updatePatientStatus(id, updateDTO.getStatus());
+        
+        return ResponseEntity.ok(
+            ApiResponse.success(updatedHeader, "Patient status updated successfully")
         );
     }
 

@@ -5,6 +5,7 @@ import { Modal, Input, Select, Checkbox, Button, App, Spin } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApiMutation } from "@/hooks/useApi";
 import { addressSchema, type AddressFormData } from "@/lib/validation/patientSchemas";
 import { ADDRESS_TYPES, US_STATES } from "@/lib/validation/validation";
@@ -42,6 +43,7 @@ export default function EditAddressForm({
   const [showSuccess, setShowSuccess] = React.useState(false);
   const previousOpenRef = React.useRef(open);
   const { modal } = App.useApp();
+  const queryClient = useQueryClient();
   const [isGeocoding, setIsGeocoding] = React.useState(false);
 
   const {
@@ -49,6 +51,7 @@ export default function EditAddressForm({
     handleSubmit,
     reset,
     setValue,
+    trigger,
     formState: { errors, isDirty },
   } = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
@@ -92,11 +95,18 @@ export default function EditAddressForm({
     endpoint,
     method,
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        
+        // Invalidate React Query cache to refetch updated data
+        await queryClient.invalidateQueries({
+          queryKey: ["patient-personal", patientId],
+        });
+        
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
+        
         setTimeout(() => {
           setShowSuccess(false);
         }, 3000);
@@ -108,11 +118,18 @@ export default function EditAddressForm({
     `/patients/${patientId}/addresses/${initialData?.id}`,
     "DELETE",
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        
+        // Invalidate React Query cache to refetch updated data
+        await queryClient.invalidateQueries({
+          queryKey: ["patient-personal", patientId],
+        });
+        
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
+        
         setTimeout(() => {
           setShowSuccess(false);
           onClose();
@@ -222,6 +239,13 @@ export default function EditAddressForm({
   }, [open, initialData, reset, mutation]);
 
   const onSubmit = async (data: AddressFormData) => {
+    // Validate all fields including type before submitting
+    const isValid = await trigger();
+    if (!isValid || !data.type) {
+      // If validation fails, don't submit
+      return;
+    }
+    
     // Include coordinates in submission
     const submitData = {
       ...data,
@@ -317,22 +341,39 @@ export default function EditAddressForm({
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-theme-primary">
-                  Address Type
+                  Address Type <span className="text-red-500">*</span>
                 </label>
                 <Controller
                   name="type"
                   control={control}
+                  rules={{ required: "Please select an address type" }}
                   render={({ field }) => (
                     <Select
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        field.onChange(value);
+                        trigger("type"); // Trigger validation on change
+                      }}
                       onBlur={field.onBlur}
                       placeholder="Select address type"
+                      status={errors.type ? "error" : ""}
                       className={formStyles.formSelect}
                       options={ADDRESS_TYPES}
+                      allowClear={false}
                     />
                   )}
                 />
+                {errors.type && (
+                  <span className="text-sm text-red-500">
+                    {(() => {
+                      const msg = errors.type.message || "";
+                      if (msg.includes("Invalid option") || msg.includes("expected one of") || msg.includes("HOME")) {
+                        return "Please select an address type";
+                      }
+                      return msg || "Please select an address type";
+                    })()}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -356,7 +397,13 @@ export default function EditAddressForm({
                 />
                 {errors.line1 && (
                   <span className="text-sm text-red-500">
-                    {errors.line1.message}
+                    {(() => {
+                      const msg = errors.line1.message || "";
+                      if (msg.includes("Invalid input") || msg.includes("expected string") || msg.includes("received undefined")) {
+                        return "Address line 1 is required";
+                      }
+                      return msg || "Address line 1 is required";
+                    })()}
                   </span>
                 )}
               </div>
@@ -399,7 +446,13 @@ export default function EditAddressForm({
                 />
                 {errors.city && (
                   <span className="text-sm text-red-500">
-                    {errors.city.message}
+                    {(() => {
+                      const msg = errors.city.message || "";
+                      if (msg.includes("Invalid input") || msg.includes("expected string") || msg.includes("received undefined")) {
+                        return "City is required";
+                      }
+                      return msg || "City is required";
+                    })()}
                   </span>
                 )}
               </div>
@@ -431,7 +484,13 @@ export default function EditAddressForm({
                 />
                 {errors.state && (
                   <span className="text-sm text-red-500">
-                    {errors.state.message}
+                    {(() => {
+                      const msg = errors.state.message || "";
+                      if (msg.includes("Invalid input") || msg.includes("expected string") || msg.includes("received undefined")) {
+                        return "State is required";
+                      }
+                      return msg || "State is required";
+                    })()}
                   </span>
                 )}
               </div>
@@ -457,7 +516,13 @@ export default function EditAddressForm({
                 />
                 {errors.postalCode && (
                   <span className="text-sm text-red-500">
-                    {errors.postalCode.message}
+                    {(() => {
+                      const msg = errors.postalCode.message || "";
+                      if (msg.includes("Invalid input") || msg.includes("expected string") || msg.includes("received undefined")) {
+                        return "ZIP code is required";
+                      }
+                      return msg || "ZIP code is required";
+                    })()}
                   </span>
                 )}
               </div>
@@ -480,7 +545,13 @@ export default function EditAddressForm({
                 />
                 {errors.county && (
                   <span className="text-sm text-red-500">
-                    {errors.county.message}
+                    {(() => {
+                      const msg = errors.county.message || "";
+                      if (msg.includes("Invalid input") || msg.includes("expected string") || msg.includes("received undefined")) {
+                        return "County is required";
+                      }
+                      return msg || "County is required";
+                    })()}
                   </span>
                 )}
               </div>
@@ -506,7 +577,7 @@ export default function EditAddressForm({
                 />
                 {errors.phone && (
                   <span className="text-sm text-red-500">
-                    {errors.phone.message}
+                    {errors.phone.message || "Phone number is required"}
                   </span>
                 )}
               </div>
@@ -585,7 +656,7 @@ export default function EditAddressForm({
                 />
               </div>
 
-              {/* Coordinate Input Fields */}
+              {/* Coordinate Input Fields - Disabled, only set via map or sync */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-theme-primary">
@@ -606,6 +677,8 @@ export default function EditAddressForm({
                         }}
                         placeholder="e.g., 40.7128"
                         className={formStyles.formInput}
+                        disabled
+                        readOnly
                       />
                     )}
                   />
@@ -635,6 +708,8 @@ export default function EditAddressForm({
                         }}
                         placeholder="e.g., -74.0060"
                         className={formStyles.formInput}
+                        disabled
+                        readOnly
                       />
                     )}
                   />

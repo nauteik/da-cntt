@@ -1,17 +1,71 @@
 import { z } from "zod";
+import {
+  VALIDATION_REGEX,
+  VALIDATION_MESSAGES,
+  FIELD_CONSTRAINTS,
+} from "@/lib/validation/validation";
 
 /**
  * Validation schemas for Staff forms
  * Based on backend DTOs and validation rules
  */
 
+// ===== REUSABLE FIELD SCHEMAS =====
+
+/**
+ * Phone number field - matches backend pattern
+ */
+export const phoneSchema = z
+  .string()
+  .min(1, "Phone number is required")
+  .regex(VALIDATION_REGEX.PHONE, VALIDATION_MESSAGES.PHONE_INVALID);
+
+/**
+ * Optional phone number field
+ */
+export const phoneOptionalSchema = z
+  .string()
+  .regex(VALIDATION_REGEX.PHONE, VALIDATION_MESSAGES.PHONE_INVALID)
+  .optional()
+  .or(z.literal(""));
+
+/**
+ * Email field
+ */
+export const emailSchema = z
+  .string()
+  .email(VALIDATION_MESSAGES.EMAIL_INVALID)
+  .max(FIELD_CONSTRAINTS.EMAIL_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.EMAIL_MAX));
+
+/**
+ * Optional email field
+ */
+export const emailOptionalSchema = z
+  .string()
+  .email(VALIDATION_MESSAGES.EMAIL_INVALID)
+  .max(FIELD_CONSTRAINTS.EMAIL_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.EMAIL_MAX))
+  .optional()
+  .or(z.literal(""));
+
+/**
+ * Name validation schema - for first and last names
+ */
+const namePartSchema = z
+  .string()
+  .min(1, "This field is required")
+  .max(FIELD_CONSTRAINTS.NAME_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.NAME_MAX))
+  .regex(/^[A-Za-z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes")
+  .refine((val) => val.trim().length > 0, "Name cannot be only spaces");
+
+// ===== FORM SCHEMAS =====
+
 // Staff Identifiers Schema
 export const staffIdentifiersSchema = z.object({
   ssn: z
     .string()
     .min(1, "SSN is required")
-    .regex(/^\d{3}-?\d{2}-?\d{4}$/, "SSN must be in format XXX-XX-XXXX")
-    .max(11, "SSN must not exceed 11 characters"),
+    .regex(VALIDATION_REGEX.SSN, VALIDATION_MESSAGES.SSN_INVALID)
+    .max(FIELD_CONSTRAINTS.SSN_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.SSN_MAX)),
   employeeId: z
     .string()
     .min(1, "Employee ID is required")
@@ -58,14 +112,8 @@ export type StaffIdentifiersFormData = z.infer<typeof staffIdentifiersSchema>;
 
 // Staff Personal Info Schema
 export const staffPersonalInfoSchema = z.object({
-  firstName: z
-    .string()
-    .min(1, "First name is required")
-    .max(100, "First name must not exceed 100 characters"),
-  lastName: z
-    .string()
-    .min(1, "Last name is required")
-    .max(100, "Last name must not exceed 100 characters"),
+  firstName: namePartSchema,
+  lastName: namePartSchema,
   dob: z
     .string()
     .refine((val) => {
@@ -93,48 +141,61 @@ export type StaffPersonalInfoFormData = z.infer<typeof staffPersonalInfoSchema>;
 export const staffAddressSchema = z.object({
   label: z
     .string()
-    .max(100, "Label must not exceed 100 characters")
+    .max(FIELD_CONSTRAINTS.LABEL_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.LABEL_MAX))
     .optional()
     .or(z.literal("")),
   // Address Type: required with friendly message
-  type: z.enum(["HOME", "COMMUNITY", "SENIOR", "BUSINESS"], "Address type is required"),
+  type: z.enum(["HOME", "COMMUNITY", "SENIOR", "BUSINESS"] as const),
   line1: z
     .string()
     .min(1, "Address line 1 is required")
-    .max(255, "Address line 1 must not exceed 255 characters"),
+    .max(
+      FIELD_CONSTRAINTS.ADDRESS_LINE_MAX,
+      VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.ADDRESS_LINE_MAX)
+    ),
   line2: z
     .string()
-    .max(255, "Address line 2 must not exceed 255 characters")
+    .max(
+      FIELD_CONSTRAINTS.ADDRESS_LINE_MAX,
+      VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.ADDRESS_LINE_MAX)
+    )
     .optional()
     .or(z.literal("")),
   city: z
     .string()
     .min(1, "City is required")
-    .max(100, "City must not exceed 100 characters"),
+    .max(FIELD_CONSTRAINTS.CITY_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.CITY_MAX)),
   state: z
     .string()
-    .length(2, "State must be 2 characters"),
+    .min(1, "State is required")
+    .max(FIELD_CONSTRAINTS.STATE_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.STATE_MAX)),
   postalCode: z
     .string()
-    .regex(/^\d{5}(-\d{4})?$/, "Postal code must be in format XXXXX or XXXXX-XXXX")
-    .max(10, "Postal code must not exceed 10 characters"),
+    .min(1, "ZIP code is required")
+    .regex(VALIDATION_REGEX.ZIP_CODE, VALIDATION_MESSAGES.ZIP_INVALID)
+    .max(FIELD_CONSTRAINTS.ZIP_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.ZIP_MAX)),
   county: z
     .string()
     .min(1, "County is required")
-    .max(100, "County must not exceed 100 characters"),
+    .max(FIELD_CONSTRAINTS.COUNTY_MAX, VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.COUNTY_MAX)),
   phone: z
     .string()
-    .regex(
-      /^(\(\d{3}\)\s?\d{3}-\d{4}|\d{3}-\d{3}-\d{4})$/,
-      "Phone must be in format (XXX) XXX-XXXX or XXX-XXX-XXXX"
-    ),
-  email: z
-    .string()
-    .email("Invalid email address")
-    .max(255, "Email must not exceed 255 characters")
-    .optional()
-    .or(z.literal("")),
+    .min(1, "Phone number is required")
+    .regex(VALIDATION_REGEX.PHONE, VALIDATION_MESSAGES.PHONE_INVALID),
+  email: emailOptionalSchema,
   isMain: z.boolean().optional(),
+  latitude: z
+    .number()
+    .min(-90, "Latitude must be between -90 and 90")
+    .max(90, "Latitude must be between -90 and 90")
+    .optional()
+    .nullable(),
+  longitude: z
+    .number()
+    .min(-180, "Longitude must be between -180 and 180")
+    .max(180, "Longitude must be between -180 and 180")
+    .optional()
+    .nullable(),
 });
 
 export type StaffAddressFormData = z.infer<typeof staffAddressSchema>;
@@ -143,38 +204,19 @@ export type StaffAddressFormData = z.infer<typeof staffAddressSchema>;
 export const staffContactSchema = z.object({
   relation: z
     .string()
-    .max(100, "Relation must not exceed 100 characters")
-    .optional()
-    .or(z.literal("")),
-  name: z
-    .string()
-    .max(255, "Name must not exceed 255 characters")
-    .optional()
-    .or(z.literal("")),
-  phone: z
-    .string()
-    .regex(
-      /^(\(\d{3}\)\s?\d{3}-\d{4}|\d{3}-\d{3}-\d{4})$/,
-      "Phone must be in format (XXX) XXX-XXXX or XXX-XXX-XXXX"
-    )
-    .optional()
-    .or(z.literal("")),
-  email: z
-    .string()
-    .email("Invalid email address")
-    .max(255, "Email must not exceed 255 characters")
-    .optional()
-    .or(z.literal("")),
-  line1: z
-    .string()
-    .max(255, "Address line 1 must not exceed 255 characters")
-    .optional()
-    .or(z.literal("")),
-  line2: z
-    .string()
-    .max(255, "Address line 2 must not exceed 255 characters")
-    .optional()
-    .or(z.literal("")),
+    .min(1, "Relation is required")
+    .max(
+      FIELD_CONSTRAINTS.RELATION_MAX,
+      VALIDATION_MESSAGES.MAX_LENGTH(FIELD_CONSTRAINTS.RELATION_MAX)
+    ),
+  firstName: namePartSchema,
+  lastName: namePartSchema,
+  // name is computed from firstName + lastName when submitting, not validated in form
+  name: z.string().optional(),
+  phone: phoneOptionalSchema,
+  email: emailOptionalSchema,
+  line1: z.string().max(255).optional().or(z.literal("")),
+  line2: z.string().max(255).optional().or(z.literal("")),
   isPrimary: z.boolean().optional(),
 });
 

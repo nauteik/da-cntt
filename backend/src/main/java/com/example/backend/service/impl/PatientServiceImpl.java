@@ -337,7 +337,10 @@ public class PatientServiceImpl implements PatientService {
         dto.setContacts(contacts);
         
         // Map addresses (main first)
-        List<AddressDTO> addresses = patient.getPatientAddresses().stream()
+        // Explicitly fetch addresses from repository to ensure fresh data and avoid stale L1 cache issues
+        List<PatientAddress> patientAddresses = patientAddressRepository.findAllByPatientIdOrderByCreatedAtAsc(patientId);
+        
+        List<AddressDTO> addresses = patientAddresses.stream()
             .sorted(java.util.Comparator
                 .comparing((PatientAddress pa) -> Boolean.TRUE.equals(pa.getIsMain()))
                 .reversed())
@@ -345,25 +348,38 @@ public class PatientServiceImpl implements PatientService {
                 AddressDTO addressDTO = new AddressDTO();
                 addressDTO.setId(patientAddress.getId());
                 if (patientAddress.getAddress() != null) {
-                    addressDTO.setLabel(patientAddress.getAddress().getLabel());
-                    addressDTO.setType(patientAddress.getAddress().getType());
-                    addressDTO.setLine1(patientAddress.getAddress().getLine1());
-                    addressDTO.setLine2(patientAddress.getAddress().getLine2());
-                    addressDTO.setCity(patientAddress.getAddress().getCity());
-                    addressDTO.setState(patientAddress.getAddress().getState());
-                    addressDTO.setPostalCode(patientAddress.getAddress().getPostalCode());
-                    addressDTO.setCounty(patientAddress.getAddress().getCounty());
-                    // Map GPS coordinates
-                    if (patientAddress.getAddress().getLatitude() != null) {
-                        addressDTO.setLatitude(patientAddress.getAddress().getLatitude().doubleValue());
-                    }
-                    if (patientAddress.getAddress().getLongitude() != null) {
-                        addressDTO.setLongitude(patientAddress.getAddress().getLongitude().doubleValue());
-                    }
+                    Address addr = patientAddress.getAddress();
+                    log.info("Mapping address for PA ID: {}. Address ID: {}, Line1: {}, City: {}", 
+                            patientAddress.getId(), addr.getId(), addr.getLine1(), addr.getCity());
+                            
+                    addressDTO.setLabel(addr.getLabel());
+                    addressDTO.setType(addr.getType());
+                    addressDTO.setLine1(addr.getLine1());
+                    addressDTO.setLine2(addr.getLine2());
+                    addressDTO.setCity(addr.getCity());
+                    addressDTO.setState(addr.getState());
+                    addressDTO.setPostalCode(addr.getPostalCode());
+                    addressDTO.setCounty(addr.getCounty());
+                } else {
+                    log.warn("PatientAddress {} has null Address entity", patientAddress.getId());
                 }
                 addressDTO.setPhone(patientAddress.getPhone());
                 addressDTO.setEmail(patientAddress.getEmail());
                 addressDTO.setMain(patientAddress.getIsMain());
+                
+                // Map GPS coordinates - prioritize PatientAddress coordinates over Address coordinates
+                if (patientAddress.getLatitude() != null) {
+                    addressDTO.setLatitude(patientAddress.getLatitude());
+                } else if (patientAddress.getAddress() != null && patientAddress.getAddress().getLatitude() != null) {
+                    addressDTO.setLatitude(patientAddress.getAddress().getLatitude().doubleValue());
+                }
+                
+                if (patientAddress.getLongitude() != null) {
+                    addressDTO.setLongitude(patientAddress.getLongitude());
+                } else if (patientAddress.getAddress() != null && patientAddress.getAddress().getLongitude() != null) {
+                    addressDTO.setLongitude(patientAddress.getAddress().getLongitude().doubleValue());
+                }
+                
                 return addressDTO;
             })
             .collect(Collectors.toList());
@@ -714,42 +730,89 @@ public class PatientServiceImpl implements PatientService {
             throw new IllegalArgumentException("Address does not belong to this patient");
         }
         
-        // 4. Update Address entity fields (safe since not shared)
-        if (patientAddress.getAddress() != null) {
-            Address address = patientAddress.getAddress();
+        // 4. Check if Address is shared and create new one if needed, or update existing if not shared
+        Address currentAddress = patientAddress.getAddress();
+        boolean needsNewAddress = false;
+        
+        if (currentAddress != null) {
+            log.info("Before update - Address ID: {}, Line1: {}, City: {}, Type: {}", 
+                    currentAddress.getId(), currentAddress.getLine1(), currentAddress.getCity(), currentAddress.getType());
             
-            if (updateDTO.getLine1() != null) {
-                address.setLine1(updateDTO.getLine1().trim());
-            }
-            if (updateDTO.getLine2() != null) {
-                address.setLine2(updateDTO.getLine2().trim());
-            }
-            if (updateDTO.getLabel() != null) {
-                address.setLabel(updateDTO.getLabel().trim());
-            }
-            if (updateDTO.getCity() != null) {
-                address.setCity(updateDTO.getCity().trim());
-            }
-            if (updateDTO.getState() != null) {
-                address.setState(updateDTO.getState().trim());
-            }
-            if (updateDTO.getPostalCode() != null) {
-                address.setPostalCode(updateDTO.getPostalCode().trim());
-            }
-            if (updateDTO.getCounty() != null) {
-                address.setCounty(updateDTO.getCounty().trim());
-            }
-            if (updateDTO.getType() != null) {
-                address.setType(updateDTO.getType());
-            }
-            if (updateDTO.getLatitude() != null){
-                address.setLatitude(BigDecimal.valueOf(updateDTO.getLatitude()));
-            }
-            if (updateDTO.getLongitude() != null){
-                address.setLongitude(BigDecimal.valueOf(updateDTO.getLongitude()));
-            }
+            // Check if this Address is shared with other PatientAddresses
+            long shareCount = patientAddressRepository.countByAddressId(currentAddress.getId());
+            needsNewAddress = shareCount > 1;
             
-            addressRepository.save(address);
+            if (needsNewAddress) {
+                log.info("Address ID {} is shared by {} PatientAddresses. Creating new Address to avoid affecting others.", 
+                        currentAddress.getId(), shareCount);
+            }
+        }
+        
+        Address addressToUse;
+        if (needsNewAddress || currentAddress == null) {
+            // Create new Address entity
+            addressToUse = new Address();
+            // Copy existing values from old address if it exists
+            if (currentAddress != null) {
+                addressToUse.setLine1(currentAddress.getLine1());
+                addressToUse.setLine2(currentAddress.getLine2());
+                addressToUse.setLabel(currentAddress.getLabel());
+                addressToUse.setCity(currentAddress.getCity());
+                addressToUse.setState(currentAddress.getState());
+                addressToUse.setPostalCode(currentAddress.getPostalCode());
+                addressToUse.setCounty(currentAddress.getCounty());
+                addressToUse.setType(currentAddress.getType());
+                addressToUse.setLatitude(currentAddress.getLatitude());
+                addressToUse.setLongitude(currentAddress.getLongitude());
+            }
+        } else {
+            // Safe to update existing address (not shared)
+            addressToUse = currentAddress;
+        }
+        
+        // Update Address fields with new values from DTO
+        if (updateDTO.getLine1() != null) {
+            addressToUse.setLine1(updateDTO.getLine1().trim());
+        }
+        if (updateDTO.getLine2() != null) {
+            addressToUse.setLine2(updateDTO.getLine2().trim());
+        }
+        if (updateDTO.getLabel() != null) {
+            addressToUse.setLabel(updateDTO.getLabel().trim());
+        }
+        if (updateDTO.getCity() != null) {
+            addressToUse.setCity(updateDTO.getCity().trim());
+        }
+        if (updateDTO.getState() != null) {
+            addressToUse.setState(updateDTO.getState().trim());
+        }
+        if (updateDTO.getPostalCode() != null) {
+            addressToUse.setPostalCode(updateDTO.getPostalCode().trim());
+        }
+        if (updateDTO.getCounty() != null) {
+            addressToUse.setCounty(updateDTO.getCounty().trim());
+        }
+        if (updateDTO.getType() != null) {
+            addressToUse.setType(updateDTO.getType());
+        }
+        if (updateDTO.getLatitude() != null) {
+            addressToUse.setLatitude(BigDecimal.valueOf(updateDTO.getLatitude()));
+        }
+        if (updateDTO.getLongitude() != null) {
+            addressToUse.setLongitude(BigDecimal.valueOf(updateDTO.getLongitude()));
+        }
+        
+        // Save Address (new or updated)
+        Address savedAddress = addressRepository.save(addressToUse);
+        addressRepository.flush();
+        
+        log.info("After update - Address ID: {}, Line1: {}, City: {}, Type: {}", 
+                savedAddress.getId(), savedAddress.getLine1(), savedAddress.getCity(), savedAddress.getType());
+        
+        // Update PatientAddress to reference the new/updated Address
+        if (needsNewAddress || currentAddress == null) {
+            patientAddress.setAddress(savedAddress);
+            log.info("Updated PatientAddress {} to reference new Address {}", patientAddress.getId(), savedAddress.getId());
         }
         
         // 5. Update PatientAddress fields
@@ -784,8 +847,10 @@ public class PatientServiceImpl implements PatientService {
         
         // 6. Save PatientAddress
         try {
-            patientAddressRepository.save(patientAddress);
-            log.info("Successfully updated address ID: {} for patient ID: {}", addressId, patientId);
+            PatientAddress savedPatientAddress = patientAddressRepository.save(patientAddress);
+            patientAddressRepository.flush(); // Force immediate write to database
+            log.info("Successfully updated PatientAddress ID: {} with phone: {}, email: {}", 
+                    addressId, savedPatientAddress.getPhone(), savedPatientAddress.getEmail());
         } catch (DataIntegrityViolationException ex) {
             log.warn("Data integrity violation while updating address for patient {}: {}", 
                     patientId, ex.getMessage());
@@ -793,7 +858,10 @@ public class PatientServiceImpl implements PatientService {
         }
         
         // 7. Return updated patient personal information
-        return getPatientPersonal(patientId);
+        PatientPersonalDTO result = getPatientPersonal(patientId);
+        log.info("Returning updated patient personal DTO with {} addresses", 
+                result.getAddresses() != null ? result.getAddresses().size() : 0);
+        return result;
     }
 
     @Override
@@ -918,6 +986,37 @@ public class PatientServiceImpl implements PatientService {
         
         // 6. Return updated patient personal information
         return getPatientPersonal(patientId);
+    }
+
+    @Override
+    @Transactional
+    public PatientHeaderDTO updatePatientStatus(UUID patientId, String status) {
+        log.info("Updating status for patient ID: {} to {}", patientId, status);
+
+        // 1. Find patient
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        // 2. Validate status
+        try {
+            PatientStatus newStatus = PatientStatus.valueOf(status.toUpperCase());
+            patient.setStatus(newStatus);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid status value: {}", status);
+            throw new IllegalArgumentException("Invalid status: " + status + ". Must be one of: ACTIVE, INACTIVE, PENDING");
+        }
+
+        // 3. Save patient
+        try {
+            patientRepository.save(patient);
+            log.info("Successfully updated status for patient ID: {} to {}", patientId, status);
+        } catch (Exception e) {
+            log.error("Error updating patient status", e);
+            throw new RuntimeException("Failed to update patient status", e);
+        }
+
+        // 4. Return updated patient header
+        return getPatientHeader(patientId);
     }
 
     @Override

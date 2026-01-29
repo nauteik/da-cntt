@@ -94,7 +94,7 @@ export async function uploadISPFile(
         try {
           const result: ApiResponse<FileObject> = JSON.parse(xhr.responseText);
           resolve(result);
-        } catch (error) {
+        } catch {
           reject(new Error("Failed to parse response"));
         }
       } else {

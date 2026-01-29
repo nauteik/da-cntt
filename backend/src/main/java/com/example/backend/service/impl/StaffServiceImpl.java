@@ -3,6 +3,7 @@ package com.example.backend.service.impl;
 import com.example.backend.model.dto.StaffSelectDTO;
 import com.example.backend.model.dto.StaffSummaryDTO;
 import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.exception.ValidationException;
 import com.example.backend.model.dto.CreateStaffDTO;
 import com.example.backend.model.dto.StaffCreatedDTO;
 import com.example.backend.model.dto.StaffHeaderDTO;
@@ -13,6 +14,8 @@ import com.example.backend.model.dto.UpdateStaffIdentifiersDTO;
 import com.example.backend.model.dto.UpdateStaffPersonalDTO;
 import com.example.backend.model.dto.UpdateStaffAddressDTO;
 import com.example.backend.model.dto.UpdateStaffContactDTO;
+import com.example.backend.model.dto.ChangePasswordRequest;
+import com.example.backend.model.dto.ResetPasswordResponse;
 import com.example.backend.model.entity.Staff;
 import com.example.backend.model.entity.StaffAddress;
 import com.example.backend.model.entity.StaffContact;
@@ -45,6 +48,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.security.SecureRandom;
 
 /**
  * Implementation of StaffService
@@ -763,6 +767,103 @@ public class StaffServiceImpl implements StaffService {
         
         log.info("Successfully deleted contact for staff ID: {}", staffId);
         return getStaffPersonal(staffId);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(String userEmail, ChangePasswordRequest request) {
+        log.info("Changing password for user: {}", userEmail);
+
+        // 1. Validate that new password and confirm password match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new ValidationException("New password and confirm password do not match");
+        }
+
+        // 2. Find user by email
+        AppUser user = appUserRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + userEmail));
+
+        // 3. Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new ValidationException("Current password is incorrect");
+        }
+
+        // 4. Hash and update new password
+        String hashedNewPassword = passwordEncoder.encode(request.getNewPassword());
+        user.setPasswordHash(hashedNewPassword);
+        appUserRepository.save(user);
+
+        log.info("Password changed successfully for user: {}", userEmail);
+    }
+
+    @Override
+    @Transactional
+    public ResetPasswordResponse resetPassword(UUID staffId) {
+        log.info("Resetting password for staff ID: {}", staffId);
+
+        // 1. Find staff by ID
+        Staff staff = staffRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with ID: " + staffId));
+
+        // 2. Get associated user
+        AppUser user = staff.getUser();
+        if (user == null) {
+            throw new ResourceNotFoundException("No user account found for staff ID: " + staffId);
+        }
+
+        // 3. Generate random 8-character password
+        String newPassword = generateRandomPassword(8);
+
+        // 4. Hash and update password
+        String hashedPassword = passwordEncoder.encode(newPassword);
+        user.setPasswordHash(hashedPassword);
+        appUserRepository.save(user);
+
+        log.info("Password reset successfully for staff ID: {}", staffId);
+
+        return new ResetPasswordResponse(
+            newPassword,
+            "Password has been reset successfully for " + staff.getFullName()
+        );
+    }
+
+    /**
+     * Generate a random password with letters, numbers, and symbols
+     * 
+     * @param length length of the password
+     * @return generated password
+     */
+    private String generateRandomPassword(int length) {
+        String upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lowerCase = "abcdefghijklmnopqrstuvwxyz";
+        String numbers = "0123456789";
+        String symbols = "!@#$%&*";
+        String allChars = upperCase + lowerCase + numbers + symbols;
+
+        SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder(length);
+
+        // Ensure at least one character from each category
+        password.append(upperCase.charAt(random.nextInt(upperCase.length())));
+        password.append(lowerCase.charAt(random.nextInt(lowerCase.length())));
+        password.append(numbers.charAt(random.nextInt(numbers.length())));
+        password.append(symbols.charAt(random.nextInt(symbols.length())));
+
+        // Fill the rest with random characters
+        for (int i = 4; i < length; i++) {
+            password.append(allChars.charAt(random.nextInt(allChars.length())));
+        }
+
+        // Shuffle the password to randomize character positions
+        char[] passwordArray = password.toString().toCharArray();
+        for (int i = passwordArray.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char temp = passwordArray[i];
+            passwordArray[i] = passwordArray[j];
+            passwordArray[j] = temp;
+        }
+
+        return new String(passwordArray);
     }
 }
 

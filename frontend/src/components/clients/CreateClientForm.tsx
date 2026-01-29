@@ -6,21 +6,25 @@ import { CloseOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useApiMutation } from "@/hooks/useApi";
+import { useApiMutation, useApiQuery } from "@/hooks/useApi";
+import { phoneOptionalSchema } from "@/lib/validation/patientSchemas";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import type { OfficeDTO } from "@/types/office";
+import type { ProgramSelectDTO } from "@/types/patient";
 
 // Validation schema matching CreatePatientDTO constraints
 const createClientSchema = z.object({
   firstName: z
     .string()
     .min(1, "First name is required")
-    .max(100, "First name must not exceed 100 characters"),
+    .max(100, "First name must not exceed 100 characters")
+    .regex(/^[A-Za-z\s]+$/, "First name must contain only letters and spaces"),
   lastName: z
     .string()
     .min(1, "Last name is required")
-    .max(100, "Last name must not exceed 100 characters"),
+    .max(100, "Last name must not exceed 100 characters")
+    .regex(/^[A-Za-z\s]+$/, "Last name must contain only letters and spaces"),
   officeId: z.string().min(1, "Office is required"),
   programIdentifier: z
     .string()
@@ -34,15 +38,7 @@ const createClientSchema = z.object({
     .string()
     .min(1, "Medicaid ID is required")
     .max(50, "Medicaid ID must not exceed 50 characters"),
-  phone: z
-    .string()
-    .regex(
-      /^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/,
-      "Invalid phone number format"
-    )
-    .max(20, "Phone number must not exceed 20 characters")
-    .optional()
-    .or(z.literal("")),
+  phone: phoneOptionalSchema,
 });
 
 type CreateClientFormData = z.infer<typeof createClientSchema>;
@@ -62,6 +58,13 @@ export default function CreateClientModal({
 }: CreateClientModalProps) {
   const [showSuccess, setShowSuccess] = React.useState(false);
 
+  // Fetch programs for select dropdown
+  const { data: programs } = useApiQuery<ProgramSelectDTO[]>(
+    ["program", "select"],
+    "/program/select",
+    { enabled: open }
+  );
+
   const {
     control,
     handleSubmit,
@@ -71,6 +74,7 @@ export default function CreateClientModal({
     formState: { errors, isDirty },
   } = useForm<CreateClientFormData>({
     resolver: zodResolver(createClientSchema),
+    mode: "onChange",
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -179,6 +183,11 @@ export default function CreateClientModal({
                 render={({ field }) => (
                   <Input
                     {...field}
+                    onChange={(e) => {
+                      // Only allow letters and spaces
+                      const value = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                      field.onChange(value);
+                    }}
                     placeholder="TRAN"
                     status={errors.lastName ? "error" : ""}
                     className={formStyles.formInput}
@@ -205,6 +214,11 @@ export default function CreateClientModal({
                 render={({ field }) => (
                   <Input
                     {...field}
+                    onChange={(e) => {
+                      // Only allow letters and spaces
+                      const value = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                      field.onChange(value);
+                    }}
                     placeholder="MINH"
                     status={errors.firstName ? "error" : ""}
                     className={formStyles.formInput}
@@ -261,14 +275,22 @@ export default function CreateClientModal({
                 name="programIdentifier"
                 control={control}
                 render={({ field }) => (
-                  <Input
+                  <Select
                     {...field}
-                    onChange={(e) =>
-                      field.onChange(e.target.value.toUpperCase())
-                    }
-                    placeholder="ODP"
+                    placeholder="Select a program"
                     status={errors.programIdentifier ? "error" : ""}
-                    className={formStyles.formInput}
+                    className={formStyles.formSelect}
+                    showSearch
+                    optionFilterProp="label"
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    options={programs?.map((program) => ({
+                      label: program.programIdentifier,
+                      value: program.programIdentifier,
+                    }))}
                   />
                 )}
               />

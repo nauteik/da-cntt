@@ -14,7 +14,6 @@ import {
 } from "antd";
 import {
   ExportOutlined,
-  FilterOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
@@ -380,13 +379,6 @@ export default function EmployeesClient({
               className={layoutStyles.searchInput}
               allowClear
             />
-            <Button
-              icon={<FilterOutlined />}
-              type="default"
-              className={buttonStyles.btnSecondary}
-            >
-              FILTERS
-            </Button>
             <Button
               type="default"
               icon={<ExportOutlined />}

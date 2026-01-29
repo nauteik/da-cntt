@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Card, Row, Col, Input, DatePicker, Button, message, Table, Typography } from "antd";
+import { Card, Row, Col, Input, DatePicker, Button, Table, Typography } from "antd";
 import { Controller, useForm } from "react-hook-form";
 import dayjs, { type Dayjs } from "dayjs";
 import type { AuthorizationDetailDTO, UpdateAuthorizationFormData, PatientServiceDTO } from "@/types/authorization";
@@ -24,6 +24,7 @@ export default function ViewAuthorizationClient({
   patientServices,
 }: ViewAuthorizationClientProps) {
   const router = useRouter();
+  const [showSuccess, setShowSuccess] = React.useState(false);
 
   // Initialize form with react-hook-form
   const {
@@ -48,7 +49,9 @@ export default function ViewAuthorizationClient({
     "PATCH",
     {
       onSuccess: (data) => {
-        message.success("Authorization updated successfully");
+        // Display success message for 3 seconds
+        setShowSuccess(true);
+        
         // Reset form with new data to clear isDirty state
         reset({
           authorizationNo: data.authorizationNo || "",
@@ -58,9 +61,11 @@ export default function ViewAuthorizationClient({
           maxUnits: data.maxUnits || 0,
           comments: data.comments || "",
         });
-      },
-      onError: (error) => {
-        message.error(error.message || "Failed to update authorization");
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setShowSuccess(false);
+        }, 3000);
       },
     }
   );
@@ -280,7 +285,7 @@ export default function ViewAuthorizationClient({
         </Card>
 
         {/* Service Limitations Section (Readonly) */}
-        <Card title="Service Limitations" className="mb-6">
+        <Card title="Service Limitations">
           <Table
             columns={serviceColumns}
             dataSource={patientServices}
@@ -293,8 +298,26 @@ export default function ViewAuthorizationClient({
           />
         </Card>
 
+        {/* Error Message */}
+        {updateMutation.error && !showSuccess && (
+          <div className="mt-6">
+            <p className="text-sm text-red-600 m-0">
+              {updateMutation.error?.message || "Failed to update authorization. Please try again."}
+            </p>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {showSuccess && (
+          <div className="mt-6">
+            <p className="text-sm text-green-600 font-[550] m-0">
+              Authorization updated successfully!
+            </p>
+          </div>
+        )}
+
         {/* Footer Buttons */}
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 mt-6">
           <Button
             type="default"
             className={buttonStyles.btnSecondary}

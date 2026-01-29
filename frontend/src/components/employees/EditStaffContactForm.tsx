@@ -11,6 +11,7 @@ import { RELATIONSHIP_OPTIONS } from "@/lib/validation/validation";
 import formStyles from "@/styles/form.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
 import type { StaffContactDTO, StaffPersonalDTO } from "@/types/staff";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface EditStaffContactFormProps {
   open: boolean;
@@ -30,18 +31,22 @@ export default function EditStaffContactForm({
   const [showSuccess, setShowSuccess] = React.useState(false);
   const previousOpenRef = React.useRef(open);
   const { modal } = App.useApp();
+  const queryClient = useQueryClient();
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    trigger,
+    formState: { errors },
   } = useForm<StaffContactFormData>({
     resolver: zodResolver(staffContactSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
-    defaultValues: initialData || {
+    defaultValues: {
       relation: "",
+      firstName: "",
+      lastName: "",
       name: "",
       phone: "",
       email: "",
@@ -54,22 +59,32 @@ export default function EditStaffContactForm({
   // Reset form when modal opens
   React.useEffect(() => {
     if (open && !previousOpenRef.current) {
-      reset(
-        initialData || {
-          relation: "",
-          name: "",
-          phone: "",
-          email: "",
-          line1: "",
-          line2: "",
-          isPrimary: false,
+      // Split name into first and last name if available
+      let firstName = "";
+      let lastName = "";
+      
+      if (initialData?.name) {
+        const nameParts = initialData.name.trim().split(/\s+/);
+        if (nameParts.length > 0) {
+          firstName = nameParts[0];
+          lastName = nameParts.slice(1).join(" ");
         }
-      );
+      }
+
+      reset({
+        relation: initialData?.relation || "",
+        firstName: firstName,
+        lastName: lastName,
+        name: initialData?.name || "",
+        phone: initialData?.phone || "",
+        email: initialData?.email || "",
+        line1: initialData?.line1 || "",
+        line2: initialData?.line2 || "",
+        isPrimary: initialData?.isPrimary || false,
+      });
       setShowSuccess(false);
     }
-    previousOpenRef.current = open;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, initialData, reset]);
 
   // Determine if creating or updating based on initialData.id
   const isCreating = !initialData?.id;
@@ -82,8 +97,11 @@ export default function EditStaffContactForm({
     endpoint,
     method,
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        await queryClient.invalidateQueries({
+          queryKey: ["staff-personal", staffId],
+        });
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
@@ -98,8 +116,11 @@ export default function EditStaffContactForm({
     `/staff/${staffId}/contacts/${initialData?.id}`,
     "DELETE",
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         setShowSuccess(true);
+        await queryClient.invalidateQueries({
+          queryKey: ["staff-personal", staffId],
+        });
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
@@ -112,7 +133,16 @@ export default function EditStaffContactForm({
   );
 
   const onSubmit = async (data: StaffContactFormData) => {
-    await mutation.mutateAsync(data);
+    const isValid = await trigger();
+    if (!isValid) return;
+
+    // Combine firstName and lastName into name field for backend
+    const submitData: StaffContactFormData = {
+      ...data,
+      name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim(),
+    };
+
+    await mutation.mutateAsync(submitData);
   };
 
   const handleCancel = () => {
@@ -175,51 +205,75 @@ export default function EditStaffContactForm({
           className="flex flex-col min-h-[450px]"
         >
           <div className="flex-1 px-8 py-8 bg-theme-surface flex flex-col gap-6">
-            {/* Relation & Name (2 columns) */}
+            {/* Relation (Full width) */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-theme-primary">
+                Relation <span className="text-red-500">*</span>
+              </label>
+              <Controller
+                name="relation"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    placeholder="Select relationship"
+                    status={errors.relation ? "error" : ""}
+                    className={formStyles.formSelect}
+                    options={RELATIONSHIP_OPTIONS}
+                  />
+                )}
+              />
+              {errors.relation && (
+                <span className="text-sm text-red-500">
+                  {errors.relation.message}
+                </span>
+              )}
+            </div>
+
+            {/* First Name & Last Name (2 columns) */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-theme-primary">
-                  Relation <span className="text-red-500">*</span>
+                  First Name <span className="text-red-500">*</span>
                 </label>
                 <Controller
-                  name="relation"
+                  name="firstName"
                   control={control}
                   render={({ field }) => (
-                    <Select
+                    <Input
                       {...field}
-                      placeholder="Select relationship"
-                      status={errors.relation ? "error" : ""}
-                      className={formStyles.formSelect}
-                      options={RELATIONSHIP_OPTIONS}
+                      placeholder="First Name"
+                      status={errors.firstName ? "error" : ""}
+                      className={formStyles.formInput}
                     />
                   )}
                 />
-                {errors.relation && (
+                {errors.firstName && (
                   <span className="text-sm text-red-500">
-                    {errors.relation.message}
+                    {errors.firstName.message}
                   </span>
                 )}
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-theme-primary">
-                  Name <span className="text-red-500">*</span>
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <Controller
-                  name="name"
+                  name="lastName"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
-                      placeholder="Enter full name"
-                      status={errors.name ? "error" : ""}
+                      placeholder="Last Name"
+                      status={errors.lastName ? "error" : ""}
                       className={formStyles.formInput}
                     />
                   )}
                 />
-                {errors.name && (
+                {errors.lastName && (
                   <span className="text-sm text-red-500">
-                    {errors.name.message}
+                    {errors.lastName.message}
                   </span>
                 )}
               </div>
@@ -385,7 +439,7 @@ export default function EditStaffContactForm({
                 type="primary"
                 htmlType="submit"
                 className={buttonStyles.btnPrimary}
-                disabled={!isDirty || mutation.isPending || deleteMutation.isPending}
+                disabled={mutation.isPending || deleteMutation.isPending}
                 loading={mutation.isPending}
               >
                 {isCreating ? "CREATE" : "SAVE CHANGES"}

@@ -7,7 +7,6 @@ import dayjs from "dayjs";
 import {
   PlusOutlined,
   SearchOutlined,
-  ExportOutlined,
 } from "@ant-design/icons";
 import ScheduleEventsTable from "@/components/patients/schedule/ScheduleEventsTable";
 import CreateScheduleForm from "@/components/schedule/CreateScheduleForm";
@@ -139,7 +138,6 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
                   setCurrentPage(1); // Reset to first page
                 }}
                 options={[
-                  { value: "CONFIRMED", label: "Confirmed" },
                   { value: "CANCELLED", label: "Cancelled" },
                   { value: "PLANNED", label: "Planned" },
                   { value: "IN_PROGRESS", label: "In Progress" },
@@ -147,12 +145,6 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
                 ]}
                 allowClear
               />
-              <Button
-                icon={<ExportOutlined />}
-                className={buttonStyles.btnSecondary}
-              >
-                EXPORT DATA
-              </Button>
             </Space>
           </div>
         </div>
@@ -182,7 +174,7 @@ export default function StaffSchedule({ staffId }: StaffScheduleProps) {
         open={isCreateScheduleOpen}
         onCancel={() => setIsCreateScheduleOpen(false)}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["staff-schedule-events", staffId] });
+          queryClient.invalidateQueries({ queryKey: ["staff-schedule-events-paginated", staffId] });
           setIsCreateScheduleOpen(false);
         }}
         preselectedStaffId={staffId}

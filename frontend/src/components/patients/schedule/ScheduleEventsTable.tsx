@@ -35,7 +35,6 @@ export default function ScheduleEventsTable({
   const getStatusColor = (status: ScheduleEventStatus): string => {
     const colorMap: Record<ScheduleEventStatus, string> = {
       PLANNED: "orange",
-      CONFIRMED: "gold",
       IN_PROGRESS: "blue",
       COMPLETED: "green",
       CANCELLED: "red",
@@ -276,7 +275,6 @@ export default function ScheduleEventsTable({
         </Tag>
       ),
       filters: [
-        { text: "Confirmed", value: "CONFIRMED" },
         { text: "Cancelled", value: "CANCELLED" },
         { text: "Planned", value: "PLANNED" },
         { text: "In Progress", value: "IN_PROGRESS" },

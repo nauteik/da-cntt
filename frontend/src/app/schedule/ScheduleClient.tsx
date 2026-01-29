@@ -484,7 +484,6 @@ export default function ScheduleClient({
               style={{ width: 150 }}
               options={[
                 { label: "Planned", value: "PLANNED" },
-                { label: "Confirmed", value: "CONFIRMED" },
                 { label: "In Progress", value: "IN_PROGRESS" },
                 { label: "Completed", value: "COMPLETED" },
                 { label: "Cancelled", value: "CANCELLED" },
@@ -551,7 +550,6 @@ export default function ScheduleClient({
                 style={{ width: 150 }}
                 options={[
                   { label: "Planned", value: "PLANNED" },
-                  { label: "Confirmed", value: "CONFIRMED" },
                   { label: "In Progress", value: "IN_PROGRESS" },
                   { label: "Completed", value: "COMPLETED" },
                   { label: "Cancelled", value: "CANCELLED" },

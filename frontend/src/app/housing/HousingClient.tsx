@@ -17,7 +17,6 @@ import {
 } from "antd";
 import {
   ExportOutlined,
-  FilterOutlined,
   PlusOutlined,
   SearchOutlined,
   EditOutlined,
@@ -33,6 +32,7 @@ import type { PaginatedHouses, HouseDTO } from "@/types/house";
 import type { OfficeDTO } from "@/types/office";
 import layoutStyles from "@/styles/table-layout.module.css";
 import buttonStyles from "@/styles/buttons.module.css";
+import CreateHouseModal from "@/components/housing/CreateHouseModal";
 import EditHouseModal from "@/components/housing/EditHouseModal";
 import AssignPatientModal from "@/components/housing/AssignPatientModal";
 import UnassignPatientModal from "@/components/housing/UnassignPatientModal";
@@ -408,13 +408,6 @@ export default function HousingClient({
               allowClear
             />
             <Button
-              icon={<FilterOutlined />}
-              type="default"
-              className={buttonStyles.btnSecondary}
-            >
-              FILTERS
-            </Button>
-            <Button
               type="default"
               icon={<ExportOutlined />}
               className={buttonStyles.btnSecondary}
@@ -457,9 +450,14 @@ export default function HousingClient({
       </Card>
 
       {/* Modals */}
-      {isCreateModalOpen && (
-        <div>{/* CreateHouseModal will be implemented */}</div>
-      )}
+      <CreateHouseModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        offices={offices}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["houses"] });
+        }}
+      />
       {editingHouse && (
         <EditHouseModal
           open={!!editingHouse}

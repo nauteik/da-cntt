@@ -10,6 +10,8 @@ import com.example.backend.model.dto.UpdateStaffIdentifiersDTO;
 import com.example.backend.model.dto.UpdateStaffPersonalDTO;
 import com.example.backend.model.dto.UpdateStaffAddressDTO;
 import com.example.backend.model.dto.UpdateStaffContactDTO;
+import com.example.backend.model.dto.ChangePasswordRequest;
+import com.example.backend.model.dto.ResetPasswordResponse;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -166,5 +168,26 @@ public interface StaffService {
      * @throws com.example.backend.exception.ResourceNotFoundException if staff or contact not found
      */
     StaffPersonalDTO deleteStaffContact(UUID staffId, UUID contactId);
+
+    /**
+     * Change password for the authenticated user.
+     * Verifies current password before updating to new password.
+     * 
+     * @param userEmail email of the authenticated user
+     * @param request change password request containing current and new passwords
+     * @throws com.example.backend.exception.ResourceNotFoundException if user not found
+     * @throws com.example.backend.exception.ValidationException if current password is incorrect or passwords don't match
+     */
+    void changePassword(String userEmail, ChangePasswordRequest request);
+
+    /**
+     * Reset password for a staff member.
+     * Generates a new random password and updates the user account.
+     * 
+     * @param staffId UUID of the staff member
+     * @return reset password response containing the new password
+     * @throws com.example.backend.exception.ResourceNotFoundException if staff or user not found
+     */
+    ResetPasswordResponse resetPassword(UUID staffId);
 }
 

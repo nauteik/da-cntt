@@ -13,7 +13,6 @@ import {
   Table,
   Space,
   Tooltip,
-  Alert,
 } from "antd";
 import { DeleteOutlined, UserOutlined, WarningOutlined } from "@ant-design/icons";
 import type { PatientSelectDTO, StaffSelectDTO, PatientProgramDTO } from "@/types/patient";

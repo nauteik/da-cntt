@@ -611,7 +611,6 @@ export default function EditScheduleClient({
                               style={{ width: "100%" }}
                             >
                               <Option value="PLANNED">Planned</Option>
-                              <Option value="CONFIRMED">Confirmed</Option>
                               <Option value="CANCELLED">Cancelled</Option>
                             </Select>
                           ),
