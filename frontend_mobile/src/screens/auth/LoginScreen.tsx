@@ -134,10 +134,6 @@ export default function LoginScreen() {
             <Ionicons name="flash" size={16} color="#FF9800" style={{ marginRight: 8 }} />
             <Text style={styles.quickLoginButtonText}>Quick Login (DSP Test)</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>

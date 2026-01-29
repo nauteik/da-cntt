@@ -677,6 +677,14 @@ public class PatientServiceImpl implements PatientService {
         address.setCounty(updateDTO.getCounty().trim());
         address.setType(updateDTO.getType());
         
+        // Set GPS coordinates on Address entity if provided
+        if (updateDTO.getLatitude() != null) {
+            address.setLatitude(BigDecimal.valueOf(updateDTO.getLatitude()));
+        }
+        if (updateDTO.getLongitude() != null) {
+            address.setLongitude(BigDecimal.valueOf(updateDTO.getLongitude()));
+        }
+        
         // 4. Save Address
         Address savedAddress = addressRepository.save(address);
         
@@ -795,6 +803,7 @@ public class PatientServiceImpl implements PatientService {
         if (updateDTO.getType() != null) {
             addressToUse.setType(updateDTO.getType());
         }
+        // Update GPS coordinates on Address entity if provided
         if (updateDTO.getLatitude() != null) {
             addressToUse.setLatitude(BigDecimal.valueOf(updateDTO.getLatitude()));
         }
@@ -1802,6 +1811,13 @@ public class PatientServiceImpl implements PatientService {
         }
         if (updateDTO.getLabel() != null) {
             address.setLabel(updateDTO.getLabel());
+        }
+        // Update GPS coordinates on Address entity if provided
+        if (updateDTO.getLatitude() != null) {
+            address.setLatitude(BigDecimal.valueOf(updateDTO.getLatitude()));
+        }
+        if (updateDTO.getLongitude() != null) {
+            address.setLongitude(BigDecimal.valueOf(updateDTO.getLongitude()));
         }
 
         addressRepository.save(address);

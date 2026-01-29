@@ -37,6 +37,7 @@ export default function CheckInScreen() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [patientCoords, setPatientCoords] = useState<{latitude: number, longitude: number} | null>(null);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [checkInResult, setCheckInResult] = useState<CheckInCheckOutResponse | null>(null);
   const [distanceToPatient, setDistanceToPatient] = useState<number | null>(null);
@@ -69,6 +70,12 @@ export default function CheckInScreen() {
     });
     
     requestLocationPermission();
+    
+    // Fetch patient coordinates if serviceDeliveryId is available
+    if (serviceDeliveryId) {
+      fetchPatientCoordinates(serviceDeliveryId);
+    }
+
     // Load patient address from params or fetch from API
     if (patientName) {
       // In real app, fetch patient address from API using patientId
@@ -76,6 +83,42 @@ export default function CheckInScreen() {
       setPatientAddress('Patient Address (from schedule)');
     }
   }, []);
+
+  const fetchPatientCoordinates = async (sdId: string) => {
+    try {
+      const response = await checkInCheckOutService.getById(sdId);
+      if (response.patientLatitude && response.patientLongitude) {
+        setPatientCoords({
+          latitude: response.patientLatitude,
+          longitude: response.patientLongitude
+        });
+        
+        if (response.patientAddress) {
+          setPatientAddress(response.patientAddress);
+        }
+        
+        console.log('[CheckInScreen] Patient coordinates loaded:', {
+          lat: response.patientLatitude,
+          lon: response.patientLongitude,
+        });
+      }
+    } catch (error) {
+      console.error('[CheckInScreen] Failed to fetch patient coordinates:', error);
+    }
+  };
+
+  // Update distance whenever location or patient coordinates change
+  useEffect(() => {
+    if (currentLocation && patientCoords) {
+      const distance = calculateDistance(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        patientCoords.latitude,
+        patientCoords.longitude
+      );
+      setDistanceToPatient(distance);
+    }
+  }, [currentLocation, patientCoords]);
 
   // Calculate distance between two GPS coordinates (Haversine formula)
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -165,32 +208,6 @@ export default function CheckInScreen() {
       console.log('[CheckInScreen] Location data prepared:', locationData);
 
       setCurrentLocation(locationData);
-
-      // Calculate distance to patient address if available
-      // TODO: In production, fetch actual patient GPS coordinates from backend
-      // For now, using mock coordinates - you should fetch from serviceDeliveryId
-      // Example: GET /api/service-delivery/{id} to get patient address coordinates
-      const mockPatientLat = 37.422222;  // New York coordinates
-      const mockPatientLon = -122.084001;  // New York coordinates
-      
-      if (mockPatientLat && mockPatientLon) {
-        const distance = calculateDistance(
-          location.coords.latitude,
-          location.coords.longitude,
-          mockPatientLat,
-          mockPatientLon
-        );
-        setDistanceToPatient(distance);
-        console.log('[CheckInScreen] Distance calculation:', {
-          staffLat: location.coords.latitude,
-          staffLon: location.coords.longitude,
-          patientLat: mockPatientLat,
-          patientLon: mockPatientLon,
-          distanceMeters: distance,
-          distanceKm: (distance / 1000).toFixed(2),
-          isWithinRange: distance <= 1000,
-        });
-      }
     } catch (error) {
       console.error('Error getting location:', error);
       setAlertConfig({
