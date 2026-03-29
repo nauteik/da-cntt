@@ -103,21 +103,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
 		</dependency>
-		<!-- PostGIS and Spatial Support -->
-		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-spatial</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.locationtech.jts</groupId>
-			<artifactId>jts-core</artifactId>
-			<version>1.19.0</version>
-		</dependency>
-		<dependency>
-			<groupId>net.postgis</groupId>
-			<artifactId>postgis-jdbc</artifactId>
-			<version>2023.1.0</version>
-		</dependency>
 		<!-- Hypersistence Utils for JSON support -->
 		<dependency>
 			<groupId>io.hypersistence</groupId>
