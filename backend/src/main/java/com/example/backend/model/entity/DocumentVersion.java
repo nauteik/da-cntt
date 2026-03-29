@@ -18,7 +18,7 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "document_version", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"staff_document_id", "version_no"})
+    @UniqueConstraint(name = "uq_document_version_doc_version", columnNames = {"staff_document_id", "version_no"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

@@ -16,7 +16,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "device", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"device_identifier"})
+    @UniqueConstraint(name = "uq_device_device_identifier", columnNames = {"device_identifier"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

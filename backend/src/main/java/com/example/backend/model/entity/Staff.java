@@ -22,8 +22,9 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "staff", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"office_id", "employee_code"}),
-    @UniqueConstraint(columnNames = {"ssn"})
+    @UniqueConstraint(name = "uq_staff_user_id", columnNames = {"user_id"}),
+    @UniqueConstraint(name = "uq_staff_office_employee", columnNames = {"office_id", "employee_id"}),
+    @UniqueConstraint(name = "uq_staff_ssn", columnNames = {"ssn"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
@@ -37,7 +38,7 @@ public class Staff extends BaseEntity {
     private Office office;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", unique = true)
+    @JoinColumn(name = "user_id")
     private AppUser user;
 
     @Column(name = "employee_id")

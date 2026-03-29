@@ -15,7 +15,9 @@ import java.util.Map;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "patient_program")
+@Table(name = "patient_program", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_patient_program_pair", columnNames = {"patient_id", "program_id"})
+})
 public class PatientProgram extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

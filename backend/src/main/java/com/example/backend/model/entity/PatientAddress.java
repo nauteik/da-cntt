@@ -16,7 +16,7 @@ import lombok.ToString;
 
 @Entity
 @Table(name = "patient_address", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"patient_id", "address_id"})
+    @UniqueConstraint(name = "uq_patient_address_patient_address", columnNames = {"patient_id", "address_id"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true)

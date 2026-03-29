@@ -5,9 +5,9 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 15MB          # Maximum size per file
-      max-request-size: 15MB       # Maximum size for entire request
-      file-size-threshold: 2KB     # Size threshold after which files will be written to disk
+      max-file-size: 15MB # Maximum size per file
+      max-request-size: 15MB # Maximum size for entire request
+      file-size-threshold: 2KB # Size threshold after which files will be written to disk
 
   # Database Configuration - only these use environment variables
   datasource:
@@ -26,22 +26,15 @@ spring:
 
   # JPA/Hibernate - fixed configuration
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
-      # validate thay vì update giữ data consistency cho production.
-
+      # Schema do database/schema.sql (hoặc migration) quản lý; tên constraint khớp @UniqueConstraint(name=...) trong entity.
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         "[format_sql]": false
         "[use_sql_comments]": true
         "[session.events.log.LOG_QUERIES_SLOWER_THAN_MS]": 1000
-        jdbc:
-          lob:
-            "[non_contextual_creation]": true
-        spatial:
-          "[connection_finder]": org.hibernate.spatial.dialect.postgis.PostgisConnectionFinder
 
   # Jackson Configuration - fixed
   jackson:
@@ -56,7 +49,7 @@ spring:
       add-mappings: false
   output:
     ansi:
-      enabled: always  # Forces colors in the Cursor/VS Code terminal
+      enabled: always # Forces colors in the Cursor/VS Code terminal
 
 # Server Configuration - use environment variable
 server:
@@ -76,8 +69,8 @@ logging:
     "[org.hibernate.SQL]": INFO
     "[org.hibernate.type.descriptor.sql.BasicBinder]": INFO
   pattern:
-      # %clr = color, %d = date, %5p = log level (5 chars), %-40.40logger = class name (max 40 chars)
-      console: "%clr(%d{HH:mm:ss}){faint} %clr(%5p) %clr(---){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"
+    # %clr = color, %d = date, %5p = log level (5 chars), %-22.22logger = class name (max 22 chars)
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %highlight(%-5level) %clr(%-22.22logger{0}){cyan} %clr(:){faint} %msg%n%wEx"
 # Management endpoints - fixed configuration
 management:
   endpoints:

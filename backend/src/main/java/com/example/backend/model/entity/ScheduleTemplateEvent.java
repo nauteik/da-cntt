@@ -18,7 +18,7 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "schedule_template_event", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"template_week_id", "day_of_week", "start_time"})
+    @UniqueConstraint(name = "uq_schedule_template_event_natural", columnNames = {"template_week_id", "day_of_week", "start_time"})
 })
 public class ScheduleTemplateEvent {
 

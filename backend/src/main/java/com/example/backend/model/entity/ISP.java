@@ -21,7 +21,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "isp", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"patient_id", "version_no"})
+    @UniqueConstraint(name = "uq_isp_patient_version", columnNames = {"patient_id", "version_no"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

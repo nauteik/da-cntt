@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "file_object", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"sha256"})
+    @UniqueConstraint(name = "uq_file_object_sha256", columnNames = {"sha256"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

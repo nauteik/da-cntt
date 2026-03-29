@@ -14,7 +14,7 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "rate_entry", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"rate_card_id", "service_type_id", "staff_id", "patient_id"})
+    @UniqueConstraint(name = "uq_rate_entry_scope", columnNames = {"rate_card_id", "service_type_id", "staff_id", "patient_id"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

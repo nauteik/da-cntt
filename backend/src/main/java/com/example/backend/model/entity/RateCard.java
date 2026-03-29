@@ -14,7 +14,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "rate_card", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"name"})
+    @UniqueConstraint(name = "uq_rate_card_name", columnNames = {"name"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

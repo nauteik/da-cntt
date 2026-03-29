@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "program")
+@Table(name = "program", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_program_program_identifier", columnNames = {"program_identifier"})
+})
 public class Program extends BaseEntity {
 
-    @Column(name = "program_identifier", unique = true, nullable = false, length = 50)
+    @Column(name = "program_identifier", nullable = false, length = 50)
     private String programIdentifier;
 
     @Column(name = "program_name", nullable = false, length = 255)

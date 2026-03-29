@@ -18,7 +18,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "app_setting", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"key"})
+    @UniqueConstraint(name = "uq_app_setting_key", columnNames = {"key"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
@@ -26,7 +26,7 @@ import java.util.UUID;
 @ToString
 public class AppSetting extends BaseEntity {
 
-    @Column(name = "key", nullable = false, unique = true)
+    @Column(name = "key", nullable = false)
     private String key;
 
     @Column(name = "value", columnDefinition = "TEXT")

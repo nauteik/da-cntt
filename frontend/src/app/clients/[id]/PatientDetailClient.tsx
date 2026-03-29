@@ -2,12 +2,19 @@
 
 import React from "react";
 import { Tabs } from "antd";
-import type { PatientHeaderDTO, PatientPersonalDTO, PatientProgramDTO } from "@/types/patient";
-import { usePatientHeader, usePatientPersonal, usePatientProgram } from "@/hooks/usePatientDetail";
+import type {
+  PatientHeaderDTO,
+  PatientPersonalDTO,
+  PatientProgramDTO,
+} from "@/types/patient";
+import {
+  usePatientHeader,
+  usePatientPersonal,
+  usePatientProgram,
+} from "@/hooks/usePatientDetail";
 import PatientHeader from "@/components/patients/PatientHeader";
 import PatientPersonal from "@/components/patients/PatientPersonal";
 import PatientProgram from "@/components/patients/PatientProgram";
-import PatientMedication from "@/components/patients/PatientMedication";
 import PatientSchedule from "@/components/patients/PatientSchedule";
 import PatientNotesHistory from "@/components/patients/PatientNotesHistory";
 import PatientISP from "@/components/patients/PatientISP";
@@ -110,13 +117,6 @@ export default function PatientDetailClient({
       key: "isp",
       label: "ISP",
       children: <PatientISP patientId={patientId} />,
-    },
-    {
-      key: "medication",
-      label: "Medication",
-      children: (
-        <PatientMedication patientId={patientId} patient={headerData} />
-      ),
     },
     {
       key: "schedule",

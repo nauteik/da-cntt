@@ -11,7 +11,7 @@ import lombok.ToString;
  */
 @Entity
 @Table(name = "role_permission", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"role_id", "permission_id"})
+    @UniqueConstraint(name = "uq_role_permission_role_perm", columnNames = {"role_id", "permission_id"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

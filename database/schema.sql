@@ -17,12 +17,11 @@ CREATE TABLE address (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_address_coordinates ON address (latitude, longitude);
-
 CREATE TABLE office (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     address_id uuid REFERENCES address(id) ON DELETE SET NULL,
-    code text NOT NULL UNIQUE,
+    code text NOT NULL,
+    CONSTRAINT uq_office_code UNIQUE (code),
     name text NOT NULL,
     county text,
     phone text,
@@ -35,11 +34,10 @@ CREATE TABLE office (
     deleted_at timestamptz
 );
 
-CREATE INDEX idx_office_deleted_at ON office (deleted_at);
-
 CREATE TABLE module (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    code text NOT NULL UNIQUE,
+    code text NOT NULL,
+    CONSTRAINT uq_module_code UNIQUE (code),
     name text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
@@ -47,7 +45,8 @@ CREATE TABLE module (
 
 CREATE TABLE service_type (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    code text NOT NULL UNIQUE,
+    code text NOT NULL,
+    CONSTRAINT uq_service_type_code UNIQUE (code),
     name text NOT NULL,
     care_setting text NOT NULL DEFAULT 'NON_RESIDENTIAL',
     description text,
@@ -61,8 +60,10 @@ CREATE INDEX idx_service_type_setting ON service_type (care_setting);
 
 CREATE TABLE payer (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    payer_identifier text NOT NULL UNIQUE,
-    payer_name text NOT NULL UNIQUE,
+    payer_identifier text NOT NULL,
+    payer_name text NOT NULL,
+    CONSTRAINT uq_payer_identifier UNIQUE (payer_identifier),
+    CONSTRAINT uq_payer_name UNIQUE (payer_name),
     type text NOT NULL DEFAULT 'Medicaid',
     submission_endpoint text,
     config jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -74,7 +75,8 @@ CREATE TABLE payer (
 
 CREATE TABLE role (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    code text NOT NULL UNIQUE,
+    code text NOT NULL,
+    CONSTRAINT uq_role_code UNIQUE (code),
     name text NOT NULL,
     description text,
     is_system boolean NOT NULL DEFAULT false,
@@ -85,7 +87,8 @@ CREATE TABLE role (
 
 CREATE TABLE app_user (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    email text NOT NULL UNIQUE,
+    email text NOT NULL,
+    CONSTRAINT uq_app_user_email UNIQUE (email),
     password_hash text NOT NULL,
     role_id uuid NOT NULL REFERENCES role(id) ON DELETE RESTRICT,
     is_active boolean NOT NULL DEFAULT true,
@@ -99,10 +102,6 @@ CREATE TABLE app_user (
     preferences jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_app_user_deleted_at ON app_user (deleted_at);
-
-CREATE INDEX idx_role_deleted_at ON role (deleted_at);
-
 CREATE TABLE permission (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     module_id uuid REFERENCES module(id) ON DELETE SET NULL,
@@ -112,7 +111,7 @@ CREATE TABLE permission (
     description text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT permission_unique UNIQUE (resource, action, scope)
+    CONSTRAINT uq_permission_resource_action_scope UNIQUE (resource, action, scope)
 );
 
 CREATE TABLE role_permission (
@@ -121,7 +120,7 @@ CREATE TABLE role_permission (
     permission_id uuid NOT NULL REFERENCES permission(id) ON DELETE CASCADE,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT role_permission_unique UNIQUE (role_id, permission_id)
+    CONSTRAINT uq_role_permission_role_perm UNIQUE (role_id, permission_id)
 );
 
 
@@ -133,7 +132,7 @@ CREATE TABLE user_office (
     assigned_at timestamptz NOT NULL DEFAULT now(),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT user_office_unique UNIQUE (user_id, office_id)
+    CONSTRAINT uq_user_office_user_office UNIQUE (user_id, office_id)
 );
 
 CREATE TABLE app_setting (
@@ -150,7 +149,8 @@ CREATE TABLE app_setting (
 CREATE TABLE api_key (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
-    key_hash text NOT NULL UNIQUE,
+    key_hash text NOT NULL,
+    CONSTRAINT uq_api_key_key_hash UNIQUE (key_hash),
     scopes text[] NOT NULL DEFAULT '{}',
     expires_at timestamptz,
     is_active boolean NOT NULL DEFAULT true,
@@ -185,7 +185,8 @@ CREATE TABLE file_object (
     mime_type text NOT NULL,
     size_bytes bigint NOT NULL CHECK (size_bytes >= 0),
     storage_uri text NOT NULL,
-    sha256 text UNIQUE,
+    sha256 text,
+    CONSTRAINT uq_file_object_sha256 UNIQUE (sha256),
     meta jsonb NOT NULL DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
@@ -195,14 +196,17 @@ CREATE TABLE file_object (
 CREATE TABLE staff (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     office_id uuid NOT NULL REFERENCES office(id) ON DELETE CASCADE,
-    user_id uuid UNIQUE REFERENCES app_user(id) ON DELETE SET NULL,
-    employee_id text UNIQUE,
-    ssn text UNIQUE,
+    user_id uuid REFERENCES app_user(id) ON DELETE SET NULL,
+    employee_id text,
+    ssn text,
     first_name text NOT NULL,
     last_name text NOT NULL,
     is_supervisor boolean NOT NULL DEFAULT false,
     supervisor_id uuid REFERENCES staff(id) ON DELETE SET NULL,
-    national_provider_id text UNIQUE,
+    national_provider_id text,
+    CONSTRAINT uq_staff_user_id UNIQUE (user_id),
+    CONSTRAINT uq_staff_office_employee UNIQUE (office_id, employee_id),
+    CONSTRAINT uq_staff_ssn UNIQUE (ssn),
     dob date,
     gender text,
     primary_language text,
@@ -216,10 +220,6 @@ CREATE TABLE staff (
     deleted_at timestamptz
 );      
 
-CREATE INDEX idx_staff_office ON staff (office_id);
-CREATE INDEX idx_staff_deleted_at ON staff (deleted_at);
-CREATE INDEX idx_staff_supervisor ON staff (supervisor_id);
-
 CREATE TABLE staff_address (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
@@ -229,7 +229,7 @@ CREATE TABLE staff_address (
     is_main boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT staff_address_unique UNIQUE (staff_id, address_id),
+    CONSTRAINT uq_staff_address_staff_address UNIQUE (staff_id, address_id),
     CONSTRAINT chk_address_or_phone CHECK (address_id IS NOT NULL OR phone IS NOT NULL)
 );
 
@@ -248,9 +248,6 @@ CREATE TABLE staff_contact (
     CONSTRAINT chk_staff_contact_info CHECK (phone IS NOT NULL OR line1 IS NOT NULL)
 );
 
-CREATE INDEX idx_staff_contact_staff ON staff_contact (staff_id);
-CREATE UNIQUE INDEX idx_staff_contact_unique_primary ON staff_contact (staff_id) WHERE is_primary;
-
 CREATE TABLE staff_document (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
@@ -260,8 +257,6 @@ CREATE TABLE staff_document (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_staff_document_staff ON staff_document (staff_id, doc_type);
 
 CREATE TABLE document_version (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -277,7 +272,7 @@ CREATE TABLE document_version (
     meta jsonb NOT NULL DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT document_version_unique UNIQUE (staff_document_id, version_no)
+    CONSTRAINT uq_document_version_doc_version UNIQUE (staff_document_id, version_no)
 );
 
 CREATE TABLE staff_certification (
@@ -293,8 +288,6 @@ CREATE TABLE staff_certification (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_staff_certification_staff ON staff_certification (staff_id, cert_type);
-
 CREATE TABLE background_check (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
@@ -306,8 +299,6 @@ CREATE TABLE background_check (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_background_check_staff ON background_check (staff_id, check_type);
 
 CREATE TABLE staff_availability (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -322,8 +313,6 @@ CREATE TABLE staff_availability (
     CHECK (end_time > start_time)
 );
 
-CREATE INDEX idx_staff_availability_staff ON staff_availability (staff_id, weekday);
-
 CREATE TABLE staff_rate (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id uuid NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
@@ -335,8 +324,6 @@ CREATE TABLE staff_rate (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_staff_rate_staff ON staff_rate (staff_id, service_type_id);
 
 CREATE TABLE patient (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -360,7 +347,6 @@ CREATE TABLE patient (
 
 CREATE INDEX idx_patient_office ON patient (office_id);
 CREATE INDEX idx_patient_supervisor ON patient (supervisor_id);
-CREATE INDEX idx_patient_deleted_at ON patient (deleted_at);
 CREATE INDEX idx_patient_name_active ON patient(last_name, first_name);
 
 
@@ -376,7 +362,7 @@ CREATE TABLE patient_address (
     location_notes text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT patient_address_unique UNIQUE (patient_id, address_id),
+    CONSTRAINT uq_patient_address_patient_address UNIQUE (patient_id, address_id),
     CONSTRAINT chk_address_or_phone CHECK (address_id IS NOT NULL OR phone IS NOT NULL)
 );
 
@@ -431,8 +417,6 @@ CREATE TABLE residence_stay (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_residence_stay_patient ON residence_stay (patient_id, move_in_at);
-
 CREATE TABLE isp (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
@@ -444,10 +428,8 @@ CREATE TABLE isp (
     metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT isp_patient_version_unique UNIQUE (patient_id, version_no)
+    CONSTRAINT uq_isp_patient_version UNIQUE (patient_id, version_no)
 );
-
-CREATE INDEX idx_isp_patient ON isp (patient_id);
 
 CREATE TABLE patient_service (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -461,15 +443,14 @@ CREATE TABLE patient_service (
 );
 
 CREATE INDEX idx_patient_service_patient ON patient_service (patient_id);
-CREATE INDEX idx_patient_service_service ON patient_service (service_type_id);
-CREATE INDEX idx_patient_service_lookup ON patient_service(patient_id, service_type_id);
 
 CREATE TABLE authorizations (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id uuid REFERENCES patient(id) ON DELETE CASCADE,
     patient_payer_id uuid NOT NULL REFERENCES patient_payer(id) ON DELETE CASCADE,
     patient_service_id uuid NOT NULL REFERENCES patient_service(id) ON DELETE RESTRICT,
-    authorization_no text NOT NULL UNIQUE,
+    authorization_no text NOT NULL,
+    CONSTRAINT uq_authorizations_authorization_no UNIQUE (authorization_no),
     format text DEFAULT 'units',
     event_code text,
     modifiers jsonb DEFAULT '{}'::jsonb,
@@ -485,9 +466,6 @@ CREATE TABLE authorizations (
     updated_at timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_auth_patient_payer ON authorizations (patient_payer_id, start_date);
-
-
 CREATE TABLE isp_goal (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     isp_id uuid NOT NULL REFERENCES isp(id) ON DELETE CASCADE,
@@ -498,8 +476,6 @@ CREATE TABLE isp_goal (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_isp_goal ON isp_goal (isp_id);
 
 CREATE TABLE unit_consumption (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -513,8 +489,6 @@ CREATE TABLE unit_consumption (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_unit_consumption_auth_date ON unit_consumption (authorization_id, service_date);
-
 -- Bảng Template cho lịch mẫu (Master Weekly)
 CREATE TABLE schedule_template (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -527,7 +501,7 @@ CREATE TABLE schedule_template (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     created_by uuid REFERENCES app_user(id) ON DELETE SET NULL,
-    CONSTRAINT schedule_template_unique UNIQUE (patient_id)
+    CONSTRAINT uq_schedule_template_patient_name UNIQUE (patient_id, name)
 );
 
 CREATE INDEX idx_schedule_template_patient ON schedule_template (patient_id);
@@ -540,7 +514,7 @@ CREATE TABLE schedule_template_week (
     name text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT schedule_template_week_unique UNIQUE (template_id, week_index)
+    CONSTRAINT uq_schedule_template_week_tpl_week UNIQUE (template_id, week_index)
 );
 
 -- Events trong Template (per week + weekday)
@@ -559,7 +533,7 @@ CREATE TABLE schedule_template_event (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK (end_time > start_time),
-    CONSTRAINT schedule_template_event_unique UNIQUE (template_week_id, day_of_week, start_time)
+    CONSTRAINT uq_schedule_template_event_natural UNIQUE (template_week_id, day_of_week, start_time)
 );
 
 CREATE INDEX idx_schedule_template_event_week ON schedule_template_event (template_week_id);
@@ -605,7 +579,7 @@ CREATE TABLE event_assignment (
     created_by uuid REFERENCES app_user(id) ON DELETE SET NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT event_assignment_unique UNIQUE (schedule_event_id, staff_id)
+    CONSTRAINT uq_event_assignment_event_staff UNIQUE (schedule_event_id, staff_id)
 );
 
 CREATE INDEX idx_event_assignment_event ON event_assignment (schedule_event_id);
@@ -623,11 +597,13 @@ CREATE TABLE service_delivery (
     total_hours double precision,
     cancelled boolean NOT NULL DEFAULT false,
     cancel_reason text,
-    cancelled_at timestamptz,
-    cancelled_by_staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
+    total_distance_meters numeric(10,2),
+    tracking_enabled boolean NOT NULL DEFAULT true,
     is_unscheduled boolean NOT NULL DEFAULT false,
     actual_staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     unscheduled_reason text,
+    cancelled_at timestamptz,
+    cancelled_by_staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK (end_at > start_at)
@@ -669,58 +645,6 @@ CREATE TABLE daily_note (
 CREATE INDEX IF NOT EXISTS idx_daily_note_patient ON daily_note (patient_id);
 CREATE INDEX IF NOT EXISTS idx_daily_note_staff ON daily_note (staff_id);
 CREATE INDEX IF NOT EXISTS idx_daily_note_service_delivery ON daily_note (service_delivery_id);
-
-CREATE TABLE medication_order (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    prescribing_provider text,
-    drug_name text NOT NULL,
-    dosage text NOT NULL,
-    route text NOT NULL,
-    frequency text NOT NULL,
-    indication text,
-    is_prn boolean NOT NULL DEFAULT false,
-    start_at date NOT NULL,
-    end_at date,
-    status text NOT NULL DEFAULT 'active',
-    prescription_file_id uuid REFERENCES file_object(id) ON DELETE SET NULL,
-    interaction_flags jsonb NOT NULL DEFAULT '{}'::jsonb,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_medication_order_patient ON medication_order (patient_id, status);
-
-CREATE TABLE prn_rule (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    medication_order_id uuid NOT NULL REFERENCES medication_order(id) ON DELETE CASCADE,
-    conditions text,
-    follow_up text,
-    max_per_day integer,
-    min_interval_minutes integer,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_prn_rule_order ON prn_rule (medication_order_id);
-
-CREATE TABLE medication_administration (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    medication_order_id uuid NOT NULL REFERENCES medication_order(id) ON DELETE CASCADE,
-    patient_id uuid NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
-    staff_id uuid REFERENCES staff(id) ON DELETE SET NULL,
-    service_delivery_id uuid REFERENCES service_delivery(id) ON DELETE SET NULL,
-    administered_at timestamptz NOT NULL,
-    dose_given text,
-    status text NOT NULL DEFAULT 'given',
-    is_prn boolean NOT NULL DEFAULT false,
-    prn_reason text,
-    prn_follow_up text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_medication_administration_patient ON medication_administration (patient_id, administered_at);
 
 CREATE TABLE incident (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -789,7 +713,8 @@ CREATE TABLE device (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
     platform text NOT NULL,
-    device_identifier text NOT NULL UNIQUE,
+    device_identifier text NOT NULL,
+    CONSTRAINT uq_device_device_identifier UNIQUE (device_identifier),
     push_token text,
     status text NOT NULL DEFAULT 'active',
     registered_at timestamptz NOT NULL DEFAULT now(),
@@ -909,7 +834,8 @@ CREATE INDEX idx_fire_drill_issue_drill ON fire_drill_issue (fire_drill_id);
 
 CREATE TABLE rate_card (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    name text NOT NULL UNIQUE,
+    name text NOT NULL,
+    CONSTRAINT uq_rate_card_name UNIQUE (name),
     scope text NOT NULL DEFAULT 'org',
     effective_at date NOT NULL,
     expires_at date,
@@ -936,7 +862,8 @@ CREATE TABLE claim (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     office_id uuid REFERENCES office(id) ON DELETE SET NULL,
     payer_id uuid NOT NULL REFERENCES payer(id) ON DELETE SET NULL,
-    claim_number text NOT NULL UNIQUE,
+    claim_number text NOT NULL,
+    CONSTRAINT uq_claim_claim_number UNIQUE (claim_number),
     status text NOT NULL DEFAULT 'draft',
     submitted_at timestamptz,
     total_amount numeric(12,2),
@@ -992,7 +919,7 @@ CREATE TABLE patient_program (
     meta jsonb DEFAULT '{}'::jsonb,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    CONSTRAINT patient_program_unique UNIQUE (patient_id, program_id)
+    CONSTRAINT uq_patient_program_pair UNIQUE (patient_id, program_id)
 );
 CREATE INDEX idx_patient_program_patient ON patient_program (patient_id);
 CREATE INDEX idx_patient_program_effective_date ON patient_program (patient_id, status_effective_date DESC);
@@ -1009,15 +936,8 @@ CREATE TABLE IF NOT EXISTS house (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT house_code_office_unique UNIQUE (code, office_id)
+    CONSTRAINT uq_house_code_office UNIQUE (code, office_id)
 );
-
--- Create indexes for house table
-CREATE INDEX idx_house_office ON house (office_id);
-CREATE INDEX idx_house_address ON house (address_id);
-CREATE INDEX idx_house_deleted_at ON house (deleted_at);
-CREATE INDEX idx_house_code ON house (code);
-CREATE INDEX idx_house_active ON house (is_active) WHERE deleted_at IS NULL;
 
 -- Create patient_house_stay table
 CREATE TABLE IF NOT EXISTS patient_house_stay (
@@ -1030,4 +950,20 @@ CREATE TABLE IF NOT EXISTS patient_house_stay (
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT patient_house_stay_move_dates_check CHECK (move_out_date IS NULL OR move_out_date >= move_in_date)
 );
+
+CREATE TABLE location_tracking (
     
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_delivery_id uuid NOT NULL REFERENCES service_delivery(id) ON DELETE CASCADE,
+    latitude numeric(10, 8) NOT NULL,
+    longitude numeric(11, 8) NOT NULL,
+    accuracy numeric(10, 2) NOT NULL,
+    altitude numeric(10, 2) NOT NULL,
+    recorded_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_location_tracking_service_delivery ON location_tracking (service_delivery_id);
+CREATE INDEX idx_location_tracking_recorded_at ON location_tracking (recorded_at);
+CREATE INDEX idx_location_tracking_composite ON location_tracking (service_delivery_id, recorded_at);

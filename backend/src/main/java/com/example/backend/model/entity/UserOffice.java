@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "user_office", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "office_id"})
+    @UniqueConstraint(name = "uq_user_office_user_office", columnNames = {"user_id", "office_id"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

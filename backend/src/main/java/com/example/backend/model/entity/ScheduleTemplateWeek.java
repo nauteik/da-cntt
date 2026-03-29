@@ -13,7 +13,7 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "schedule_template_week", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"template_id", "week_index"})
+    @UniqueConstraint(name = "uq_schedule_template_week_tpl_week", columnNames = {"template_id", "week_index"})
 })
 public class ScheduleTemplateWeek {
 

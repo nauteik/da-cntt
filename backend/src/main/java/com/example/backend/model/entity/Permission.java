@@ -15,7 +15,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "permission", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"resource", "action", "scope"})
+    @UniqueConstraint(name = "uq_permission_resource_action_scope", columnNames = {"resource", "action", "scope"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

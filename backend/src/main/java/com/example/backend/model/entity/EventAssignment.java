@@ -14,7 +14,9 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "event_assignment")
+@Table(name = "event_assignment", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_event_assignment_event_staff", columnNames = {"schedule_event_id", "staff_id"})
+})
 public class EventAssignment {
 
     @Id

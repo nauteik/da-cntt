@@ -14,7 +14,7 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "schedule_template", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"patient_id", "name"})
+    @UniqueConstraint(name = "uq_schedule_template_patient_name", columnNames = {"patient_id", "name"})
 })
 public class ScheduleTemplate {
 

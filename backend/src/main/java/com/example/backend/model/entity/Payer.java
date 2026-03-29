@@ -19,8 +19,8 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "payer", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"payer_name"}),
-    @UniqueConstraint(columnNames = {"payer_identifier"})
+    @UniqueConstraint(name = "uq_payer_name", columnNames = {"payer_name"}),
+    @UniqueConstraint(name = "uq_payer_identifier", columnNames = {"payer_identifier"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "api_key", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"key_hash"})
+    @UniqueConstraint(name = "uq_api_key_key_hash", columnNames = {"key_hash"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)

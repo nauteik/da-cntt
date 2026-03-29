@@ -18,7 +18,9 @@ import java.util.Map;
  * Service authorization entity for managing unit limits and consumption
  */
 @Entity
-@Table(name = "authorizations")
+@Table(name = "authorizations", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_authorizations_authorization_no", columnNames = {"authorization_no"})
+})
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
@@ -40,7 +42,7 @@ public class Authorization extends BaseEntity {
     @JsonIgnore
     private Patient patient;
 
-    @Column(name = "authorization_no", nullable = false, unique = true)
+    @Column(name = "authorization_no", nullable = false)
     private String authorizationNo;
 
     @Column(name = "format")

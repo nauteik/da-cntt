@@ -35,119 +35,112 @@ import lombok.ToString;
  */
 @Entity
 @Table(name = "patient", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"medicaid_id"}),
-    @UniqueConstraint(columnNames = {"client_id"}),
-    @UniqueConstraint(columnNames = {"ssn"})
+    @UniqueConstraint(name = "uq_patient_medicaid_id", columnNames = { "medicaid_id" }),
+    @UniqueConstraint(name = "uq_patient_client_id", columnNames = { "client_id" }),
+    @UniqueConstraint(name = "uq_patient_ssn", columnNames = { "ssn" })
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
-@ToString(exclude = {"office", "supervisor", "patientAddresses", "contacts","residenceStays", "isps"})
+@ToString(exclude = { "office", "supervisor", "patientAddresses", "contacts", "residenceStays", "isps" })
 public class Patient extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "office_id", nullable = false)
-    @JsonIgnore
-    private Office office;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "office_id", nullable = false)
+  @JsonIgnore
+  private Office office;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "supervisor_id")
-    private Staff supervisor;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "supervisor_id")
+  private Staff supervisor;
 
-    @Pattern(regexp = "^\\d+$", message = "Medicaid ID must contain only numbers")
-    @Column(name = "medicaid_id")
-    private String medicaidId; // Medical Record Number
+  @Pattern(regexp = "^\\d+$", message = "Medicaid ID must contain only numbers")
+  @Column(name = "medicaid_id")
+  private String medicaidId; // Medical Record Number
 
+  @Column(name = "client_id")
+  private String clientId;
 
-    @Column(name = "client_id")
-    private String clientId;
+  @Pattern(regexp = "^\\d+$", message = "Agency ID must contain only numbers")
+  @Column(name = "agency_id")
+  private String agencyId;
 
-    @Pattern(regexp = "^\\d+$", message = "Agency ID must contain only numbers")
-    @Column(name = "agency_id")
-    private String agencyId;
+  @Column(name = "ssn")
+  private String ssn;
 
-    @Column(name = "ssn")
-    private String ssn;
+  @Column(name = "first_name", nullable = false)
+  private String firstName;
 
-    @Column(name = "first_name", nullable = false)
-    private String firstName;
+  @Column(name = "last_name", nullable = false)
+  private String lastName;
 
-    @Column(name = "last_name", nullable = false)
-    private String lastName;
+  @Column(name = "dob")
+  private LocalDate dob;
 
-    @Column(name = "dob")
-    private LocalDate dob;
+  @Column(name = "gender")
+  private String gender;
 
-    @Column(name = "gender")
-    private String gender;
+  @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private Set<PatientAddress> patientAddresses = new HashSet<>();
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PatientAddress> patientAddresses = new HashSet<>();
+  @Column(name = "primary_language")
+  private String primaryLanguage;
 
-    @Column(name = "primary_language")
-    private String primaryLanguage;
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "medical_profile", columnDefinition = "jsonb")
+  private Map<String, Object> medicalProfile = new HashMap<>();
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "medical_profile", columnDefinition = "jsonb")
-    private Map<String, Object> medicalProfile = new HashMap<>();
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false)
+  private PatientStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private PatientStatus status;
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
+  // Relationships
+  @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private Set<PatientContact> contacts = new HashSet<>();
 
-    // Relationships
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PatientContact> contacts = new HashSet<>();
+  @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private Set<ResidenceStay> residenceStays = new HashSet<>();
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ResidenceStay> residenceStays = new HashSet<>();
+  @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private Set<ISP> isps = new HashSet<>();
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ISP> isps = new HashSet<>();
+  @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private Set<Authorization> authorizations = new HashSet<>();
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Authorization> authorizations = new HashSet<>();
+  @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private Set<PatientService> serviceMappings = new HashSet<>();
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PatientAllergy> patientAllergies = new HashSet<>();
+  @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private Set<PatientPayer> patientPayers = new HashSet<>();
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<MedicationOrder> medicationOrders = new HashSet<>();
+  public Patient(Office office, String firstName, String lastName) {
+    this.office = office;
+    this.firstName = firstName;
+    this.lastName = lastName;
+  }
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PatientService> serviceMappings = new HashSet<>();
+  // Helper methods
+  public String getFullName() {
+    return firstName + " " + lastName;
+  }
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PatientPayer> patientPayers = new HashSet<>();
+  public boolean isDeleted() {
+    return deletedAt != null;
+  }
 
-    public Patient(Office office, String firstName, String lastName) {
-        this.office = office;
-        this.firstName = firstName;
-        this.lastName = lastName;
-    }
+  public int getAge() {
+    if (dob == null)
+      return 0;
+    return LocalDate.now().getYear() - dob.getYear();
+  }
 
-    // Helper methods
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
-
-    public boolean isDeleted() {
-        return deletedAt != null;
-    }
-
-    public int getAge() {
-        if (dob == null) return 0;
-        return LocalDate.now().getYear() - dob.getYear();
-    }
-
-    public PatientContact getPrimaryContact() {
-        return contacts.stream()
-                .filter(contact -> Boolean.TRUE.equals(contact.getIsPrimary()))
-                .findFirst()
-                .orElse(null);
-    }
+  public PatientContact getPrimaryContact() {
+    return contacts.stream()
+        .filter(contact -> Boolean.TRUE.equals(contact.getIsPrimary()))
+        .findFirst()
+        .orElse(null);
+  }
 }
-

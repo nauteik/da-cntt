@@ -17,7 +17,7 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "patient_payer", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"patient_id", "payer_id"})
+    @UniqueConstraint(name = "uq_patient_payer_patient_payer", columnNames = {"patient_id", "payer_id"})
 })
 public class PatientPayer extends BaseEntity {
 

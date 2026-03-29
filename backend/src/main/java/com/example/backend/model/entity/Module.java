@@ -13,14 +13,16 @@ import java.util.Set;
  * Module entity for system modules
  */
 @Entity
-@Table(name = "module")
+@Table(name = "module", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_module_code", columnNames = {"code"})
+})
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @ToString(exclude = {"permissions"})
 public class Module extends BaseEntity {
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "code", nullable = false)
     private String code;
 
     @Column(name = "name", nullable = false)

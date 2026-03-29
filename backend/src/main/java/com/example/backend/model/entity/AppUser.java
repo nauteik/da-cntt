@@ -21,7 +21,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "app_user", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"email"})
+    @UniqueConstraint(name = "uq_app_user_email", columnNames = {"email"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
@@ -29,7 +29,7 @@ import java.util.UUID;
 @ToString(exclude = {"passwordHash", "role", "userOffices"})
 public class AppUser extends BaseEntity {
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
